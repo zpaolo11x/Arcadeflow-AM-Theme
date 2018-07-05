@@ -121,3 +121,5 @@ You can add a attract mode art category called "logoblur" and use the provided x
 *v 1.0*
 
 - First release
+
+![AF Image](http://www.mixandmatch.it/AF/AF_1280_2.jpg)
