@@ -1,13 +1,15 @@
-// Arcadeflow - v 1.0
+// Arcadeflow - v 1.1
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
 
-local DEBUG = false
+function round(x, y) {
+return (x.tofloat()/y+(x>0?0.5:-0.5)).tointeger()*y
+}
+
 // layout preferences
-local cols = 5
+//local cols = 7
 local rows = 2
-local fitcols = false
 
 local MAC = 0
 if (OS == "OSX") MAC = 1
@@ -17,13 +19,14 @@ local guifont ="Roboto-Allcaps"
 //screen layout definition
 local flw = ScreenWidth
 local flh = ScreenHeight
-//flw = 1280
-//flh = 800
+flw = 320
+flh = 200
 
 if (flw < flh){
-	cols = 3
+	//cols = 5
 	rows = 3
 }
+
 
 fe.layout.width = flw
 fe.layout.height = flh
@@ -35,11 +38,6 @@ local scalerate = flh/1200.0
 local header_h = 200*scalerate
 local footer_h = 100*scalerate
 
-// tile definition (used for fitcols)
-local fractionview = 0.5
-local margin_sx = fractionview*flw/cols
-local margin_dx = fractionview*flw/cols
-
 // scaling factor for middle separation
 local margin_scaler = 1.0
 
@@ -49,14 +47,18 @@ local padding_scaler = 1/6.0
 local height = (flh-header_h-footer_h)/(rows+rows*padding_scaler+margin_scaler*padding_scaler)
 local width = height
 
-if (fitcols){
-	width = (flw)/((cols-2*fractionview)+(cols-2*fractionview)*padding_scaler+padding_scaler)
-	height = width
-}
+
+
 
 local padding = height*padding_scaler
 local widthpadded = width + 2*padding
 local heightpadded = height + 2*padding
+
+//calculate number of columns
+local cols = (1+2*(floor((flw/2+width/2-padding)/(height+padding))))
+// add safeguard tiles
+cols +=2
+
 
 // carrier sizing in general layout
 local carrier_w = cols*(height+padding)+padding
@@ -69,6 +71,12 @@ local selectorscale = 1.5
 local whitemargin = 0.15
 local selectorwidth = selectorscale*widthpadded
 local selectoroffset = (selectorwidth - widthpadded)*0.5
+
+local deltacol = (cols -3)/2
+local centercorrection0 = -deltacol*(width+padding) -(flw - (carrier_w-2*(width+padding)))/2 -padding *(1+selectorscale*0.5) - width/2 + selectorwidth/2
+local centercorrection = 0
+local centercorrectionshift = centercorrection0
+
 
 // transitions speeds
 local scrollspeed = 0.9
@@ -115,6 +123,7 @@ class Carrier {
 	bd_vzTable = []
 	vidszTable = []
 	
+	
 	tilesTablePosX = []
 	tilesTablePosY = []
 	tilesTableOffset = 0
@@ -150,6 +159,7 @@ class Carrier {
 	snapbg4 = null
 	alphapos = 0
 	zoompos = 0
+	zoomunpos = 0
 	vidpos = 0
 	fadeletter = 0
 	sh_h = null
@@ -166,7 +176,7 @@ class Carrier {
 		tilesCount = cols * rows
 		tilesOffscreen = 4 * rows
 		if (flw<flh) tilesOffscreen = 3*rows
-
+		
 		tilesTotal = tilesCount + 2*tilesOffscreen
 		surfacePosOffset = (tilesOffscreen/rows) * (height+padding)
 		surfaceVertOffset = carrier_y
@@ -236,6 +246,7 @@ class Carrier {
 			//	logoz3.alpha = 50
 			//	logoz4.alpha = 20
 			
+
 			tilesTablePosX.push((width+padding) * (i/rows)  + padding)
 			tilesTablePosY.push((width+padding) * (i%rows)  + padding*margin_scaler + surfaceVertOffset)
 			
@@ -263,7 +274,7 @@ class Carrier {
 		letter2.alpha = 0
 		letter2.charsize = lettersize
 		letter2.font = guifont
-
+		
 		// scroller definition
 		local scrolline = fe.add_image ("white.png",footermargin,flh-footer_h*0.5 - 1,flw-2*footermargin,2)
 		scrolline.alpha = 200
@@ -275,16 +286,15 @@ class Carrier {
 		
 		if (flw < flh){
 			vid_w = (flw)*0.9
-			vid_h = vid_w
-
+			vid_h = vid_w	
 		}
 		
 		local vid_x = (flw-vid_w)*0.5
 		local vid_y = (flh-vid_h)*0.5
 		local padratio = 1/6.0
 		
-
-
+		
+		
 		videosnapsurf = fe.add_surface(flw,flh)
 		videoshadow = videosnapsurf.add_image("transparent.png",vid_x-vid_w*padratio,vid_y-vid_h*padratio,vid_w*(1+2*padratio),vid_h*(1+2*padratio))
 		videosnap = videosnapsurf.add_image("transparent.png",vid_x,vid_y,vid_w,vid_h)
@@ -313,22 +323,31 @@ class Carrier {
 	function on_transition( ttype, var, ttime ) {
 		
 		// scroller is always updated		
-		scroller.x = footermargin +((fe.list.index*1.0)/(fe.list.size-1))*(flw-2*footermargin-scrollersize)
-		
-		if ((ttype != Transition.EndNavigation) && (ttype != Transition.NewSelOverlay) ) zoompos = 1
-		
-		if (DEBUG) 
-		{
-			fe.overlay.splash_message (ttype)
-			for (local i=0;i<10000000;i++){
-			}
+		if (ttype == Transition.ToNewSelection) scroller.x = footermargin + (((fe.list.index+var)/rows)/((fe.list.size*1.0)/rows-1))*(flw-2*footermargin-scrollersize)
+		//if (ttype = Transition.ToNewSelection) 		fe.overlay.splash_message((fe.list.index+var)/rows + " / " + ((fe.list.size*1.0)/rows -1) )
+
+		if ((ttype != Transition.EndNavigation) && (ttype != Transition.NewSelOverlay) ) {
+			
+			
+			zoompos = 1
+			if ((ttype!=Transition.ToNewList)&&(ttype!=Transition.StartLayout)&&(ttype!=Transition.HideOverlay)) {
+				tilesTable[oldfocusindex].width = widthpadded
+				tilesTable[oldfocusindex].height = heightpadded
+				tilesTable[oldfocusindex].zorder = 7
+				bd_hzTable[oldfocusindex].visible = bd_vzTable[oldfocusindex].visible = false
+						
+				vidszTable[oldfocusindex].visible = false
+				//vidszTable[oldfocusindex].file_name = "transparent.png"
+				
+				zoomunpos = 1
+				}
 		}
 		
 		if ( ( ttype == Transition.ToNewList ) || ( ttype == Transition.ToNewSelection ) || (ttype == Transition.FromGame) || (ttype == Transition.StartLayout))
 		{
 			//zoompos = 1
 			vidpos = 1
-			
+	
 			// calculate wether the selector is on the first or second row
 			if (ttype == Transition.ToNewSelection){
 				corrector = -((fe.list.index + var) % rows)
@@ -341,8 +360,7 @@ class Carrier {
 				corrector = 0
 			}
 			//else if ((ttype == Transition.ToNewList) && ((changedfav == true) || (startupper == true)))
-			else
-			{
+			else {
 				//changedfav = false
 				startupper = false
 			}
@@ -357,16 +375,39 @@ class Carrier {
 			
 			if ((ttype == Transition.ToNewSelection)||(ttype==Transition.StartLayout)||(ttype == Transition.ToNewList)) {
 				tilesTableOffset += (var/rows)*rows
+				
+
+				//local correction1 = ((fe.list.index)/rows)*(centercorrection0 + 2*(padding+width)) - (padding+width)
+
+				
+				if ((fe.list.index + var < deltacol*rows) && (var < 0) ) {
+					if ((fe.list.index+var)/rows == deltacol - 1 ) centercorrectionshift = centercorrection0 + (deltacol - 1)*(width+padding)
+					else  centercorrectionshift = - (width+padding)
+				}
+				else if ((fe.list.index  < deltacol*rows) && (var > 0))  {
+					if ((fe.list.index)/rows == deltacol - 1 ) centercorrectionshift = -centercorrection0 - (deltacol - 1)* (width+padding)
+					else  centercorrectionshift =  (width+padding)
+				}
+				else {
+					centercorrectionshift = 0	
+				}
+
+
+				if (fe.list.index + var > deltacol*rows -1){
+					centercorrection = 0
+				}
+				else {
+					centercorrection = centercorrection0 + ((fe.list.index + var)/rows)*(width+padding)
+				}
+
+				if ((var == 1) || (var == -1)) centercorrectionshift = 0
+				
+				
 			}
 			
 			// updates all the tiles, unless we are changing favourites
 			if (changedfav == false){
-				if (DEBUG)
-				{
-					fe.overlay.splash_message ("LOOPING")
-					for (local i=0;i<10000000;i++){
-					}
-				}
+
 				for ( local i = 0; i < tilesTotal ; i++ ) {
 					
 					local indexTemp = wrap( i + tilesTableOffset, tilesTotal )
@@ -376,35 +417,41 @@ class Carrier {
 					
 					tilesTable[indexTemp].zorder = 7
 					
-					
 					local m = fe.game_info(Info.Favourite, snapzTable[indexTemp].index_offset+var)
 					if (m == "1")
-					favezTable[indexTemp].visible = true
+						favezTable[indexTemp].visible = true
 					else
-					favezTable[indexTemp].visible = false
+						favezTable[indexTemp].visible = false
 					
 					local m = fe.game_info(Info.Tags, snapzTable[indexTemp].index_offset+var)
 					if (m == ";Completed;")
-					donezTable[indexTemp].visible = true
+						donezTable[indexTemp].visible = true
 					else
-					donezTable[indexTemp].visible = false
+						donezTable[indexTemp].visible = false
 					
 					local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
 					if ((m == "0") || (m == "180")){
 						sh_hzTable[indexTemp].visible = true
 						sh_vzTable[indexTemp].visible = false
 					}
-					else
-					{
+					else {
 						sh_hzTable[indexTemp].visible = false
 						sh_vzTable[indexTemp].visible = true
 					}
 					
-					tilesTablePosX[indexTemp] = (i/rows) * (width+padding) + carrier_x
+					tilesTablePosX[indexTemp] = (i/rows) * (width+padding) + carrier_x + centercorrection
 					tilesTablePosY[indexTemp] = (i%rows) * (height + padding * margin_scaler) + surfaceVertOffset
 					
-					// if tranisioning to a new list, reset position and size of all thumbnails, not needed in normal flow
+					if( (fe.list.index + var + index < 0) || (fe.list.index + var + index > fe.list.size-1) ){
+						tilesTable[indexTemp].visible = false
+					}
+					else {
+						tilesTable[indexTemp].visible = true
+					}
+					
+					// if tranisioning to a new list, reset position and size of all thumbnails, not needed in normal scroll
 					if (ttype == Transition.ToNewList){
+						//fe.overlay.splash_message("P")
 						vidszTable[indexTemp].visible = false
 						vidszTable[indexTemp].file_name = "transparent.png"
 						tilesTable[indexTemp].width = widthpadded
@@ -416,10 +463,10 @@ class Carrier {
 					index++
 				}
 			}
-			else{
+			else {
 				changedfav = false
 			}
-
+			
 			// updates the size and features of the previously selected item and new selected item
 			newfocusindex = wrap( tilesTotal/2-1-corrector + tilesTableOffset, tilesTotal )
 			oldfocusindex = wrap( tilesTotal/2-1-corrector -var + tilesTableOffset, tilesTotal )
@@ -434,27 +481,26 @@ class Carrier {
 			vidszTable[oldfocusindex].visible = false
 			vidszTable[oldfocusindex].file_name = "transparent.png"
 			
-
+			
 			local m = fe.game_info(Info.Favourite, snapzTable[newfocusindex].index_offset+var)
 			if (m == "1")
-			favezTable[newfocusindex].visible = true
+				favezTable[newfocusindex].visible = true
 			else
-			favezTable[newfocusindex].visible = false
+				favezTable[newfocusindex].visible = false
 			
 			local m = fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset+var)
 			if (m == ";Completed;")
-			donezTable[newfocusindex].visible = true
+				donezTable[newfocusindex].visible = true
 			else
-			donezTable[newfocusindex].visible = false
-
-
+				donezTable[newfocusindex].visible = false
+			
+			
 			local m = fe.game_info(Info.Rotation, snapzTable[newfocusindex].index_offset+var)
 			if ((m == "0") || (m == "180")){
 				bd_hzTable[newfocusindex].visible = true
 				bd_vzTable[newfocusindex].visible = false
 			}
-			else
-			{
+			else {
 				bd_hzTable[newfocusindex].visible = false
 				bd_vzTable[newfocusindex].visible = true
 			}
@@ -475,9 +521,10 @@ class Carrier {
 			}
 			alphapos=255
 			
-			if ((var != 1) && (var != -1)) surfacePos += (var/rows) * (width + padding)
-			if ((var == 1) && (corrector == 0)) surfacePos += (width + padding)
-			if ((var == -1) && (corrector == 1-rows)) surfacePos -= (width + padding)
+			surfacePos += ((var/rows) * (width + padding) ) - centercorrectionshift
+			
+			//if ((var == 1) && (corrector == 0)) surfacePos += (width + padding)
+			//if ((var == -1) && (corrector == 1-rows)) surfacePos -= (width + padding)
 			
 			return false
 			
@@ -502,23 +549,28 @@ class Carrier {
 			letter2.alpha = 255*(1-4.0*(0.5-fadeletter)*(0.5-fadeletter))
 		}
 		
+
+
 		// contemporary scrolling of tiles and zooming of selected tile
-		if ((surfacePos != 0)||(zoompos !=0)) {
+		if ((surfacePos != 0)||(zoompos !=0)||(zoomunpos!=0)) {
 			if (zoompos == 1){
 				newfocusindex = wrap( tilesTotal/2-1-corrector + tilesTableOffset, tilesTotal )
 				
 				local m = fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset)
 				if (m == ";Completed;")
-				donezTable[newfocusindex].visible = true
+					donezTable[newfocusindex].visible = true
 				else
-				donezTable[newfocusindex].visible = false
+					donezTable[newfocusindex].visible = false
 				
 			}
 			if ((surfacePos < 0.1) && (surfacePos > -0.1)) surfacePos = 0
 			if ((zoompos < 0.01) && (zoompos > -0.01 )) zoompos = 0
+			if ((zoomunpos < 0.01) && (zoomunpos > -0.01 )) zoomunpos = 0
+
 			
 			surfacePos = surfacePos * scrollspeed
 			zoompos = zoompos * zoomspeed
+			zoomunpos = zoomunpos * zoomspeed*zoomspeed
 			
 			if (surfacePos > surfacePosOffset) surfacePos = surfacePosOffset
 			if (surfacePos < -surfacePosOffset) surfacePos = -surfacePosOffset
@@ -535,26 +587,33 @@ class Carrier {
 			tilesTable[newfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(1.0-zoompos)
 			tilesTable[newfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(1.0-zoompos)
 			//tilesTable[newfocusindex].zorder = 25
-			
+
+			if (oldfocusindex != newfocusindex){
+			tilesTable[oldfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[oldfocusindex] - (selectoroffset*(zoomunpos))
+			tilesTable[oldfocusindex].y =  tilesTablePosY[oldfocusindex] - (selectoroffset*(zoomunpos))
+			tilesTable[oldfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(zoomunpos)
+			tilesTable[oldfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(zoomunpos)
+			}
 		}
 		
 		// crossfade of video snaps, tailored to skip initian fade in
 		if (( vidpos != 0 )) {
 			
-			vidpos = vidpos - 0.015
+			vidpos = vidpos - 0.01
 			if (vidpos < 0.01) vidpos = 0
 			newfocusindex = wrap( tilesTotal/2-1-corrector + tilesTableOffset, tilesTotal )
-			
-			if ((vidpos < 0.61) && (vidpos > 0.59)){
+			local delayvid = 0.4
+			local fadevid = 0.2
+			if ((vidpos < delayvid) && (vidpos > delayvid - 0.01)){
 				vidszTable[newfocusindex].visible = true
 				vidszTable[newfocusindex].file_name = fe.get_art("snap")
 				vidszTable[newfocusindex].alpha = 0		
 			}
 			
-			if (vidpos <= 1/3.0)
-			vidszTable[newfocusindex].alpha = 255.0*(1-vidpos*3.0)
+			if (vidpos <= fadevid)
+				vidszTable[newfocusindex].alpha = 255.0*(1-vidpos*(1/fadevid))
 			else
-			vidszTable[newfocusindex].alpha = 0
+				vidszTable[newfocusindex].alpha = 0
 		}
 		
 	}
@@ -574,8 +633,7 @@ class Carrier {
 		if ((m == "0") || (m == "180")){
 			videoshadow.file_name = "sh_h.png"
 		}
-		else
-		{
+		else {
 			videoshadow.file_name = "sh_v.png"
 		}
 	}
@@ -588,7 +646,7 @@ class Carrier {
 			// grid navigation, not repeating
 			
 			case "left":
-			if (fe.list.index  > 1) {
+			if (fe.list.index  > rows-1) {
 				fe.list.index -= rows
 				if (videosnapsurf.visible == true) updatesurf()
 			}
@@ -611,7 +669,7 @@ class Carrier {
 			return true
 			
 			case "down":
-			if (fe.list.index % rows < rows -1)  {
+			if ((fe.list.index % rows <  rows -1) && ( ! ( (fe.list.index / rows == fe.list.size / rows)&&(fe.list.index%rows + 1 > (fe.list.size -1)%rows) ))) {
 				if ((corrector == 0) && (fe.list.index == fe.list.size-1))
 				return true
 				fe.list.index ++
@@ -625,8 +683,7 @@ class Carrier {
 				videosnapsurf.visible = true
 				updatesurf()
 			}
-			else
-			{
+			else {
 				videosnap.file_name="transparent.png"
 				videosnapsurf.visible = false
 			}
@@ -650,6 +707,10 @@ class Carrier {
 			fe.list.search_rule ="Title contains "+searchtext
 			fe.list.index = 0
 			corrector = 0
+			return true
+			
+			case "custom1":
+			fe.overlay.splash_message(fe.list.index % rows + "   "+  fe.list.size % rows)
 			return true
 			
 		}

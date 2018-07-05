@@ -1,8 +1,16 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 1.0**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 1.1**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio (still not completely tested but should work)
+
+*What's new in v 1.1*
+
+- The games list is not repeating
+- Tweaked scrolling at the beginning of the list so the first game column is not centered
+- Changed the timing so that when the video snapshot is loaded the scrolling doesn't stutter
+- Number of columns automatically calculated
+- Better support for vertical displays
 
 *Custom controls*
 
@@ -29,9 +37,7 @@ The blurred background is not calculated from the snaps: you need to batch proce
 
 - resize the snaps to 640x480
 - crop a 480x480 central portion
-- resize to 64x64
-- apply 5 gaussian blurs 13x13 pixels wide
-- resize to 128x128
-- apply 5 gaussian blurs 13x13 pixels wide
+- resize to 32x32
+- apply 1 gaussian blurs 9x9 pixels wide
 
 This results in a very smooth yet fast to load blurred background. I prepared some xnview scripts you can use for the conversion.

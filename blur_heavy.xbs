@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?><XnView_script version="1.0" name="blur_heavy">
+    <Resize mode="0" width="640" height="480" unit="0" ratio="false" orientation="true" enlarge="0" resample="0" gamma_correct="false"/>
+    <Canvas_resize width="480" height="480" unit="0" relative="false" ratio="false" orientation="false" color="#ffffff" alpha="255" position="4"/>
+    <Resize mode="0" width="64" height="64" unit="0" ratio="false" orientation="false" enlarge="0" resample="7" gamma_correct="false"/>
+    <Gaussian_blur size="13"/>
+    <Gaussian_blur size="13"/>
+    <Gaussian_blur size="13"/>
+    <Gaussian_blur size="13"/>
+    <Gaussian_blur size="13"/>
+    <Resize mode="0" width="128" height="128" unit="0" ratio="true" orientation="false" enlarge="0" resample="7" gamma_correct="false"/>
+    <Gaussian_blur size="13"/>
+    <Gaussian_blur size="13"/>
+    <Gaussian_blur size="13"/>
+    <Gaussian_blur size="13"/>
+    <Gaussian_blur size="13"/>
+    <Output folder="logoblur" filename="{Filename}" case="0" startIndex="1" format="PNG">
+        <Options overwrite="1" orgDate="false" keepMeta="false" keepICC="false" keepFolder="false" keepParentFolder="false" delOrg="false" multipage="false" allPages="false" openExplorer="false" openBrowser="false" clearItems="false"/>
+        <PNG level="9" interlaced="false" filter="0"/>
+    </Output>
+</XnView_script>

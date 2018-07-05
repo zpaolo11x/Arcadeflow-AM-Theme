@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?><XnView_script version="1.0" name="blur">
+    <Resize mode="0" width="640" height="480" unit="0" ratio="false" orientation="true" enlarge="0" resample="0" gamma_correct="false"/>
+    <Canvas_resize width="480" height="480" unit="0" relative="false" ratio="false" orientation="false" color="#ffffff" alpha="255" position="4"/>
+    <Resize mode="0" width="32" height="32" unit="0" ratio="false" orientation="false" enlarge="0" resample="7" gamma_correct="false"/>
+    <Gaussian_blur size="9"/>
+    <Output folder="snapsblur" filename="{Filename}" case="0" startIndex="1" format="PNG">
+        <Options overwrite="1" orgDate="false" keepMeta="false" keepICC="false" keepFolder="false" keepParentFolder="false" delOrg="false" multipage="false" allPages="false" openExplorer="false" openBrowser="false" clearItems="false"/>
+        <PNG level="9" interlaced="false" filter="0"/>
+    </Output>
+</XnView_script>
