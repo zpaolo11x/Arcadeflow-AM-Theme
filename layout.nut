@@ -1,17 +1,27 @@
-// Arcadeflow - v 1.5
+// Arcadeflow - v 1.6
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
+// Including code from the KeyboardSearch plugin by Andrew Mickelson (mickelson)
 
 class UserConfig </ help="" />{
 	</ label="Theme Color", help="Setup theme color", options="Default, Dark, Light, Pop", order=1 /> colortheme="Default"
 	</ label="Blurred Logo Shadow", help="Use blurred logo artwork shadow", options="Yes, No", order=2 /> logoblurred="Yes"
 	</ label="Enable New Game Indicator", help="Games not played are marked with a glyph", options="Yes, No", order=3 /> newgame = "Yes"
-	</ label="Custom Background Image", help="Insert custom background art path", order=3 /> bgblurred=""
+	</ label="Custom Background Image", help="Insert custom background art path", order=4 /> bgblurred=""
+	</ label="Search string entry method", help="Use keyboard or on-screen keys to enter search string", options="Keyboard, Screen keys", order=5 /> searchmeth = "Screen keys"
+	</ label="Immediate search", help="Live update results while searching", options="Yes, No", order=6 /> livesearch = "Yes"
+	</ label="Enable AF splash logo", help="Enable or disable the AF start logo", options="Yes, No",order = 7/> splashlogo = "Yes"
+	</ label="Vertical rows", help = "Number of rows to use in 'vertical' mode", otions="2, 3", order = 8 /> verticalrows = "3"
 }
+
+
+local keyboard = false
 
 local backindex = -1
 local backcorrector = -1
+
+local search_base_rule = "Title"
 
 local my_config = fe.get_config()
 
@@ -19,9 +29,31 @@ local colortheme = my_config["colortheme"]
 local logoblurred_in = my_config["logoblurred"]
 local bgblurred = my_config["bgblurred"]
 local newgame_in = my_config["newgame"]
+local keyboard_in = my_config["searchmeth"]
+local livesearch_in = my_config["livesearch"]
+local splashlogo_in = my_config["splashlogo"]
+local verticalrows_in = my_config["verticalrows"]
 
 local LOGOBLURRED = true
 local NEWGAME = true
+local LIVESRC = false
+local SPLASHON = true
+local rows_vertical = 3
+
+if (verticalrows_in == "2")
+	rows_vertical = 2
+else
+	rows_vertical = 3
+
+if (splashlogo_in == "Yes") 
+	SPLASHON = true 
+else 
+	SPLASHON = false
+
+if (livesearch_in == "Yes") 
+	LIVESRC = true 
+else 
+	LIVESRC = false
 
 if (logoblurred_in == "Yes") 
 	LOGOBLURRED = true 
@@ -33,6 +65,10 @@ if (newgame_in == "Yes")
 else 
 	NEWGAME = false
 
+if (keyboard_in == "Keyboard") 
+	keyboard = true 
+else 
+	keyboard = false
 
 local themeoverlaycolor = 255
 local themeoverlayalpha = 80
@@ -90,22 +126,26 @@ local guifont ="Roboto-Allcaps.ttf"
 local scrolltitle = 2
 local scrollincrement = 0
 
-//screen layout definition
-local flw = ScreenWidth
-local flh = ScreenHeight
-//flw = 600
-//flh = 800
+local scrw = ScreenWidth
+local scrh = ScreenHeight
+//scrw = 240
+//scrh = 320
 
-//fe.overlay.splash_message(flw+" "+flh)
+//screen layout definition
+local flw = scrw
+local flh = scrh
 
 if ((flw < flh) && (fe.layout.toggle_rotation == RotateScreen.None)) vertical = true
 if ((flw > flh) && (fe.layout.toggle_rotation != RotateScreen.None)) {
 	vertical = true
-	flw = ScreenHeight
-	flh = ScreenWidth
+	flw = scrh
+	flh = scrw
 }
 
-if (vertical) rows = 3
+if (vertical) rows = rows_vertical
+
+local shrinker = 1
+if (vertical) shrinker = 1
 
 fe.layout.width = flw
 fe.layout.height = flh
@@ -114,8 +154,10 @@ fe.layout.page_size = rows
 fe.layout.font ="Roboto-Bold.ttf"
 
 local scalerate = flh/1200.0
-local header_h = 200*scalerate
-local footer_h = 100*scalerate
+if (vertical) scalerate = flw/1200.0
+
+local header_h = 200*scalerate*shrinker
+local footer_h = 100*scalerate*shrinker
 
 // scaling factor for middle separation
 local margin_scaler = 1.0
@@ -191,6 +233,15 @@ if (vertical){
 local scrolljump = false
 local scrollstep = rows
 
+
+local key_names = { "a": "a", "b": "b", "c": "c", "d": "d", "e": "e", "f": "f", "g": "g", "h": "h", "i": "i", "j": "j", "k": "k", "l": "l", "m": "m", "n": "n", "o": "o", "p": "p", "q": "q", "r": "r", "s": "s", "t": "t", "u": "u", "v": "v", "w": "w", "x": "x", "y": "y", "z": "z", "1": "Num1", "2": "Num2", "3": "Num3", "4": "Num4", "5": "Num5", "6": "Num6", "7": "Num7", "8": "Num8", "9": "Num9", "0": "Num0", "<": "Backspace", " ": "Space", "-": "Clear", "~": "Done","_":"Nope" }
+local key_rows =  ["abcdefghi123", "jklmnopqr456", "stuvwxyz_789", "- <0","~"]
+if (vertical)
+	key_rows = ["1234567890","abcdefghij","klmnopqrst","uvwxyz____","- <","~"]
+local key_selected = [0,0]
+local s_text = ""
+
+
 class Carrier {
 	
 	tilesTable = []
@@ -218,7 +269,6 @@ class Carrier {
 	selector = null
 	tilesTotal = 0
 	tilesOffscreen = 0
-	vertmargin = 0
 	favorite = null
 	completed = null
 	corrector = 0
@@ -273,7 +323,6 @@ class Carrier {
 		surfacePosOffset = (tilesOffscreen/rows) * (height+padding)
 		surfaceVertOffset = carrier_y
 		surfaceHoriOffset = carrier_x
-		vertmargin = carrier_y+0.8*padding
 		
 		local shadeval = 255
 		
@@ -376,7 +425,6 @@ class Carrier {
 			tilesTablePosX.push((width+padding) * (i/rows)  + padding)
 			tilesTablePosY.push((width+padding) * (i%rows)  + padding*margin_scaler + surfaceVertOffset + verticalshift)
 			
-			//local favez = obj.add_image("favoritez.png",padding,padding,width/2.5,height/2.5)
 			favez.visible = false
 			favez.preserve_aspect_ratio = false
 			
@@ -479,9 +527,30 @@ class Carrier {
 		
 	}
 	
+	function recalculate( str )
+    {
+        if ( str.len() == 0 ) return ""
+        str = str.tolower()
+        local words = split( str, " " )
+
+        local temp=""
+        foreach ( idx, w in words )
+        {
+            //print("searching: " + w )
+            //if ( idx > 0 ) temp += " "
+            //foreach( c in w )
+            //    if ( c != " " ) temp += ( "1234567890".find(c.tochar()) != null ) ? c.tochar() : "[" + c.tochar().toupper() + c.tochar().tolower() + "]"
+            if ( temp.len() > 0 )
+                temp += " "
+            local f = w.slice( 0, 1 )
+            temp += ( "1234567890".find(f) != null ) ? "[" + f + "]" + w.slice(1) : "[" + f.toupper() + f.tolower() + "]" + w.slice(1)
+        }
+
+        return temp
+    }
 	
 	function on_transition( ttype, var, ttime ) {
-		
+
 		// scroller is always updated		
 		if ((ttype == Transition.ToNewSelection) || (ttype == Transition.StartLayout)) {
 			scroller.x = footermargin + (((fe.list.index+var)/rows)/((fe.list.size*1.0)/rows-1))*(flw-2*footermargin-scrollersize)
@@ -489,11 +558,13 @@ class Carrier {
 			scrolltitle = 2
 			scrollincrement = 0
 		}
-		//if (ttype = Transition.ToNewSelection) 		fe.overlay.splash_message((fe.list.index+var)/rows + " / " + ((fe.list.size*1.0)/rows -1) )
 		
+
+		// since the EndNavigation transition is fired many times I don't want the zoom/unzoom to take place in that case
 		if ((ttype != Transition.EndNavigation) && (ttype != Transition.NewSelOverlay) ) {
-			
 			zoompos = 1
+			
+			// If we are not transitioning to a new list, starting the layout or hiding the overlay old tile is faded out
 			if ((ttype!=Transition.ToNewList)&&(ttype!=Transition.StartLayout)&&(ttype!=Transition.HideOverlay)) {
 				tilesTable[oldfocusindex].width = widthpadded
 				tilesTable[oldfocusindex].height = heightpadded
@@ -510,8 +581,9 @@ class Carrier {
 		{
 			//zoompos = 1
 			vidpos = 1
-			
-			// calculate wether the selector is on the first or second row
+
+
+			// calculate wether the selector is on the first or second row, var is not zero
 			if (ttype == Transition.ToNewSelection){
 				corrector = -((fe.list.index + var) % rows)
 			}
@@ -532,19 +604,20 @@ class Carrier {
 			}
 			*/
 
-			// correction of the row position when starting the layout (when var is undefined)
-			if ((ttype == Transition.StartLayout)) {
+			// correction of the row position when starting the layout or going to a new list (when var is undefined)
+			if ((ttype == Transition.StartLayout) || (ttype == Transition.ToNewList) ) {
 				corrector = -((fe.list.index) % rows)
-				//startupper = true
+				var = 0
 			}
-			
+
 			local index = - (floor(tilesTotal/2) -1) + corrector
 			
 			if ((ttype == Transition.ToNewSelection)||(ttype==Transition.StartLayout)||(ttype == Transition.ToNewList)) {
-				tilesTableOffset += (var/rows)*rows
-				
-				
-				//local correction1 = ((fe.list.index)/rows)*(centercorrection0 + 2*(padding+width)) - (padding+width)
+				//if (ttype == Transition.ToNewSelection) 
+			   	tilesTableOffset += (var/rows)*rows
+				//else
+				//	tilesTableOffset = 0
+
 				
 				
 				if ((fe.list.index + var < deltacol*rows) && (var < 0) ) {
@@ -567,7 +640,7 @@ class Carrier {
 					centercorrection = centercorrection0 + ((fe.list.index + var)/rows)*(width+padding)
 				}
 				
-				if ((var == 1) || (var == -1)) centercorrectionshift = 0
+				if ((var == 1) || (var == -1) || (var == 0)) centercorrectionshift = 0
 				
 				
 			}
@@ -584,6 +657,7 @@ class Carrier {
 					logozTable[indexTemp].rawset_index_offset(index)
 				
 					namezTable[indexTemp].msg = gamename(index + var )
+					//namezTable[indexTemp].msg = (snapzTable[indexTemp].texture_width > snapzTable[indexTemp].texture_height)
 
 					tilesTable[indexTemp].zorder = 7
 					
@@ -601,9 +675,10 @@ class Carrier {
 					
 
 
-					local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
+					//local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
+					local m = (snapzTable[indexTemp].texture_width > snapzTable[indexTemp].texture_height)
 					local m2 = fe.game_info(Info.PlayedCount,  snapzTable[indexTemp].index_offset+var)
-					if ((m == "0") || (m == "180") || (m == "Horizontal") || (m == "Horizontal")){
+					if (m){
 						sh_hzTable[indexTemp].visible = true
 						sh_vzTable[indexTemp].visible = false
 						nw_vzTable[indexTemp].visible = false
@@ -679,19 +754,36 @@ class Carrier {
 				donezTable[newfocusindex].visible = false
 			
 			
-			local m = fe.game_info(Info.Rotation, snapzTable[newfocusindex].index_offset+var)
-			if ((m == "0") || (m == "180") || (m == "Horizontal") || (m == "Horizontal")){
+			//local m = fe.game_info(Info.Rotation, snapzTable[newfocusindex].index_offset+var)
+			local m = (snapzTable[newfocusindex].texture_width > snapzTable[newfocusindex].texture_height)
+			local m2 = fe.game_info(Info.PlayedCount,  snapzTable[newfocusindex].index_offset+var)
+
+			if (m){
 				bd_hzTable[newfocusindex].visible = true
 				bd_vzTable[newfocusindex].visible = false
+				nw_vzTable[newfocusindex].visible = false
+						if (m2 == "0") 
+							nw_hzTable[newfocusindex].visible = true
+						else
+							nw_hzTable[newfocusindex].visible = false
 			}
 			else {
 				bd_hzTable[newfocusindex].visible = false
 				bd_vzTable[newfocusindex].visible = true
+				nw_hzTable[newfocusindex].visible = false
+						if (m2 == "0") 
+							nw_vzTable[newfocusindex].visible = true
+						else
+							nw_vzTable[newfocusindex].visible = false
 			}
 			
 		}
 		
 		
+		if (ttype == Transition.ToNewList){
+			surfacePos = 0.5
+		}
+
 		// if the transition is to a new selection initialize zooming, scrolling and surfacepos
 		if( ttype == Transition.ToNewSelection )
 		{
@@ -710,7 +802,7 @@ class Carrier {
 			//if ((var == 1) && (corrector == 0)) surfacePos += (width + padding)
 			//if ((var == -1) && (corrector == 1-rows)) surfacePos -= (width + padding)
 			
-			return false
+			//return false
 			
 		}
 		
@@ -748,6 +840,7 @@ class Carrier {
 			if (zoompos == 1){
 				newfocusindex = wrap( tilesTotal/2-1-corrector + tilesTableOffset, tilesTotal )
 				
+				// Useful check to update "Completed" tag when changing tags
 				local m = fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset)
 				if (m.find("Completed") != null)
 					donezTable[newfocusindex].visible = true
@@ -820,22 +913,51 @@ class Carrier {
 	
 	// updates the video preview surface according to orientation
 	function updatesurf(){
+		
+		local m = (snapzTable[newfocusindex].texture_width > snapzTable[newfocusindex].texture_height)
 		videosnap.file_name = fe.get_art("snap")
-		local m = fe.game_info(Info.Rotation)
-		if ((m == "0") || (m == "180") || (m == "Horizontal") || (m == "Horizontal")){
+		if (m) {
 			videoshadow.file_name = "sh_h.png"
 		}
-		else {
+		else  {
 			videoshadow.file_name = "sh_v.png"
 		}
 	}
 	
 	function on_signal( sig )
 	{
+		
+
+		if (search_visible())
+		{
+			if (sig == "custom3")
+				search_toggle()
+			else if ( sig == "up" ) {
+				search_select_relative( 0, -1 )
+				while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( 0, -1 )
+			}
+			else if ( sig == "down" ) {
+				search_select_relative( 0, 1 )
+				while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( 0, 1 )
+			}
+			else if ( sig == "left" ) {
+				search_select_relative( -1, 0 )
+				while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( -1, 0 )
+			}
+			else if ( sig == "right" ) {
+				search_select_relative( 1, 0 )
+				while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( 1, 0 )
+			}
+			else if ( sig == "select" ) search_type( key_rows[key_selected[1]][key_selected[0]].tochar() )
+			else if ( sig == "back" ) if ( text.len() == 0 ) toggle() else search_type("<")
+			else if ( sig == "exit" ) toggle()
+			return true
+		}
+
+		else {
 
 		switch ( sig )
 		{
-			// grid navigation, not repeating
 			
 			case "left":
 			if (fe.list.index  > scrollstep - 1) {
@@ -906,6 +1028,8 @@ class Carrier {
 			}
 			return true
 			
+			
+
 			// enable - disable the video preview surface
 			case "custom6":
 			wooshsound.playing=true
@@ -965,16 +1089,27 @@ class Carrier {
 				return
 			}
 			if ((result != 4)&&(result !=-1)){
-				searchtext = fe.overlay.edit_dialog("Search "+switcharray[result]+": ",searchtext)
+				if (keyboard) 
+					searchtext = fe.overlay.edit_dialog("Search "+switcharray[result]+": ",searchtext)
+				else
+					search_base_rule = switcharray[result]
+				
 				if (backindex == -1){
 					backindex = fe.list.index
 					backcorrector = corrector
 				}
+				
+				if (keyboard)
+					{
 				fe.list.index += corrector + rows 
-				fe.list.search_rule = switcharray[result]+" contains "+ searchtext
+				fe.list.search_rule = switcharray[result]+" contains "+ recalculate(searchtext)
 				fe.list.index = 0
 				corrector = 0
 				searchdata.msg = fe.list.search_rule
+					}
+				else{
+					search_toggle()
+				}
 
 				return true
 
@@ -997,11 +1132,11 @@ class Carrier {
 			if (fe.layout.toggle_rotation == RotateScreen.None)
 				{
 				fe.layout.toggle_rotation = RotateScreen.Right
-				fe.signal ("reset_window")
+				fe.signal ("reload")
 				}
 			else{
 				fe.layout.toggle_rotation = RotateScreen.None
-				fe.signal ("reset_window")
+				fe.signal ("reload")
 			}
 			return true
 
@@ -1009,15 +1144,15 @@ class Carrier {
 			if (fe.layout.toggle_rotation == RotateScreen.None)
 				{
 				fe.layout.toggle_rotation = RotateScreen.Left
-				fe.signal ("reset_window")
+				fe.signal ("reload")
 				}
 			else{
 				fe.layout.toggle_rotation = RotateScreen.None
-				fe.signal ("reset_window")
+				fe.signal ("reload")
 			}
 			return true
 
-			// use custom3 to enable search
+			// use custom2 to enable "more of the same" search
 			case "custom2":
 			wooshsound.playing=true
 			local searchtext =""
@@ -1076,7 +1211,8 @@ class Carrier {
 			default:
 			wooshsound.playing=true
 			
-		}
+		} // END OF SWITCH SIGNAL LOOP 
+		} // CLOSE ELSE GROUP
 		return false
 	}
 }
@@ -1133,11 +1269,13 @@ function maincategory( offset ) {
 }
 
 
+
+
 // scrolling carrier call
 
 local carrier = Carrier()
 
-local rightdata = 400*scalerate
+local rightdata = 400*scalerate*shrinker
 //local namesurf = fe.add_surface (flw-rightdata,header_h)
 
 // game name shadow
@@ -1145,7 +1283,7 @@ local namesh_x =  fe.add_text( "[!gamename]", 3, 3, flw*2, header_h*2/3 )
 namesh_x.align = Align.Left
 namesh_x.word_wrap = false
 namesh_x.set_rgb( 0, 0, 0)
-namesh_x.charsize = 60*scalerate
+namesh_x.charsize = 60*scalerate*shrinker
 namesh_x.alpha=themeshadow
 //namesh_x.bg_alpha = 128
 //namesh_x.bg_red = 255
@@ -1156,7 +1294,7 @@ local name_x =  fe.add_text( "[!gamename]", 0, 0, flw*2, header_h*2/3 )
 name_x.align = Align.Left
 name_x.word_wrap = false
 name_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-name_x.charsize = 60*scalerate
+name_x.charsize = 60*scalerate*shrinker
 //name_x.bg_alpha = 128
 //name_x.bg_red = 255
 name_x.font = guifont
@@ -1179,7 +1317,7 @@ local subname_x =  fe.add_text( " [!gamesubname]", 0, header_h*1/3+60*scalerate/
 subname_x.align = Align.Left
 subname_x.word_wrap = true
 subname_x.set_rgb( 255, 255, 255)
-subname_x.charsize = 40*scalerate
+subname_x.charsize = 40*scalerate*shrinker
 //subname_x.bg_alpha = 128
 //subname_x.bg_green = 255
 subname_x.font = guifont
@@ -1190,7 +1328,7 @@ local year_x =  fe.add_text( "© [Year] [Manufacturer]", flw-rightdata, 10*scale
 year_x.align = Align.Centre
 year_x.set_rgb( 255, 255, 255)
 year_x.word_wrap = true
-year_x.charsize = 30*scalerate
+year_x.charsize = 30*scalerate*shrinker
 year_x.visible = true
 //year_x.bg_alpha = 128
 //year_x.bg_green = 155
@@ -1202,7 +1340,7 @@ local year_x =  fe.add_text( "[!maincategory]", flw-rightdata, header_h/2-10*sca
 year_x.align = Align.Centre
 year_x.set_rgb( 255, 255, 255)
 year_x.word_wrap = true
-year_x.charsize = 30*scalerate
+year_x.charsize = 30*scalerate*shrinker
 year_x.visible = true
 //year_x.bg_alpha = 128
 //year_x.bg_green = 155
@@ -1213,7 +1351,7 @@ local filterdata = fe.add_text ("[FilterName]",0,flh-footer_h,footermargin,foote
 filterdata.align = Align.Centre
 filterdata.set_rgb( 255, 255, 255)
 filterdata.word_wrap = true
-filterdata.charsize = 25*scalerate
+filterdata.charsize = 25*scalerate*shrinker
 filterdata.visible = true
 filterdata.font = guifont
 filterdata.set_rgb(themetextcolor,themetextcolor,themetextcolor)
@@ -1222,7 +1360,7 @@ local filternumbers = fe.add_text ("[ListEntry]/[ListSize]",flw-footermargin,flh
 filternumbers.align = Align.Centre
 filternumbers.set_rgb( 255, 255, 255)
 filternumbers.word_wrap = true
-filternumbers.charsize = 25*scalerate
+filternumbers.charsize = 25*scalerate*shrinker
 filternumbers.visible = true
 filternumbers.font = guifont
 filternumbers.set_rgb(themetextcolor,themetextcolor,themetextcolor)
@@ -1252,10 +1390,12 @@ afwhitebg.bg_alpha = themeoverlayalpha
 // aggiunge l'immagine del logo
 local aflogo = fe.add_image ("AFLOGO3b.png",0,(flh-(flw*1000/1600))/2,flw,flw*1000/1600)
 
+
+
 // OVERLAY PER CONTROLLI CUSTOM (LISTBOX)
 
 local overlay_charsize = floor( 50*scalerate )
-local overlay_rows = 6
+local overlay_rows = floor((flh-header_h-footer_h)/(overlay_charsize*3))
 local overlay_labelsize = floor ((flh-header_h-footer_h)/overlay_rows)
 
 // sfondo dell'area con le scritte
@@ -1316,12 +1456,188 @@ function overlay_transition( ttype, var, ttime )
 	return false
 }
 
+// SEARCH MODULE
+
+
+if (SPLASHON == false) afsplash.visible = afwhitebg.visible = aflogo.visible = false
+
+
+
+local search_surface = fe.add_surface(fe.layout.width, fe.layout.height)
+local keys = null
+keys = {}
+local search_text = null
+search_surface.zorder = 999999
+
+search_surface.preserve_aspect_ratio = true
+search_surface.alpha = 255*0
+
+
+//select( config.keys.selected[0], config.keys.selected[1] )
+
+
+function search_toggle() {
+	search_surface.alpha = ( search_surface.alpha == 0 ) ? 255: 0
+	if (search_text.msg = "") search_text.msg = search_base_rule + ": "
+	//clear text when shown
+	if ( search_visible() ) search_clear()
+	
+}
+
+function search_clear()
+{
+	s_text = ""
+	search_text.msg = search_base_rule + ": "
+	search_update_rule()
+}
+
+//get current visibility
+function search_visible() {
+	return (search_surface.alpha == 255)
+}
+
+function search_select_relative( rel_col, rel_row )
+{
+	
+	//fe.overlay.splash_message(rel_col+" "+rel_row)
+	search_select( key_selected[0] + rel_col, key_selected[1] + rel_row )
+}
+
+function search_select( col, row )
+{
+	row = ( row < 0 ) ? key_rows.len() - 1 : ( row > key_rows.len() - 1 ) ? 0 : row
+	col = ( col < 0 ) ? key_rows[row].len() - 1 : ( col > key_rows[row].len() - 1 ) ? 0 : col
+	local previous = key_rows[key_selected[1]][key_selected[0]].tochar()
+	local selected = key_rows[row][col].tochar()
+	//print( "selected: " + selected + "(" + col + "," + row + ") previous: " + previous + "(" + config.keys.selected[0] + "," + config.keys.selected[1] + ")" )
+	keys[previous].set_rgb( 180,180,180 )
+	keys[previous].alpha = 255
+	keys[selected].set_rgb( 255,255,255 )
+	keys[selected].alpha = 255
+	key_selected = [ col, row ]
+	
+}
+
+function search_type( c )
+{
+
+	if ( c == "<" )
+		s_text = ( s_text.len() > 0 ) ? s_text.slice( 0, s_text.len() - 1 ) : ""
+	else if ( c == "-" )
+		search_clear()
+	else if ( c == "~" )
+			{
+				search_update_rule ()
+				search_toggle()
+			}
+	else if (c != "_")
+		s_text = s_text + c
+	search_text.msg = search_base_rule + " = " + s_text 
+	if (LIVESRC) search_update_rule()
+}
+	 
+function search_update_rule(){
+	try
+	{
+		local rule = search_base_rule + " contains " + recalculate (s_text)
+		//fe.list.search_rule = "Title contains mario"
+		//fe.list.search_rule = ""
+		
+			fe.list.index += corrector + rows
+			fe.list.search_rule = ( s_text.len() > 0 ) ? rule : ""
+			fe.list.index = 0
+			corrector = 0
+			searchdata.msg = fe.list.search_rule
+		
+
+	} catch ( err ) { print( "Unable to apply filter: " + err ); }
+	}
+
+function draw_osd() {
+
+	//draw the search surface bg
+	local bg = search_surface.add_image("kbg.png", 0, 0, search_surface.width, search_surface.height)
+	bg.alpha = 210
+				
+
+	//draw the search text object
+	local osd_search = {
+		x = ( search_surface.width * 0 ) * 1.0,
+		y = ( search_surface.height * 0.2 ) * 1.0,
+		width = ( search_surface.width * 1 ) * 1.0,
+		height = ( search_surface.height * 0.1 ) * 1.0
+	}
+
+	search_text = search_surface.add_text(s_text, osd_search.x, osd_search.y, osd_search.width, osd_search.height)
+	search_text.align = Align.Left
+	search_text.font = guifont
+	search_text.set_rgb( 255, 255, 255 )
+	search_text.alpha = 255
+	search_text.charsize = 80*scalerate
+
+
+	//draw the search key objects
+	foreach( key,val in key_names ) {
+				
+		local key_name = (key == "_") ? " " : ( key == "-" ) ? "CLR" : ( key == " " ) ? "SPC" : ( key == "<" )  ? "DEL" : ( key == "~" ) ? "DONE" : key.toupper()
+		
+		local textkey = search_surface.add_text( key_name, -1, -1, 1, 1 )
+		textkey.font = guifont
+		textkey.charsize = 80*scalerate
+
+		textkey.set_rgb( 180,180,180)
+		textkey.alpha = 255
+
+
+		keys[ key.tolower() ] <- textkey
+		
+	}
+	
+
+
+	//set search key positions
+	local row_count = 0
+	foreach ( row in key_rows )
+		{
+		local col_count = 0
+		local osd = {
+				x = ( search_surface.width * 0.1 ) * 1.0,
+				y = ( search_surface.height * 0.4 ) * 1.0,
+				width = ( search_surface.width * 0.8 ) * 1.0,
+				height = ( search_surface.height * 0.5 ) * 1.0
+		}
+		//local keynumcol = (row == "- <~") ? 4 : 10
+		local key_width = ( osd.width / row.len() ) * 1.0
+		local key_height = ( osd.height / key_rows.len() ) * 1.0
+		foreach ( char in row )
+		{
+				//local key_image = keys[ iii ]
+				local key_image = keys[ char.tochar() ]
+				local pos = {
+					x = osd.x + ( key_width * col_count ),
+					y = osd.y + key_height * row_count,
+					w = key_width,
+					h = key_height
+				}
+				key_image.set_pos( pos.x, pos.y, pos.w, pos.h )
+				//print( "Key " + col_count + ": " + pos.x + "," + pos.y + " " + pos.w + "x" + pos.h );
+				col_count++
+		}
+		row_count++
+	}
+}
+
+draw_osd()
+search_select (key_selected[0],key_selected[1])
+
 
 fe.add_ticks_callback( this, "tick2" )
 
 local timerscan = 300.0
 
 function tick2( tick_time ) {
+	
+
 	
 	if (logoshow !=0){
 		logoshow = logoshow - 0.018	
