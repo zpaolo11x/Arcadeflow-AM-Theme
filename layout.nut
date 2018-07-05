@@ -1,4 +1,4 @@
-// Arcadeflow - v 1.1
+// Arcadeflow - v 1.2
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
@@ -7,25 +7,29 @@ function round(x, y) {
 return (x.tofloat()/y+(x>0?0.5:-0.5)).tointeger()*y
 }
 
+
+
 // layout preferences
 //local cols = 7
 local rows = 2
+local vertical = false
+local logoshow = 1
 
 local MAC = 0
 if (OS == "OSX") MAC = 1
 
 local guifont ="Roboto-Allcaps"
-
+local scrolltitle = 2
+local scrollincrement = 0
 //screen layout definition
 local flw = ScreenWidth
 local flh = ScreenHeight
-flw = 320
-flh = 200
+//flw = 1280
+//flh = 800
 
-if (flw < flh){
-	//cols = 5
-	rows = 3
-}
+if (flw < flh) vertical = true
+
+if (vertical) rows = 3
 
 
 fe.layout.width = flw
@@ -33,6 +37,8 @@ fe.layout.height = flh
 fe.layout.preserve_aspect_ratio = true
 fe.layout.page_size = rows
 fe.layout.font ="Roboto-Bold"
+
+
 
 local scalerate = flh/1200.0
 local header_h = 200*scalerate
@@ -62,7 +68,7 @@ cols +=2
 
 // carrier sizing in general layout
 local carrier_w = cols*(height+padding)+padding
-local carrier_h = rows*height+2*padding+padding*margin_scaler
+local carrier_h = rows*height+(rows)*padding+padding*margin_scaler
 local carrier_x = -(carrier_w-flw)/2
 local carrier_y = header_h+0*(flh-carrier_h)/2
 
@@ -102,12 +108,15 @@ local bgx = 0
 local bgy = (flh-flw)/2
 local bgw = flw
 
-if (flw < flh){
+if (vertical){
 	bgx = (flw-flh)/2
 	bgy = 0
 	bgw = flh
 }
 
+
+local scrolljump = false
+local scrollstep = rows
 
 class Carrier {
 	
@@ -122,7 +131,7 @@ class Carrier {
 	bd_hzTable = []
 	bd_vzTable = []
 	vidszTable = []
-	
+	namezTable = []
 	
 	tilesTablePosX = []
 	tilesTablePosY = []
@@ -141,6 +150,8 @@ class Carrier {
 	newfocusindex = 0
 	oldfocusindex = 0
 	scroller = null
+	scroller2 = null
+	scrollineglow = null
 	tilesCount = 0
 	surfaceVertOffset = 0
 	surfaceHoriOffset = 0
@@ -175,7 +186,7 @@ class Carrier {
 		
 		tilesCount = cols * rows
 		tilesOffscreen = 4 * rows
-		if (flw<flh) tilesOffscreen = 3*rows
+		if (vertical) tilesOffscreen = 3*rows
 		
 		tilesTotal = tilesCount + 2*tilesOffscreen
 		surfacePosOffset = (tilesOffscreen/rows) * (height+padding)
@@ -202,33 +213,42 @@ class Carrier {
 		whitebg.bg_alpha = 100*0.8
 		whitebg.zorder = 12
 		
+local prescaler = selectorscale
+
 		for ( local i = 0; i < tilesTotal; i++ ) {
-			local obj = fe.add_surface(widthpadded,heightpadded)
-			local sh_hz = obj.add_image ("sh_h.png",0,0,widthpadded,heightpadded)
-			local sh_vz = obj.add_image ("sh_v.png",0,0,widthpadded,heightpadded)
+			local obj = fe.add_surface(widthpadded*prescaler,heightpadded*prescaler)
+			local sh_hz = obj.add_image ("sh_h.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
+			local sh_vz = obj.add_image ("sh_v.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
 			sh_hz.alpha = sh_vz.alpha = 240
-			local bd_hz = obj.add_text ("",padding-padding*whitemargin,height/8.0 + padding-padding*whitemargin,width+padding*2*whitemargin,height*(3/4.0)+padding*2*whitemargin)
+			local bd_hz = obj.add_text ("",prescaler*padding*(1.0-whitemargin),prescaler*(height/8.0 + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height*(3/4.0)+padding*2*whitemargin))
 			bd_hz.set_bg_rgb (255,255,255)
 			bd_hz.bg_alpha = 240
 			bd_hz.visible = false
-			local bd_vz = obj.add_text ("",width/8.0 + padding-padding*whitemargin, padding-padding*whitemargin,width*(3/4.0)+padding*2*whitemargin,height+padding*2*whitemargin)
+			local bd_vz = obj.add_text ("",prescaler*(width/8.0 + padding*(1.0 - whitemargin)), prescaler*(padding*(1.0 - whitemargin)),prescaler*(width*(3/4.0)+padding*2*whitemargin),prescaler*(height + padding*2*whitemargin))
 			bd_vz.set_bg_rgb (255,255,255)
 			bd_vz.bg_alpha = 240
 			bd_vz.visible = false
-			local snapz = obj.add_artwork("snap",padding,padding,width,height)
+			local snapz = obj.add_artwork("snap",prescaler*padding,prescaler*padding,prescaler*width,prescaler*height)
 			snapz.preserve_aspect_ratio = true
 			snapz.video_flags = Vid.ImagesOnly
 			
-			local vidsz = obj.add_image("transparent.png",padding,padding,width,height)
+			local vidsz = obj.add_image("transparent.png",prescaler*padding,prescaler*padding,prescaler*width,prescaler*height)
 			vidsz.preserve_aspect_ratio = true
 			vidsz.visible = false
 			vidsz.video_flags = Vid.NoAudio
 			
-			local donez = obj.add_image("completed3.png",padding,padding,width*0.8,height*0.8)
+			local namez = obj.add_text("",padding*prescaler,padding*prescaler,width*prescaler,height*prescaler)
+			namez.set_bg_rgb (0,0,0)
+			namez.bg_alpha = 255*0
+			namez.charsize = height*1/12.0
+			namez.word_wrap = true
+			namez.alpha = 255*0
+
+			local donez = obj.add_image("completed.png",prescaler*padding,prescaler*padding,prescaler*width*0.8,prescaler*height*0.8)
 			donez.visible = false
 			donez.preserve_aspect_ratio = false
-			local favez = obj.add_image("favez3.png",padding+width/2,padding+height/2,width/2,height/2)
-			local logoz2 = obj.add_artwork ("wheel",padding,padding*0.6,width,height*0.5)
+			local favez = obj.add_image("starred.png",prescaler*(padding+width/2),prescaler*(padding+height/2),prescaler*width/2,prescaler*height/2)
+			local logoz2 = obj.add_artwork ("wheel",prescaler*padding,prescaler*padding*0.6,prescaler*width,prescaler*height*0.5)
 			logoz2.preserve_aspect_ratio = true
 			//	local logoz3 = obj.add_clone (logoz2)
 			//	local logoz4 = obj.add_clone (logoz2)
@@ -238,7 +258,7 @@ class Carrier {
 			//	logoz3.set_rgb(0,0,0)
 			//	logoz4.set_rgb(0,0,0)
 			
-			logoz2.set_pos(logoz2.x+3*scalerate,logoz2.y+6*scalerate)
+			logoz2.set_pos(logoz2.x+prescaler*3*scalerate,logoz2.y+prescaler*6*scalerate)
 			//	logoz3.set_pos(logoz2.x+2*scalerate-2,logoz2.y+4*scalerate-2,logoz2.width+4,logoz2.height+4)
 			//	logoz4.set_pos(logoz2.x+2*scalerate-4,logoz2.y+4*scalerate-4,logoz2.width+8,logoz2.height+8)
 			
@@ -266,7 +286,7 @@ class Carrier {
 			sh_hzTable.push (sh_hz)
 			sh_vzTable.push (sh_vz)
 			vidszTable.push (vidsz)
-			
+			namezTable.push (namez)
 		}
 		
 		// fading letter
@@ -278,13 +298,21 @@ class Carrier {
 		// scroller definition
 		local scrolline = fe.add_image ("white.png",footermargin,flh-footer_h*0.5 - 1,flw-2*footermargin,2)
 		scrolline.alpha = 200
-		scroller = fe.add_image ("whitedisc.png",footermargin - scrollersize*0.5,flh-footer_h*0.5-scrollersize*0.5,scrollersize,scrollersize)
 		
+		scrollineglow = fe.add_image ("whitedisc2.png",footermargin, flh-footer_h*0.5 - 5,flw-2*footermargin, 10)
+		scrollineglow.visible = false
+
+		scroller = fe.add_image ("whitedisc.png",footermargin - scrollersize*0.5,flh-footer_h*0.5-scrollersize*0.5,scrollersize,scrollersize)
+
+		scroller2 = fe.add_image ("whitedisc2.png",scroller.x - scrollersize*0.5, scroller.y-scrollersize*0.5,scrollersize*2,scrollersize*2)
+		scroller2.visible = false
+		scroller2.alpha = 200
+
 		// large video preview definition		
 		local vid_w = (flh - header_h - footer_h)*1.1
 		local vid_h = vid_w
 		
-		if (flw < flh){
+		if (vertical){
 			vid_w = (flw)*0.9
 			vid_h = vid_w	
 		}
@@ -323,7 +351,12 @@ class Carrier {
 	function on_transition( ttype, var, ttime ) {
 		
 		// scroller is always updated		
-		if (ttype == Transition.ToNewSelection) scroller.x = footermargin + (((fe.list.index+var)/rows)/((fe.list.size*1.0)/rows-1))*(flw-2*footermargin-scrollersize)
+		if ((ttype == Transition.ToNewSelection) || (ttype == Transition.StartLayout)) {
+			scroller.x = footermargin + (((fe.list.index+var)/rows)/((fe.list.size*1.0)/rows-1))*(flw-2*footermargin-scrollersize)
+			scroller2.x = scroller.x-scrollersize*0.5
+			scrolltitle = 2
+			scrollincrement = 0
+		}
 		//if (ttype = Transition.ToNewSelection) 		fe.overlay.splash_message((fe.list.index+var)/rows + " / " + ((fe.list.size*1.0)/rows -1) )
 
 		if ((ttype != Transition.EndNavigation) && (ttype != Transition.NewSelOverlay) ) {
@@ -414,7 +447,8 @@ class Carrier {
 					
 					snapzTable[indexTemp].rawset_index_offset(index)
 					logozTable[indexTemp].rawset_index_offset(index)
-					
+					namezTable[indexTemp].msg = gamename(index + var )
+
 					tilesTable[indexTemp].zorder = 7
 					
 					local m = fe.game_info(Info.Favourite, snapzTable[indexTemp].index_offset+var)
@@ -546,7 +580,7 @@ class Carrier {
 		if (fadeletter != 0){
 			if(fadeletter < 0.01) fadeletter = 0
 			fadeletter = fadeletter * letterspeed
-			letter2.alpha = 255*(1-4.0*(0.5-fadeletter)*(0.5-fadeletter))
+			letter2.alpha = 255*(1-4.0*pow((0.5-fadeletter),2))
 		}
 		
 
@@ -646,34 +680,47 @@ class Carrier {
 			// grid navigation, not repeating
 			
 			case "left":
-			if (fe.list.index  > rows-1) {
-				fe.list.index -= rows
+			if (fe.list.index  > scrollstep - 1) {
+				fe.list.index -= scrollstep
 				if (videosnapsurf.visible == true) updatesurf()
 			}
 			else zoompos = 1
 			return true
 			
 			case "right":
-			if (fe.list.index < fe.list.size - rows  ) {
-				fe.list.index += rows
+			if (fe.list.index < fe.list.size - scrollstep  ) {
+				fe.list.index += scrollstep
 				if (videosnapsurf.visible == true) updatesurf()
 			}
 			else zoompos = 1
 			return true
 			
 			case "up":
-			if (fe.list.index % rows > 0) {
+			if ((fe.list.index % rows > 0) && (scrolljump == false)) {
 				fe.list.index --
 				if (videosnapsurf.visible == true) updatesurf()
+			}
+			else if (scrolljump == true){
+				scrolljump = false
+				scrollstep = rows
+				scroller2.visible = scrollineglow.visible = false
+			}
+			else {
+				fe.signal("filters_menu")
 			}
 			return true
 			
 			case "down":
+
 			if ((fe.list.index % rows <  rows -1) && ( ! ( (fe.list.index / rows == fe.list.size / rows)&&(fe.list.index%rows + 1 > (fe.list.size -1)%rows) ))) {
-				if ((corrector == 0) && (fe.list.index == fe.list.size-1))
-				return true
+				if ((corrector == 0) && (fe.list.index == fe.list.size-1)) return true
 				fe.list.index ++
 				if (videosnapsurf.visible == true) updatesurf()
+			}
+			else if (scrolljump == false){
+				scrolljump = true
+				scrollstep = rows*(cols-2)
+				scroller2.visible = scrollineglow.visible = true		
 			}
 			return true
 			
@@ -709,9 +756,7 @@ class Carrier {
 			corrector = 0
 			return true
 			
-			case "custom1":
-			fe.overlay.splash_message(fe.list.index % rows + "   "+  fe.list.size % rows)
-			return true
+			
 			
 		}
 		return false
@@ -752,11 +797,22 @@ function gamesubname( offset ) {
 	return ""
 }
 
+function maincategory( offset ) {
+	local s = split( fe.game_info( Info.Category, offset ), "/" )
+	if ( s.len() > 1 ) {
+		return " "+s[0]+"\n"+s[1]+" "
+	}
+	return ""
+}
+
 // scrolling carrier call
 local carrier = Carrier()
 
+local rightdata = 400*scalerate
+//local namesurf = fe.add_surface (flw-rightdata,header_h)
+
 // game name shadow
-local namesh_x =  fe.add_text( "[!gamename]", 3, 3, flw, header_h*2/3 )
+local namesh_x =  fe.add_text( "[!gamename]", 3, 3, flw*2, header_h*2/3 )
 namesh_x.align = Align.Left
 namesh_x.word_wrap = false
 namesh_x.set_rgb( 0, 0, 0)
@@ -767,7 +823,7 @@ namesh_x.alpha=50
 namesh_x.font = guifont
 
 // game name
-local name_x =  fe.add_text( "[!gamename]", 0, 0, flw, header_h*2/3 )
+local name_x =  fe.add_text( "[!gamename]", 0, 0, flw*2, header_h*2/3 )
 name_x.align = Align.Left
 name_x.word_wrap = false
 name_x.set_rgb( 255, 255, 255)
@@ -776,8 +832,20 @@ name_x.charsize = 60*scalerate
 //name_x.bg_red = 255
 name_x.font = guifont
 
+/*
+// game name
+local nametest_x =  fe.add_text( "[!gamename]", 0, 0, flw-rightdata, header_h*1/3 + 60*scalerate/2  )
+nametest_x.align = Align.Left
+nametest_x.word_wrap = true
+nametest_x.set_rgb( 255, 255, 255)
+nametest_x.charsize = (header_h*1/3 + 60*scalerate/2)*0.5/1.25
+nametest_x.bg_alpha = 128
+nametest_x.bg_red = 255
+nametest_x.font = guifont
+*/
+
 // game name second part (revision, details etc)
-local subname_x =  fe.add_text( " [!gamesubname]", 0, header_h*2/6+60*scalerate/2, flw, header_h*1/3 )
+local subname_x =  fe.add_text( " [!gamesubname]", 0, header_h*1/3+60*scalerate/2, flw, header_h*1/3 )
 subname_x.align = Align.Left
 subname_x.word_wrap = true
 subname_x.set_rgb( 255, 255, 255)
@@ -787,12 +855,14 @@ subname_x.charsize = 40*scalerate
 subname_x.font = guifont
 
 // game year and some data
-local year_x =  fe.add_text( "© [Year] [Manufacturer]\n[Category]", 0, 0, flw, header_h)
-year_x.align = Align.Right
+local year_x =  fe.add_text( "© [Year] [Manufacturer]\n[!maincategory]", flw-rightdata, 0, rightdata, header_h)
+year_x.align = Align.Centre
 year_x.set_rgb( 255, 255, 255)
 year_x.word_wrap = true
-year_x.charsize = 35*scalerate
+year_x.charsize = 30*scalerate
 year_x.visible = true
+//year_x.bg_alpha = 128
+//year_x.bg_green = 155
 year_x.font = guifont
 
 local filterdata = fe.add_text ("[FilterName]",0,flh-footer_h,footermargin,footer_h)
@@ -810,6 +880,10 @@ filternumbers.word_wrap = true
 filternumbers.charsize = 25*scalerate
 filternumbers.visible = true
 filternumbers.font = guifont
+
+//local aflogo = fe.add_image ("splashbig.png",0,(flh-flw)/2,flw,flw)
+local aflogo = fe.add_image ("splash.png",0,(flh-(flw*320/1280))/2,flw,flw*320/1280)
+
 
 // Custom Overlay
 local overlay_charsize = floor( 50*scalerate )
@@ -871,4 +945,59 @@ function overlay_transition( ttype, var, ttime )
 		break
 	}
 	return false
+}
+
+
+fe.add_ticks_callback( this, "tick2" )
+
+local timerscan = 300.0
+
+function tick2( tick_time ) {
+
+if (logoshow !=0){
+
+	logoshow = logoshow - 0.02	
+	if (logoshow < 0.01) logoshow = 0
+	aflogo.alpha = 255*(1-pow((1-logoshow),3))
+
+}
+
+
+	if (scrolltitle == 2){
+			name_x.x =0
+			namesh_x.x =3
+			scrolltitle = 0
+		}
+
+
+	if (name_x.msg_width < flw -rightdata){
+		if (scrolltitle == 1){
+			name_x.x =0
+			namesh_x.x =3
+		}
+		scrolltitle = 0
+		scrollincrement = 0
+	}
+
+	else {
+		scrolltitle = 1
+	}
+
+	local deltastep = (name_x.msg_width - flw+rightdata)*1.1
+
+	if (scrolltitle == 1){
+	scrollincrement ++
+	if (scrollincrement == 22*timerscan) scrollincrement = 0
+	if ((scrollincrement > 5*timerscan) && (scrollincrement < (5+1)*timerscan))
+		{
+		name_x.x = - deltastep * (scrollincrement - timerscan*5)/timerscan
+		namesh_x.x = 3 + name_x.x
+		}
+	if ((scrollincrement > (5+1+5)*timerscan) && (scrollincrement < (5+1+5+1)*timerscan))
+		{
+		name_x.x = - deltastep * ((5+1+5+1)*timerscan - scrollincrement)/timerscan
+		namesh_x.x = 3 + name_x.x
+		}
+	}
+
 }
