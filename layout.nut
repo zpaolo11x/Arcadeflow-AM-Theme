@@ -1,44 +1,96 @@
-// Arcadeflow - v 1.2
+// Arcadeflow - v 1.4
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
 
-function round(x, y) {
-return (x.tofloat()/y+(x>0?0.5:-0.5)).tointeger()*y
+class UserConfig </ help="" />{
+	</ label="Theme Color", help="Setup theme color", options="Default, Dark, Light, Pop", order=1 /> colortheme="default"
+	</ label="Blurred Logo Shadow", help="Use blurred logo artwork shadow", options="Yes, No", order=2 /> logoblurred="Yes"
+	</ label="Custom Background Image", help="Insert custom background art path", order=3 /> bgblurred=""
+	/*</ label="History.dat", help="History.dat location. Be sure to enable and config History.dat from the plugins menu.", order=4 /> dat_path="$HOME/mame/dats/history.dat"
+*/}
+
+local my_config = fe.get_config()
+
+local colortheme = my_config["colortheme"]
+local logoblurred_in = my_config["logoblurred"]
+local bgblurred = my_config["bgblurred"]
+
+local LOGOBLURRED = true
+
+if (logoblurred_in == "Yes") 
+	LOGOBLURRED = true 
+	else 
+	LOGOBLURRED = false
+
+
+
+local themeoverlaycolor = 255
+local themeoverlayalpha = 80
+local themetextcolor = 255
+
+if (colortheme == "Default"){
+	 themeoverlaycolor = 255
+	 themeoverlayalpha = 80
+	 themetextcolor = 255
+}
+if (colortheme == "Dark"){
+	 themeoverlaycolor = 0
+	 themeoverlayalpha = 80
+	 themetextcolor = 255
+}
+if (colortheme == "Light"){
+	 themeoverlaycolor = 255
+	 themeoverlayalpha = 180
+	 themetextcolor = 100
+}
+if (colortheme == "Pop"){
+	 themeoverlaycolor = 255
+	 themeoverlayalpha = 0
+	 themetextcolor = 255
 }
 
 
+function round(x, y) {
+	return (x.tofloat()/y+(x>0?0.5:-0.5)).tointeger()*y
+}
+
+local ticksound = fe.add_sound("mouse3.mp3")
+local wooshsound = fe.add_sound("mouse3.mp3")
+
+// parameters for slowing down key repeat on left-right scrolling
+local rightcount = 0
+local leftcount = 0
+local movecount = 3
 
 // layout preferences
-//local cols = 7
 local rows = 2
 local vertical = false
 local logoshow = 1
 
+// customized parameters for Mac users
 local MAC = 0
 if (OS == "OSX") MAC = 1
 
-local guifont ="Roboto-Allcaps"
+local guifont ="Roboto-Allcaps.ttf"
 local scrolltitle = 2
 local scrollincrement = 0
+
 //screen layout definition
 local flw = ScreenWidth
 local flh = ScreenHeight
 //flw = 1280
-//flh = 800
+//flh = 720
 
 if (flw < flh) vertical = true
 
 if (vertical) rows = 3
 
-
 fe.layout.width = flw
 fe.layout.height = flh
 fe.layout.preserve_aspect_ratio = true
 fe.layout.page_size = rows
-fe.layout.font ="Roboto-Bold"
-
-
+fe.layout.font ="Roboto-Bold.ttf"
 
 local scalerate = flh/1200.0
 local header_h = 200*scalerate
@@ -53,9 +105,6 @@ local padding_scaler = 1/6.0
 local height = (flh-header_h-footer_h)/(rows+rows*padding_scaler+margin_scaler*padding_scaler)
 local width = height
 
-
-
-
 local padding = height*padding_scaler
 local widthpadded = width + 2*padding
 local heightpadded = height + 2*padding
@@ -64,7 +113,6 @@ local heightpadded = height + 2*padding
 local cols = (1+2*(floor((flw/2+width/2-padding)/(height+padding))))
 // add safeguard tiles
 cols +=2
-
 
 // carrier sizing in general layout
 local carrier_w = cols*(height+padding)+padding
@@ -114,7 +162,7 @@ if (vertical){
 	bgw = flh
 }
 
-
+// parameters for changing scroll jump spacing
 local scrolljump = false
 local scrollstep = rows
 
@@ -181,7 +229,9 @@ class Carrier {
 	videosnap = null
 	videosnapsurf = null
 	videoshadow = null
-	
+	bgpicture2 = null
+	bgpicture = null
+
 	constructor() {
 		
 		tilesCount = cols * rows
@@ -194,6 +244,8 @@ class Carrier {
 		surfaceHoriOffset = carrier_x
 		vertmargin = carrier_y+0.8*padding
 		
+
+
 		local shadeval = 255
 		
 		snapbg1 = fe.add_artwork("blur",bgx,bgy,bgw,bgw)
@@ -207,14 +259,21 @@ class Carrier {
 		snapbg2.alpha = 255
 		snapbg2.trigger = Transition.EndNavigation
 		snapbg2.zorder = 11
-		
-		local whitebg = fe.add_text("",0,0,flw,flh)
-		whitebg.set_bg_rgb(255,255,255)
-		whitebg.bg_alpha = 100*0.8
-		whitebg.zorder = 12
-		
-local prescaler = selectorscale
 
+		if (bgblurred != ""){
+			bgpicture = fe.add_image(bgblurred,0,0,flw,flh)
+			bgpicture.zorder=12
+		}
+
+		local whitebg = fe.add_text("",0,0,flw,flh)
+		whitebg.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
+		whitebg.bg_alpha = themeoverlayalpha
+		whitebg.zorder = 13
+
+
+
+		local prescaler = selectorscale
+		
 		for ( local i = 0; i < tilesTotal; i++ ) {
 			local obj = fe.add_surface(widthpadded*prescaler,heightpadded*prescaler)
 			local sh_hz = obj.add_image ("sh_h.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
@@ -243,30 +302,35 @@ local prescaler = selectorscale
 			namez.charsize = height*1/12.0
 			namez.word_wrap = true
 			namez.alpha = 255*0
-
+			
 			local donez = obj.add_image("completed.png",prescaler*padding,prescaler*padding,prescaler*width*0.8,prescaler*height*0.8)
 			donez.visible = false
 			donez.preserve_aspect_ratio = false
 			local favez = obj.add_image("starred.png",prescaler*(padding+width/2),prescaler*(padding+height/2),prescaler*width/2,prescaler*height/2)
-			local logoz2 = obj.add_artwork ("wheel",prescaler*padding,prescaler*padding*0.6,prescaler*width,prescaler*height*0.5)
-			logoz2.preserve_aspect_ratio = true
-			//	local logoz3 = obj.add_clone (logoz2)
-			//	local logoz4 = obj.add_clone (logoz2)
-			local logoz = obj.add_clone (logoz2)
-			
-			logoz2.set_rgb(0,0,0)
-			//	logoz3.set_rgb(0,0,0)
-			//	logoz4.set_rgb(0,0,0)
-			
-			logoz2.set_pos(logoz2.x+prescaler*3*scalerate,logoz2.y+prescaler*6*scalerate)
-			//	logoz3.set_pos(logoz2.x+2*scalerate-2,logoz2.y+4*scalerate-2,logoz2.width+4,logoz2.height+4)
-			//	logoz4.set_pos(logoz2.x+2*scalerate-4,logoz2.y+4*scalerate-4,logoz2.width+8,logoz2.height+8)
-			
-			logoz2.alpha = 120
-			//	logoz3.alpha = 50
-			//	logoz4.alpha = 20
-			
 
+local loshz = null
+local logoz = null
+
+if (LOGOBLURRED == true){
+			loshz = obj.add_artwork ("logoblur",prescaler*padding*0.5,prescaler*5+prescaler*padding*0.1,prescaler*(width+padding),prescaler*(height*0.5+padding))
+			loshz.alpha = 150
+
+			logoz = obj.add_artwork ("wheel",prescaler*padding,prescaler*padding*0.6,prescaler*width,prescaler*height*0.5)
+			logoz.preserve_aspect_ratio = true
+}
+else if (LOGOBLURRED == false){
+			loshz = obj.add_artwork ("wheel",prescaler*padding,prescaler*padding*0.6,prescaler*width,prescaler*height*0.5)
+			loshz.preserve_aspect_ratio = true
+
+			logoz = obj.add_clone (loshz)	
+			loshz.set_rgb(0,0,0)
+
+			loshz.set_pos(loshz.x+prescaler*3*scalerate,loshz.y+prescaler*6*scalerate)			
+			loshz.alpha = 120
+
+}
+			
+			
 			tilesTablePosX.push((width+padding) * (i/rows)  + padding)
 			tilesTablePosY.push((width+padding) * (i%rows)  + padding*margin_scaler + surfaceVertOffset)
 			
@@ -279,6 +343,7 @@ local prescaler = selectorscale
 			tilesTable.push (obj)
 			snapzTable.push (snapz)
 			logozTable.push (logoz)
+			loshzTable.push (loshz)
 			favezTable.push (favez)
 			donezTable.push (donez)
 			bd_hzTable.push (bd_hz)
@@ -294,20 +359,23 @@ local prescaler = selectorscale
 		letter2.alpha = 0
 		letter2.charsize = lettersize
 		letter2.font = guifont
+		letter2.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 		
 		// scroller definition
 		local scrolline = fe.add_image ("white.png",footermargin,flh-footer_h*0.5 - 1,flw-2*footermargin,2)
 		scrolline.alpha = 200
-		
+		scrolline.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+
 		scrollineglow = fe.add_image ("whitedisc2.png",footermargin, flh-footer_h*0.5 - 5,flw-2*footermargin, 10)
 		scrollineglow.visible = false
-
+		
 		scroller = fe.add_image ("whitedisc.png",footermargin - scrollersize*0.5,flh-footer_h*0.5-scrollersize*0.5,scrollersize,scrollersize)
+		scroller.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
 		scroller2 = fe.add_image ("whitedisc2.png",scroller.x - scrollersize*0.5, scroller.y-scrollersize*0.5,scrollersize*2,scrollersize*2)
 		scroller2.visible = false
 		scroller2.alpha = 200
-
+		
 		// large video preview definition		
 		local vid_w = (flh - header_h - footer_h)*1.1
 		local vid_h = vid_w
@@ -331,14 +399,23 @@ local prescaler = selectorscale
 		
 		// menu smooth background generation
 		local satinrate = 0.9
-		snapbg3 = fe.add_clone (snapbg2)
+
+		if (bgblurred == ""){
+			snapbg3 = fe.add_clone (snapbg2)
+		}
+		else{
+			snapbg3 = fe.add_image(bgblurred,0,0,flw,flh)
+		}
+
 		snapbg3.alpha = 255*satinrate
 		snapbg4 = fe.add_text("",0,0,flw,flh)
-		snapbg4.set_bg_rgb(255,255,255)
-		snapbg4.bg_alpha = 80*satinrate
+		snapbg4.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
+		snapbg4.bg_alpha = themeoverlayalpha*satinrate
 		snapbg4.visible = false
 		snapbg3.visible = false
-		
+
+
+
 		surfacePos = 0.5
 		
 		::fe.add_transition_callback( this, "on_transition" )
@@ -358,7 +435,7 @@ local prescaler = selectorscale
 			scrollincrement = 0
 		}
 		//if (ttype = Transition.ToNewSelection) 		fe.overlay.splash_message((fe.list.index+var)/rows + " / " + ((fe.list.size*1.0)/rows -1) )
-
+		
 		if ((ttype != Transition.EndNavigation) && (ttype != Transition.NewSelOverlay) ) {
 			
 			
@@ -368,19 +445,19 @@ local prescaler = selectorscale
 				tilesTable[oldfocusindex].height = heightpadded
 				tilesTable[oldfocusindex].zorder = 7
 				bd_hzTable[oldfocusindex].visible = bd_vzTable[oldfocusindex].visible = false
-						
+				
 				vidszTable[oldfocusindex].visible = false
 				//vidszTable[oldfocusindex].file_name = "transparent.png"
 				
 				zoomunpos = 1
-				}
+			}
 		}
 		
 		if ( ( ttype == Transition.ToNewList ) || ( ttype == Transition.ToNewSelection ) || (ttype == Transition.FromGame) || (ttype == Transition.StartLayout))
 		{
 			//zoompos = 1
 			vidpos = 1
-	
+			
 			// calculate wether the selector is on the first or second row
 			if (ttype == Transition.ToNewSelection){
 				corrector = -((fe.list.index + var) % rows)
@@ -388,20 +465,24 @@ local prescaler = selectorscale
 			
 			// when transitioning to a new list, move to the first item of the list,
 			// unless we are changing favourites or we are starting the layout
+			
+			/*
 			if ((ttype == Transition.ToNewList) && (changedfav == false) && (startupper == false)){
-				fe.list.index = 0
-				corrector = 0
+				//fe.list.index = 0
+				//corrector = 0
+				
 			}
 			//else if ((ttype == Transition.ToNewList) && ((changedfav == true) || (startupper == true)))
 			else {
 				//changedfav = false
 				startupper = false
 			}
-			
+			*/
+
 			// correction of the row position when starting the layout (when var is undefined)
 			if ((ttype == Transition.StartLayout)) {
 				corrector = -((fe.list.index) % rows)
-				startupper = true
+				//startupper = true
 			}
 			
 			local index = - (floor(tilesTotal/2) -1) + corrector
@@ -409,9 +490,9 @@ local prescaler = selectorscale
 			if ((ttype == Transition.ToNewSelection)||(ttype==Transition.StartLayout)||(ttype == Transition.ToNewList)) {
 				tilesTableOffset += (var/rows)*rows
 				
-
+				
 				//local correction1 = ((fe.list.index)/rows)*(centercorrection0 + 2*(padding+width)) - (padding+width)
-
+				
 				
 				if ((fe.list.index + var < deltacol*rows) && (var < 0) ) {
 					if ((fe.list.index+var)/rows == deltacol - 1 ) centercorrectionshift = centercorrection0 + (deltacol - 1)*(width+padding)
@@ -424,15 +505,15 @@ local prescaler = selectorscale
 				else {
 					centercorrectionshift = 0	
 				}
-
-
+				
+				
 				if (fe.list.index + var > deltacol*rows -1){
 					centercorrection = 0
 				}
 				else {
 					centercorrection = centercorrection0 + ((fe.list.index + var)/rows)*(width+padding)
 				}
-
+				
 				if ((var == 1) || (var == -1)) centercorrectionshift = 0
 				
 				
@@ -440,15 +521,16 @@ local prescaler = selectorscale
 			
 			// updates all the tiles, unless we are changing favourites
 			if (changedfav == false){
-
+				
 				for ( local i = 0; i < tilesTotal ; i++ ) {
 					
 					local indexTemp = wrap( i + tilesTableOffset, tilesTotal )
 					
 					snapzTable[indexTemp].rawset_index_offset(index)
+					loshzTable[indexTemp].rawset_index_offset(index)
 					logozTable[indexTemp].rawset_index_offset(index)
 					namezTable[indexTemp].msg = gamename(index + var )
-
+					
 					tilesTable[indexTemp].zorder = 7
 					
 					local m = fe.game_info(Info.Favourite, snapzTable[indexTemp].index_offset+var)
@@ -458,7 +540,7 @@ local prescaler = selectorscale
 						favezTable[indexTemp].visible = false
 					
 					local m = fe.game_info(Info.Tags, snapzTable[indexTemp].index_offset+var)
-					if (m == ";Completed;")
+					if (m.find("Completed") != null)
 						donezTable[indexTemp].visible = true
 					else
 						donezTable[indexTemp].visible = false
@@ -523,7 +605,7 @@ local prescaler = selectorscale
 				favezTable[newfocusindex].visible = false
 			
 			local m = fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset+var)
-			if (m == ";Completed;")
+			if (m.find("Completed") != null)
 				donezTable[newfocusindex].visible = true
 			else
 				donezTable[newfocusindex].visible = false
@@ -569,6 +651,15 @@ local prescaler = selectorscale
 	
 	function tick( tick_time ) {
 		
+		
+		if ((rightcount != 0) && (fe.get_input_state("right")==false)){
+			rightcount = 0
+		}
+		
+		if ((leftcount != 0) && (fe.get_input_state("left")==false)){
+			leftcount = 0
+		}
+		
 		// crossfade of the blurred background
 		if (alphapos !=0){
 			if (alphapos < 0.1 && alphapos > -0.1 ) alphapos = 0
@@ -583,15 +674,15 @@ local prescaler = selectorscale
 			letter2.alpha = 255*(1-4.0*pow((0.5-fadeletter),2))
 		}
 		
-
-
+		
+		
 		// contemporary scrolling of tiles and zooming of selected tile
 		if ((surfacePos != 0)||(zoompos !=0)||(zoomunpos!=0)) {
 			if (zoompos == 1){
 				newfocusindex = wrap( tilesTotal/2-1-corrector + tilesTableOffset, tilesTotal )
 				
 				local m = fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset)
-				if (m == ";Completed;")
+				if (m.find("Completed") != null)
 					donezTable[newfocusindex].visible = true
 				else
 					donezTable[newfocusindex].visible = false
@@ -600,7 +691,7 @@ local prescaler = selectorscale
 			if ((surfacePos < 0.1) && (surfacePos > -0.1)) surfacePos = 0
 			if ((zoompos < 0.01) && (zoompos > -0.01 )) zoompos = 0
 			if ((zoomunpos < 0.01) && (zoomunpos > -0.01 )) zoomunpos = 0
-
+			
 			
 			surfacePos = surfacePos * scrollspeed
 			zoompos = zoompos * zoomspeed
@@ -621,12 +712,12 @@ local prescaler = selectorscale
 			tilesTable[newfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(1.0-zoompos)
 			tilesTable[newfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(1.0-zoompos)
 			//tilesTable[newfocusindex].zorder = 25
-
+			
 			if (oldfocusindex != newfocusindex){
-			tilesTable[oldfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[oldfocusindex] - (selectoroffset*(zoomunpos))
-			tilesTable[oldfocusindex].y =  tilesTablePosY[oldfocusindex] - (selectoroffset*(zoomunpos))
-			tilesTable[oldfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(zoomunpos)
-			tilesTable[oldfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(zoomunpos)
+				tilesTable[oldfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[oldfocusindex] - (selectoroffset*(zoomunpos))
+				tilesTable[oldfocusindex].y =  tilesTablePosY[oldfocusindex] - (selectoroffset*(zoomunpos))
+				tilesTable[oldfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(zoomunpos)
+				tilesTable[oldfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(zoomunpos)
 			}
 		}
 		
@@ -645,9 +736,9 @@ local prescaler = selectorscale
 			}
 			
 			if (vidpos <= fadevid)
-				vidszTable[newfocusindex].alpha = 255.0*(1-vidpos*(1/fadevid))
+			vidszTable[newfocusindex].alpha = 255.0*(1-vidpos*(1/fadevid))
 			else
-				vidszTable[newfocusindex].alpha = 0
+			vidszTable[newfocusindex].alpha = 0
 		}
 		
 	}
@@ -674,23 +765,41 @@ local prescaler = selectorscale
 	
 	function on_signal( sig )
 	{
+			
+
 		switch ( sig )
 		{
-			
 			// grid navigation, not repeating
 			
 			case "left":
 			if (fe.list.index  > scrollstep - 1) {
-				fe.list.index -= scrollstep
-				if (videosnapsurf.visible == true) updatesurf()
+				if (leftcount == 0) {
+					fe.list.index -= scrollstep
+					ticksound.playing=true
+					if (videosnapsurf.visible == true) updatesurf()
+					leftcount ++
+				}
+				else {
+					leftcount ++
+					if (leftcount == movecount)	leftcount = 0			
+				}
 			}
 			else zoompos = 1
 			return true
 			
+			
 			case "right":
-			if (fe.list.index < fe.list.size - scrollstep  ) {
-				fe.list.index += scrollstep
-				if (videosnapsurf.visible == true) updatesurf()
+			if ((fe.list.index < fe.list.size - scrollstep  )){
+				if (rightcount == 0) {
+					fe.list.index += scrollstep
+					 ticksound.playing=true
+					if (videosnapsurf.visible == true) updatesurf()
+					rightcount ++
+				}
+				else {
+					rightcount ++
+					if (rightcount == movecount)	rightcount = 0			
+				}
 			}
 			else zoompos = 1
 			return true
@@ -698,26 +807,31 @@ local prescaler = selectorscale
 			case "up":
 			if ((fe.list.index % rows > 0) && (scrolljump == false)) {
 				fe.list.index --
+				ticksound.playing=true
 				if (videosnapsurf.visible == true) updatesurf()
 			}
 			else if (scrolljump == true){
+				wooshsound.playing=true
 				scrolljump = false
 				scrollstep = rows
 				scroller2.visible = scrollineglow.visible = false
 			}
 			else {
+				wooshsound.playing=true
 				fe.signal("filters_menu")
 			}
 			return true
 			
 			case "down":
-
+			
 			if ((fe.list.index % rows <  rows -1) && ( ! ( (fe.list.index / rows == fe.list.size / rows)&&(fe.list.index%rows + 1 > (fe.list.size -1)%rows) ))) {
 				if ((corrector == 0) && (fe.list.index == fe.list.size-1)) return true
 				fe.list.index ++
+				ticksound.playing=true
 				if (videosnapsurf.visible == true) updatesurf()
 			}
 			else if (scrolljump == false){
+				wooshsound.playing=true
 				scrolljump = true
 				scrollstep = rows*(cols-2)
 				scroller2.visible = scrollineglow.visible = true		
@@ -726,6 +840,7 @@ local prescaler = selectorscale
 			
 			// enable - disable the video preview surface
 			case "custom6":
+			wooshsound.playing=true
 			if (videosnapsurf.visible == false){
 				videosnapsurf.visible = true
 				updatesurf()
@@ -739,6 +854,7 @@ local prescaler = selectorscale
 			// add favorites through custom4 or the AM control
 			case "add_favourite":
 			changedfav = true
+			wooshsound.playing=true
 			break
 			
 			case "custom4":
@@ -749,6 +865,7 @@ local prescaler = selectorscale
 			
 			// use custom3 to enable search
 			case "custom3":
+			wooshsound.playing=true
 			searchtext = fe.overlay.edit_dialog( "Search:", searchtext )
 			fe.list.index += corrector + rows 
 			fe.list.search_rule ="Title contains "+searchtext
@@ -756,7 +873,8 @@ local prescaler = selectorscale
 			corrector = 0
 			return true
 			
-			
+			default:
+			wooshsound.playing=true
 			
 		}
 		return false
@@ -805,7 +923,9 @@ function maincategory( offset ) {
 	return ""
 }
 
+
 // scrolling carrier call
+
 local carrier = Carrier()
 
 local rightdata = 400*scalerate
@@ -831,6 +951,8 @@ name_x.charsize = 60*scalerate
 //name_x.bg_alpha = 128
 //name_x.bg_red = 255
 name_x.font = guifont
+name_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+
 
 /*
 // game name
@@ -853,9 +975,10 @@ subname_x.charsize = 40*scalerate
 //subname_x.bg_alpha = 128
 //subname_x.bg_green = 255
 subname_x.font = guifont
+subname_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
 // game year and some data
-local year_x =  fe.add_text( "© [Year] [Manufacturer]\n[!maincategory]", flw-rightdata, 0, rightdata, header_h)
+local year_x =  fe.add_text( "© [Year] [Manufacturer]", flw-rightdata, 10*scalerate, rightdata, header_h/2)
 year_x.align = Align.Centre
 year_x.set_rgb( 255, 255, 255)
 year_x.word_wrap = true
@@ -864,6 +987,19 @@ year_x.visible = true
 //year_x.bg_alpha = 128
 //year_x.bg_green = 155
 year_x.font = guifont
+year_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+
+// game category and some data
+local year_x =  fe.add_text( "[!maincategory]", flw-rightdata, header_h/2-10*scalerate, rightdata, header_h/2)
+year_x.align = Align.Centre
+year_x.set_rgb( 255, 255, 255)
+year_x.word_wrap = true
+year_x.charsize = 30*scalerate
+year_x.visible = true
+//year_x.bg_alpha = 128
+//year_x.bg_green = 155
+year_x.font = guifont
+year_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
 local filterdata = fe.add_text ("[FilterName]",0,flh-footer_h,footermargin,footer_h)
 filterdata.align = Align.Centre
@@ -872,6 +1008,7 @@ filterdata.word_wrap = true
 filterdata.charsize = 25*scalerate
 filterdata.visible = true
 filterdata.font = guifont
+filterdata.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
 local filternumbers = fe.add_text ("[ListEntry]/[ListSize]",flw-footermargin,flh-footer_h,footermargin,footer_h)
 filternumbers.align = Align.Centre
@@ -880,16 +1017,39 @@ filternumbers.word_wrap = true
 filternumbers.charsize = 25*scalerate
 filternumbers.visible = true
 filternumbers.font = guifont
+filternumbers.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
-//local aflogo = fe.add_image ("splashbig.png",0,(flh-flw)/2,flw,flw)
-local aflogo = fe.add_image ("splash.png",0,(flh-(flw*320/1280))/2,flw,flw*320/1280)
+// LOGO SPLASH SCREEN
+
+// carica l'immagine sfumata del gioco attuale 
+local afsplash = null
+
+if (bgblurred == ""){
+	afsplash = fe.add_image("white.png",bgx,bgy,bgw,bgw)
+	afsplash.file_name = fe.get_art("blur")
+}
+else
+{
+	afsplash = fe.add_image(bgblurred,0,0,flw,flh)
+}
 
 
-// Custom Overlay
+// aggiunge l'overlay bianco trasparente
+local afwhitebg = fe.add_text("",0,0,flw,flh)
+afwhitebg.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
+afwhitebg.bg_alpha = themeoverlayalpha
+
+
+// aggiunge l'immagine del logo
+local aflogo = fe.add_image ("AFLOGO3b.png",0,(flh-(flw*1000/1600))/2,flw,flw*1000/1600)
+
+// OVERLAY PER CONTROLLI CUSTOM (LISTBOX)
+
 local overlay_charsize = floor( 50*scalerate )
 local overlay_rows = 6
 local overlay_labelsize = floor ((flh-header_h-footer_h)/overlay_rows)
 
+// sfondo dell'area con le scritte
 local overlay_background = fe.add_text ("", 0 , header_h, flw, flh-header_h-footer_h)
 overlay_background.set_bg_rgb(200,200,200)
 overlay_background.bg_alpha = 64
@@ -953,23 +1113,25 @@ fe.add_ticks_callback( this, "tick2" )
 local timerscan = 300.0
 
 function tick2( tick_time ) {
-
-if (logoshow !=0){
-
-	logoshow = logoshow - 0.02	
-	if (logoshow < 0.01) logoshow = 0
-	aflogo.alpha = 255*(1-pow((1-logoshow),3))
-
-}
-
-
-	if (scrolltitle == 2){
-			name_x.x =0
-			namesh_x.x =3
-			scrolltitle = 0
+	
+	if (logoshow !=0){
+		logoshow = logoshow - 0.018	
+		if (logoshow < 0.01) {
+			logoshow = 0
+			afsplash.visible = aflogo.visible = afwhitebg.visible = false
 		}
-
-
+		afsplash.alpha = 255*(1-pow((1-logoshow),3))
+		aflogo.alpha = 255*(1-pow((1-logoshow),3))
+		afwhitebg.bg_alpha = themeoverlayalpha*(1-pow((1-logoshow),3))
+	}
+	
+	
+	if (scrolltitle == 2){
+		name_x.x =0
+		namesh_x.x =3
+		scrolltitle = 0
+	}
+	
 	if (name_x.msg_width < flw -rightdata){
 		if (scrolltitle == 1){
 			name_x.x =0
@@ -978,26 +1140,25 @@ if (logoshow !=0){
 		scrolltitle = 0
 		scrollincrement = 0
 	}
-
 	else {
 		scrolltitle = 1
 	}
-
+	
 	local deltastep = (name_x.msg_width - flw+rightdata)*1.1
-
+	
 	if (scrolltitle == 1){
-	scrollincrement ++
-	if (scrollincrement == 22*timerscan) scrollincrement = 0
-	if ((scrollincrement > 5*timerscan) && (scrollincrement < (5+1)*timerscan))
+		scrollincrement ++
+		if (scrollincrement == 22*timerscan) scrollincrement = 0
+		if ((scrollincrement > 5*timerscan) && (scrollincrement < (5+1)*timerscan))
 		{
-		name_x.x = - deltastep * (scrollincrement - timerscan*5)/timerscan
-		namesh_x.x = 3 + name_x.x
+			name_x.x = - deltastep * (scrollincrement - timerscan*5)/timerscan
+			namesh_x.x = 3 + name_x.x
 		}
-	if ((scrollincrement > (5+1+5)*timerscan) && (scrollincrement < (5+1+5+1)*timerscan))
+		if ((scrollincrement > (5+1+5)*timerscan) && (scrollincrement < (5+1+5+1)*timerscan))
 		{
-		name_x.x = - deltastep * ((5+1+5+1)*timerscan - scrollincrement)/timerscan
-		namesh_x.x = 3 + name_x.x
+			name_x.x = - deltastep * ((5+1+5+1)*timerscan - scrollincrement)/timerscan
+			namesh_x.x = 3 + name_x.x
 		}
 	}
-
+	
 }
