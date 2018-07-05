@@ -1,53 +1,67 @@
-// Arcadeflow - v 1.4
+// Arcadeflow - v 1.5
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
 
 class UserConfig </ help="" />{
-	</ label="Theme Color", help="Setup theme color", options="Default, Dark, Light, Pop", order=1 /> colortheme="default"
+	</ label="Theme Color", help="Setup theme color", options="Default, Dark, Light, Pop", order=1 /> colortheme="Default"
 	</ label="Blurred Logo Shadow", help="Use blurred logo artwork shadow", options="Yes, No", order=2 /> logoblurred="Yes"
+	</ label="Enable New Game Indicator", help="Games not played are marked with a glyph", options="Yes, No", order=3 /> newgame = "Yes"
 	</ label="Custom Background Image", help="Insert custom background art path", order=3 /> bgblurred=""
-	/*</ label="History.dat", help="History.dat location. Be sure to enable and config History.dat from the plugins menu.", order=4 /> dat_path="$HOME/mame/dats/history.dat"
-*/}
+}
+
+local backindex = -1
+local backcorrector = -1
 
 local my_config = fe.get_config()
 
 local colortheme = my_config["colortheme"]
 local logoblurred_in = my_config["logoblurred"]
 local bgblurred = my_config["bgblurred"]
+local newgame_in = my_config["newgame"]
 
 local LOGOBLURRED = true
+local NEWGAME = true
 
 if (logoblurred_in == "Yes") 
 	LOGOBLURRED = true 
-	else 
+else 
 	LOGOBLURRED = false
 
+if (newgame_in == "Yes") 
+	NEWGAME = true 
+else 
+	NEWGAME = false
 
 
 local themeoverlaycolor = 255
 local themeoverlayalpha = 80
 local themetextcolor = 255
+local themeshadow = 50
 
 if (colortheme == "Default"){
-	 themeoverlaycolor = 255
-	 themeoverlayalpha = 80
-	 themetextcolor = 255
+	themeoverlaycolor = 255
+	themeoverlayalpha = 80
+	themetextcolor = 255
+	themeshadow = 50
 }
 if (colortheme == "Dark"){
-	 themeoverlaycolor = 0
-	 themeoverlayalpha = 80
-	 themetextcolor = 255
+	themeoverlaycolor = 0
+	themeoverlayalpha = 110
+	themetextcolor = 220
+	themeshadow = 50
 }
 if (colortheme == "Light"){
-	 themeoverlaycolor = 255
-	 themeoverlayalpha = 180
-	 themetextcolor = 100
+	themeoverlaycolor = 255
+	themeoverlayalpha = 190
+	themetextcolor = 100
+	themeshadow = 0
 }
 if (colortheme == "Pop"){
-	 themeoverlaycolor = 255
-	 themeoverlayalpha = 0
-	 themetextcolor = 255
+	themeoverlaycolor = 255
+	themeoverlayalpha = 0
+	themetextcolor = 255
+	themeshadow = 50
 }
 
 
@@ -56,7 +70,7 @@ function round(x, y) {
 }
 
 local ticksound = fe.add_sound("mouse3.mp3")
-local wooshsound = fe.add_sound("mouse3.mp3")
+local wooshsound = fe.add_sound("woosh4.mp3")
 
 // parameters for slowing down key repeat on left-right scrolling
 local rightcount = 0
@@ -79,10 +93,17 @@ local scrollincrement = 0
 //screen layout definition
 local flw = ScreenWidth
 local flh = ScreenHeight
-//flw = 1280
-//flh = 720
+//flw = 600
+//flh = 800
 
-if (flw < flh) vertical = true
+//fe.overlay.splash_message(flw+" "+flh)
+
+if ((flw < flh) && (fe.layout.toggle_rotation == RotateScreen.None)) vertical = true
+if ((flw > flh) && (fe.layout.toggle_rotation != RotateScreen.None)) {
+	vertical = true
+	flw = ScreenHeight
+	flh = ScreenWidth
+}
 
 if (vertical) rows = 3
 
@@ -108,6 +129,9 @@ local width = height
 local padding = height*padding_scaler
 local widthpadded = width + 2*padding
 local heightpadded = height + 2*padding
+local bottompadding = padding
+
+local verticalshift = height*(16.0)/480.0
 
 //calculate number of columns
 local cols = (1+2*(floor((flw/2+width/2-padding)/(height+padding))))
@@ -124,7 +148,8 @@ local carrier_y = header_h+0*(flh-carrier_h)/2
 local selectorscale = 1.5
 local whitemargin = 0.15
 local selectorwidth = selectorscale*widthpadded
-local selectoroffset = (selectorwidth - widthpadded)*0.5
+local selectoroffseth = (selectorwidth - widthpadded)*0.5
+local selectoroffsetv = (selectorwidth - widthpadded-verticalshift)*0.5
 
 local deltacol = (cols -3)/2
 local centercorrection0 = -deltacol*(width+padding) -(flw - (carrier_w-2*(width+padding)))/2 -padding *(1+selectorscale*0.5) - width/2 + selectorwidth/2
@@ -174,6 +199,8 @@ class Carrier {
 	loshzTable = []
 	favezTable = []
 	donezTable = []
+	nw_hzTable = []
+	nw_vzTable = []
 	sh_hzTable = []
 	sh_vzTable = []
 	bd_hzTable = []
@@ -200,6 +227,8 @@ class Carrier {
 	scroller = null
 	scroller2 = null
 	scrollineglow = null
+	searchdata = null
+
 	tilesCount = 0
 	surfaceVertOffset = 0
 	surfaceHoriOffset = 0
@@ -223,6 +252,8 @@ class Carrier {
 	fadeletter = 0
 	sh_h = null
 	sh_v = null
+	nw_h = null
+	nw_v = null
 	letter1 = null
 	letter2 = null
 	searchtext = ""
@@ -236,7 +267,7 @@ class Carrier {
 		
 		tilesCount = cols * rows
 		tilesOffscreen = 4 * rows
-		if (vertical) tilesOffscreen = 3*rows
+		if (vertical) tilesOffscreen = 3 * rows
 		
 		tilesTotal = tilesCount + 2*tilesOffscreen
 		surfacePosOffset = (tilesOffscreen/rows) * (height+padding)
@@ -244,8 +275,6 @@ class Carrier {
 		surfaceHoriOffset = carrier_x
 		vertmargin = carrier_y+0.8*padding
 		
-
-
 		local shadeval = 255
 		
 		snapbg1 = fe.add_artwork("blur",bgx,bgy,bgw,bgw)
@@ -271,68 +300,81 @@ class Carrier {
 		whitebg.zorder = 13
 
 
-
 		local prescaler = selectorscale
 		
 		for ( local i = 0; i < tilesTotal; i++ ) {
 			local obj = fe.add_surface(widthpadded*prescaler,heightpadded*prescaler)
-			local sh_hz = obj.add_image ("sh_h.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
-			local sh_vz = obj.add_image ("sh_v.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
+			local sh_hz = obj.add_image ("sh_h_4.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
+			local sh_vz = obj.add_image ("sh_v_4.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
 			sh_hz.alpha = sh_vz.alpha = 240
-			local bd_hz = obj.add_text ("",prescaler*padding*(1.0-whitemargin),prescaler*(height/8.0 + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height*(3/4.0)+padding*2*whitemargin))
+			local bd_hz = obj.add_text ("",prescaler*padding*(1.0-whitemargin),prescaler*(-verticalshift + height/8.0 + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height*(3/4.0)+padding*2*whitemargin))
 			bd_hz.set_bg_rgb (255,255,255)
 			bd_hz.bg_alpha = 240
 			bd_hz.visible = false
-			local bd_vz = obj.add_text ("",prescaler*(width/8.0 + padding*(1.0 - whitemargin)), prescaler*(padding*(1.0 - whitemargin)),prescaler*(width*(3/4.0)+padding*2*whitemargin),prescaler*(height + padding*2*whitemargin))
+			local bd_vz = obj.add_text ("",prescaler*(width/8.0 + padding*(1.0 - whitemargin)), prescaler*(-verticalshift + padding*(1.0 - whitemargin)),prescaler*(width*(3/4.0)+padding*2*whitemargin),prescaler*(height + padding*2*whitemargin))
 			bd_vz.set_bg_rgb (255,255,255)
 			bd_vz.bg_alpha = 240
 			bd_vz.visible = false
-			local snapz = obj.add_artwork("snap",prescaler*padding,prescaler*padding,prescaler*width,prescaler*height)
+			local snapz = obj.add_artwork("snap",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width,prescaler*height)
 			snapz.preserve_aspect_ratio = true
 			snapz.video_flags = Vid.ImagesOnly
 			
-			local vidsz = obj.add_image("transparent.png",prescaler*padding,prescaler*padding,prescaler*width,prescaler*height)
+			local vidsz = obj.add_image("transparent.png",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width,prescaler*height)
 			vidsz.preserve_aspect_ratio = true
 			vidsz.visible = false
 			vidsz.video_flags = Vid.NoAudio
 			
-			local namez = obj.add_text("",padding*prescaler,padding*prescaler,width*prescaler,height*prescaler)
+			local nw_hz = obj.add_image ("nw_h.png",prescaler*padding,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
+			local nw_vz = obj.add_image ("nw_v.png",prescaler*padding,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
+			nw_hz.visible = false
+			nw_vz.visible = false
+			
+			if (NEWGAME == true) {
+				nw_hz.alpha = 220
+				nw_vz.alpha = 220
+			}
+			else{
+				nw_hz.alpha = 0
+				nw_vz.alpha = 0				
+			}
+
+			local namez = obj.add_text("",padding*prescaler,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
 			namez.set_bg_rgb (0,0,0)
+			namez.set_rgb (255,255,255)
 			namez.bg_alpha = 255*0
 			namez.charsize = height*1/12.0
 			namez.word_wrap = true
 			namez.alpha = 255*0
 			
-			local donez = obj.add_image("completed.png",prescaler*padding,prescaler*padding,prescaler*width*0.8,prescaler*height*0.8)
+			local donez = obj.add_image("completed.png",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width*0.8,prescaler*height*0.8)
 			donez.visible = false
 			donez.preserve_aspect_ratio = false
-			local favez = obj.add_image("starred.png",prescaler*(padding+width/2),prescaler*(padding+height/2),prescaler*width/2,prescaler*height/2)
+			local favez = obj.add_image("starred.png",prescaler*(padding+width/2),prescaler*(padding+height/2-verticalshift),prescaler*width/2,prescaler*height/2)
 
-local loshz = null
-local logoz = null
+			local loshz = null
+			local logoz = null
 
-if (LOGOBLURRED == true){
-			loshz = obj.add_artwork ("logoblur",prescaler*padding*0.5,prescaler*5+prescaler*padding*0.1,prescaler*(width+padding),prescaler*(height*0.5+padding))
-			loshz.alpha = 150
+			if (LOGOBLURRED == true){
+				loshz = obj.add_artwork ("logoblur",prescaler*padding*0.5,prescaler*(padding*0.4*0.5-verticalshift),prescaler*(width+padding),prescaler*(height*0.5+padding))
+				loshz.alpha = 150
 
-			logoz = obj.add_artwork ("wheel",prescaler*padding,prescaler*padding*0.6,prescaler*width,prescaler*height*0.5)
-			logoz.preserve_aspect_ratio = true
-}
-else if (LOGOBLURRED == false){
-			loshz = obj.add_artwork ("wheel",prescaler*padding,prescaler*padding*0.6,prescaler*width,prescaler*height*0.5)
-			loshz.preserve_aspect_ratio = true
+				logoz = obj.add_artwork ("wheel",prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
+				logoz.preserve_aspect_ratio = true
+			}
+			else if (LOGOBLURRED == false){
+				loshz = obj.add_artwork ("wheel",prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
+				loshz.preserve_aspect_ratio = true
 
-			logoz = obj.add_clone (loshz)	
-			loshz.set_rgb(0,0,0)
+				logoz = obj.add_clone (loshz)	
+				loshz.set_rgb(0,0,0)
 
-			loshz.set_pos(loshz.x+prescaler*3*scalerate,loshz.y+prescaler*6*scalerate)			
-			loshz.alpha = 120
+				loshz.set_pos(loshz.x+prescaler*3*scalerate,loshz.y+prescaler*6*scalerate)			
+				loshz.alpha = 120
 
-}
-			
-			
+			}
+				
 			tilesTablePosX.push((width+padding) * (i/rows)  + padding)
-			tilesTablePosY.push((width+padding) * (i%rows)  + padding*margin_scaler + surfaceVertOffset)
+			tilesTablePosY.push((width+padding) * (i%rows)  + padding*margin_scaler + surfaceVertOffset + verticalshift)
 			
 			//local favez = obj.add_image("favoritez.png",padding,padding,width/2.5,height/2.5)
 			favez.visible = false
@@ -350,6 +392,8 @@ else if (LOGOBLURRED == false){
 			bd_vzTable.push (bd_vz)
 			sh_hzTable.push (sh_hz)
 			sh_vzTable.push (sh_vz)
+			nw_hzTable.push (nw_hz)
+			nw_vzTable.push (nw_vz)
 			vidszTable.push (vidsz)
 			namezTable.push (namez)
 		}
@@ -368,14 +412,25 @@ else if (LOGOBLURRED == false){
 
 		scrollineglow = fe.add_image ("whitedisc2.png",footermargin, flh-footer_h*0.5 - 5,flw-2*footermargin, 10)
 		scrollineglow.visible = false
-		
+		scrollineglow.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+
 		scroller = fe.add_image ("whitedisc.png",footermargin - scrollersize*0.5,flh-footer_h*0.5-scrollersize*0.5,scrollersize,scrollersize)
 		scroller.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
 		scroller2 = fe.add_image ("whitedisc2.png",scroller.x - scrollersize*0.5, scroller.y-scrollersize*0.5,scrollersize*2,scrollersize*2)
 		scroller2.visible = false
 		scroller2.alpha = 200
-		
+		scroller2.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+
+		searchdata = fe.add_text (fe.list.search_rule,0,flh-footer_h*0.5,flw,footer_h*0.5)
+		searchdata.align = Align.Centre
+		searchdata.set_rgb( 255, 255, 255)
+		searchdata.word_wrap = true
+		searchdata.charsize = 25*scalerate
+		searchdata.visible = true
+		searchdata.font = guifont
+		searchdata.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+
 		// large video preview definition		
 		local vid_w = (flh - header_h - footer_h)*1.1
 		local vid_h = vid_w
@@ -438,14 +493,12 @@ else if (LOGOBLURRED == false){
 		
 		if ((ttype != Transition.EndNavigation) && (ttype != Transition.NewSelOverlay) ) {
 			
-			
 			zoompos = 1
 			if ((ttype!=Transition.ToNewList)&&(ttype!=Transition.StartLayout)&&(ttype!=Transition.HideOverlay)) {
 				tilesTable[oldfocusindex].width = widthpadded
 				tilesTable[oldfocusindex].height = heightpadded
 				tilesTable[oldfocusindex].zorder = 7
 				bd_hzTable[oldfocusindex].visible = bd_vzTable[oldfocusindex].visible = false
-				
 				vidszTable[oldfocusindex].visible = false
 				//vidszTable[oldfocusindex].file_name = "transparent.png"
 				
@@ -529,8 +582,9 @@ else if (LOGOBLURRED == false){
 					snapzTable[indexTemp].rawset_index_offset(index)
 					loshzTable[indexTemp].rawset_index_offset(index)
 					logozTable[indexTemp].rawset_index_offset(index)
+				
 					namezTable[indexTemp].msg = gamename(index + var )
-					
+
 					tilesTable[indexTemp].zorder = 7
 					
 					local m = fe.game_info(Info.Favourite, snapzTable[indexTemp].index_offset+var)
@@ -545,18 +599,32 @@ else if (LOGOBLURRED == false){
 					else
 						donezTable[indexTemp].visible = false
 					
+
+
 					local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
-					if ((m == "0") || (m == "180")){
+					local m2 = fe.game_info(Info.PlayedCount,  snapzTable[indexTemp].index_offset+var)
+					if ((m == "0") || (m == "180") || (m == "Horizontal") || (m == "Horizontal")){
 						sh_hzTable[indexTemp].visible = true
 						sh_vzTable[indexTemp].visible = false
+						nw_vzTable[indexTemp].visible = false
+						if (m2 == "0") 
+							nw_hzTable[indexTemp].visible = true
+						else
+							nw_hzTable[indexTemp].visible = false
+						
 					}
 					else {
 						sh_hzTable[indexTemp].visible = false
 						sh_vzTable[indexTemp].visible = true
+						nw_hzTable[indexTemp].visible = false
+						if (m2 == "0") 
+							nw_vzTable[indexTemp].visible = true
+						else
+							nw_vzTable[indexTemp].visible = false
 					}
 					
 					tilesTablePosX[indexTemp] = (i/rows) * (width+padding) + carrier_x + centercorrection
-					tilesTablePosY[indexTemp] = (i%rows) * (height + padding * margin_scaler) + surfaceVertOffset
+					tilesTablePosY[indexTemp] = (i%rows) * (height + padding * margin_scaler) + surfaceVertOffset + verticalshift
 					
 					if( (fe.list.index + var + index < 0) || (fe.list.index + var + index > fe.list.size-1) ){
 						tilesTable[indexTemp].visible = false
@@ -593,7 +661,7 @@ else if (LOGOBLURRED == false){
 			bd_hzTable[oldfocusindex].visible = bd_vzTable[oldfocusindex].visible = false
 			
 			tilesTable[newfocusindex].zorder = 25
-			
+
 			vidszTable[oldfocusindex].visible = false
 			vidszTable[oldfocusindex].file_name = "transparent.png"
 			
@@ -612,7 +680,7 @@ else if (LOGOBLURRED == false){
 			
 			
 			local m = fe.game_info(Info.Rotation, snapzTable[newfocusindex].index_offset+var)
-			if ((m == "0") || (m == "180")){
+			if ((m == "0") || (m == "180") || (m == "Horizontal") || (m == "Horizontal")){
 				bd_hzTable[newfocusindex].visible = true
 				bd_vzTable[newfocusindex].visible = false
 			}
@@ -650,7 +718,6 @@ else if (LOGOBLURRED == false){
 	}
 	
 	function tick( tick_time ) {
-		
 		
 		if ((rightcount != 0) && (fe.get_input_state("right")==false)){
 			rightcount = 0
@@ -707,15 +774,15 @@ else if (LOGOBLURRED == false){
 			}
 			
 			// scaling of current tile
-			tilesTable[newfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[newfocusindex] - (selectoroffset*(1-zoompos))
-			tilesTable[newfocusindex].y =  tilesTablePosY[newfocusindex] - (selectoroffset*(1-zoompos))
+			tilesTable[newfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[newfocusindex] - (selectoroffseth*(1-zoompos))
+			tilesTable[newfocusindex].y =  tilesTablePosY[newfocusindex] - ((selectoroffsetv)*(1-zoompos)) 
 			tilesTable[newfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(1.0-zoompos)
 			tilesTable[newfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(1.0-zoompos)
 			//tilesTable[newfocusindex].zorder = 25
 			
 			if (oldfocusindex != newfocusindex){
-				tilesTable[oldfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[oldfocusindex] - (selectoroffset*(zoomunpos))
-				tilesTable[oldfocusindex].y =  tilesTablePosY[oldfocusindex] - (selectoroffset*(zoomunpos))
+				tilesTable[oldfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[oldfocusindex] - (selectoroffseth*(zoomunpos))
+				tilesTable[oldfocusindex].y =  tilesTablePosY[oldfocusindex] - ((selectoroffsetv)*(zoomunpos)) 
 				tilesTable[oldfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(zoomunpos)
 				tilesTable[oldfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(zoomunpos)
 			}
@@ -736,9 +803,9 @@ else if (LOGOBLURRED == false){
 			}
 			
 			if (vidpos <= fadevid)
-			vidszTable[newfocusindex].alpha = 255.0*(1-vidpos*(1/fadevid))
+				vidszTable[newfocusindex].alpha = 255.0*(1-vidpos*(1/fadevid))
 			else
-			vidszTable[newfocusindex].alpha = 0
+				vidszTable[newfocusindex].alpha = 0
 		}
 		
 	}
@@ -755,7 +822,7 @@ else if (LOGOBLURRED == false){
 	function updatesurf(){
 		videosnap.file_name = fe.get_art("snap")
 		local m = fe.game_info(Info.Rotation)
-		if ((m == "0") || (m == "180")){
+		if ((m == "0") || (m == "180") || (m == "Horizontal") || (m == "Horizontal")){
 			videoshadow.file_name = "sh_h.png"
 		}
 		else {
@@ -765,7 +832,6 @@ else if (LOGOBLURRED == false){
 	
 	function on_signal( sig )
 	{
-			
 
 		switch ( sig )
 		{
@@ -807,7 +873,7 @@ else if (LOGOBLURRED == false){
 			case "up":
 			if ((fe.list.index % rows > 0) && (scrolljump == false)) {
 				fe.list.index --
-				ticksound.playing=true
+				ticksound.playing = true
 				if (videosnapsurf.visible == true) updatesurf()
 			}
 			else if (scrolljump == true){
@@ -817,8 +883,10 @@ else if (LOGOBLURRED == false){
 				scroller2.visible = scrollineglow.visible = false
 			}
 			else {
-				wooshsound.playing=true
+			//	wooshsound.playing=true
 				fe.signal("filters_menu")
+				wooshsound.playing=true
+
 			}
 			return true
 			
@@ -864,15 +932,147 @@ else if (LOGOBLURRED == false){
 			
 			
 			// use custom3 to enable search
-			case "custom3":
+			/*	
+			case "custom2":
 			wooshsound.playing=true
-			searchtext = fe.overlay.edit_dialog( "Search:", searchtext )
+			searchtext = fe.overlay.edit_dialog( "Search title:", searchtext )
 			fe.list.index += corrector + rows 
 			fe.list.search_rule ="Title contains "+searchtext
 			fe.list.index = 0
 			corrector = 0
 			return true
+			*/
+			case "custom3":
+			wooshsound.playing=true
+			local searchtext =""
+			local switcharray = array(5)
+			switcharray[0]="Title"
+			switcharray[1]="Manufacturer"
+			switcharray[2]="Year"
+			switcharray[3]="Category"
+			switcharray[4]="RESET"
+			local result = fe.overlay.list_dialog(switcharray,"Search for...")
+
+			if(result==4){
+				//fe.list.index += corrector + rows 
+				fe.list.search_rule =""
+				searchdata.msg = ""
+				if (backindex != -1){
+					fe.list.index = backindex
+					corrector = backcorrector
+					backindex = -1
+				}
+				return
+			}
+			if ((result != 4)&&(result !=-1)){
+				searchtext = fe.overlay.edit_dialog("Search "+switcharray[result]+": ",searchtext)
+				if (backindex == -1){
+					backindex = fe.list.index
+					backcorrector = corrector
+				}
+				fe.list.index += corrector + rows 
+				fe.list.search_rule = switcharray[result]+" contains "+ searchtext
+				fe.list.index = 0
+				corrector = 0
+				searchdata.msg = fe.list.search_rule
+
+				return true
+
+			}
+			return true
+
+			// use custom3 to enable search
+			/*			
+			case "custom3":
+			wooshsound.playing=true
+			searchtext = fe.overlay.edit_dialog( "Search manufacturer:", searchtext )
+			fe.list.index += corrector + rows 
+			fe.list.search_rule ="Manufacturer contains "+searchtext
+			fe.list.index = 0
+			corrector = 0
+			return true
+			*/
+
+			case "toggle_rotate_right":
+			if (fe.layout.toggle_rotation == RotateScreen.None)
+				{
+				fe.layout.toggle_rotation = RotateScreen.Right
+				fe.signal ("reset_window")
+				}
+			else{
+				fe.layout.toggle_rotation = RotateScreen.None
+				fe.signal ("reset_window")
+			}
+			return true
+
+			case "toggle_rotate_left":
+			if (fe.layout.toggle_rotation == RotateScreen.None)
+				{
+				fe.layout.toggle_rotation = RotateScreen.Left
+				fe.signal ("reset_window")
+				}
+			else{
+				fe.layout.toggle_rotation = RotateScreen.None
+				fe.signal ("reset_window")
+			}
+			return true
+
+			// use custom3 to enable search
+			case "custom2":
+			wooshsound.playing=true
+			local searchtext =""
+			local switcharray = array(5)
+			switcharray[0]="Year"
+			switcharray[1]="Manufacturer"
+			switcharray[2]="Main Category"
+			switcharray[3]="Sub Category"
+			switcharray[4]="RESET"
+			local result = fe.overlay.list_dialog(switcharray,"More of the same...")
+
+			if(result==4){
+				//fe.list.index += corrector + rows 
+				fe.list.search_rule =""
+				searchdata.msg = ""
+				if (backindex != -1){
+					fe.list.index = backindex
+					corrector = backcorrector
+					backindex = -1
+				}
+				return
+			}
+
+			if (result == 0){
+				searchtext = "Year contains "+ fe.game_info(Info.Year)
+			}
+			if (result == 1){
+				searchtext = "Manufacturer contains "+fe.game_info(Info.Manufacturer)
+			}
+			if (result == 2){
+				searchtext = (fe.game_info(Info.Category))
+				local s = split( searchtext, "/" )
+				searchtext = "Category contains "+s[0]
+			}
+			if (result == 3){	
+				searchtext = "Category contains "+fe.game_info(Info.Category)		
+			}
 			
+			if ((result !=4) && (result != -1)){
+				if (backindex == -1){
+					backindex = fe.list.index
+					backcorrector = corrector
+				}
+				fe.list.index += corrector + rows 
+				fe.list.search_rule = searchtext
+				fe.list.index = 0
+				corrector = 0
+				searchdata.msg = searchtext
+				return true
+			}
+			return true
+			//			searchtext = fe.overlay.edit_dialog( "Search title:", searchtext )
+			//			fe.list.search_rule ="Category contains "+searchtext
+
+
 			default:
 			wooshsound.playing=true
 			
@@ -906,9 +1106,18 @@ function gamename( offset ) {
 	return ""
 }
 
+function gameplaycount( offset ) {
+	local s =  fe.game_info( Info.PlayedCount, offset )
+	if ( s.len() > 0 ) {
+		return s[0]
+	}
+	return ""
+}
+
 // gets the second part of the game name, after the "("
 function gamesubname( offset ) {
 	local s = split( fe.game_info( Info.Title, offset ), "(" )
+	
 	if ( s.len() > 1 ) {
 		return "("+s[1]
 	}
@@ -937,7 +1146,7 @@ namesh_x.align = Align.Left
 namesh_x.word_wrap = false
 namesh_x.set_rgb( 0, 0, 0)
 namesh_x.charsize = 60*scalerate
-namesh_x.alpha=50
+namesh_x.alpha=themeshadow
 //namesh_x.bg_alpha = 128
 //namesh_x.bg_red = 255
 namesh_x.font = guifont
@@ -946,12 +1155,11 @@ namesh_x.font = guifont
 local name_x =  fe.add_text( "[!gamename]", 0, 0, flw*2, header_h*2/3 )
 name_x.align = Align.Left
 name_x.word_wrap = false
-name_x.set_rgb( 255, 255, 255)
+name_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 name_x.charsize = 60*scalerate
 //name_x.bg_alpha = 128
 //name_x.bg_red = 255
 name_x.font = guifont
-name_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
 
 /*
@@ -1019,6 +1227,8 @@ filternumbers.visible = true
 filternumbers.font = guifont
 filternumbers.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
+
+
 // LOGO SPLASH SCREEN
 
 // carica l'immagine sfumata del gioco attuale 
@@ -1028,8 +1238,7 @@ if (bgblurred == ""){
 	afsplash = fe.add_image("white.png",bgx,bgy,bgw,bgw)
 	afsplash.file_name = fe.get_art("blur")
 }
-else
-{
+else{
 	afsplash = fe.add_image(bgblurred,0,0,flw,flh)
 }
 
@@ -1059,7 +1268,7 @@ local overlay_listbox = fe.add_listbox( 0, header_h+overlay_labelsize, flw, flh-
 overlay_listbox.rows = overlay_rows - 1
 overlay_listbox.charsize = overlay_charsize
 overlay_listbox.bg_alpha = 0
-overlay_listbox.set_rgb( 250, 250, 250 )
+overlay_listbox.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
 overlay_listbox.set_bg_rgb( 0, 0, 0 )
 overlay_listbox.set_sel_rgb( 50, 50, 50 )
 overlay_listbox.set_selbg_rgb( 250,250,250 )
@@ -1069,7 +1278,7 @@ overlay_listbox.font = guifont
 
 local overlay_label = fe.add_text( "dummy", 0, header_h, flw, overlay_labelsize )
 overlay_label.charsize = overlay_charsize
-overlay_label.set_rgb( 250, 250, 250 )
+overlay_label.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
 overlay_label.align = Align.Centre
 overlay_label.zorder=999
 overlay_label.font = guifont
