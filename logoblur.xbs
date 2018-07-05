@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?><XnView_script version="1.0" name="logoblur">
+    <Resize mode="0" width="480" height="240" unit="0" ratio="true" orientation="false" enlarge="0" resample="7" gamma_correct="false"/>
+    <Canvas_resize width="480" height="240" unit="0" relative="false" ratio="true" orientation="false" color="#00ffffff" alpha="0" position="4"/>
+    <HLS hue="0" lightness="-127" saturation="-127" colorize="false"/>
+    <Canvas_resize width="80" height="80" unit="0" relative="true" ratio="true" orientation="false" color="#00ffffff" alpha="0" position="4"/>
+    <Resize mode="0" width="280" height="160" unit="0" ratio="false" orientation="false" enlarge="0" resample="7" gamma_correct="false"/>
+    <Gaussian_blur size="11"/>
+    <Gaussian_blur size="13"/>
+    <Output folder="logoblur" filename="{Filename}" case="0" format="PNG">
+        <Options overwrite="1" orgDate="false" keepMeta="false" keepICC="false" keepFolder="false" keepParentFolder="false" delOrg="false" multipage="false" allPages="false" openExplorer="false" openBrowser="false" clearItems="false"/>
+        <PNG level="9" interlaced="false" filter="0"/>
+    </Output>
+</XnView_script>

@@ -1,14 +1,17 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 1.3**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 1.4**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
-*What's new in v 1.3*
+*What's new in v 1.4*
 
-- Key repeat rate limited to allow more fluid scrolling of tiles 
-- Added selection sound
-- Changed splash screen graphics at startup
+- Changed (again) splash screen graphics at startup (new AF logo) 
+- Introducing theme options:
+  - You can chose the theme's... theme :D There are 4 choices: "Default" (greyed blurred background), "Dark", "Light" (dark and light blurred background), "Pop" (blurred background colors unaltered)
+  - You can chose wether you want "hard edged" game title shadows or "smooth" game title shadows, the latter requires new artwork (see below)
+  - You can place a background image, this will be affected by the theme choice and will override the blurred background
+- Minor tweaks and speedups, now each sections retaines the latest selected game
 
 *Custom controls*
 
@@ -40,7 +43,17 @@ The blurred background is not calculated from the snaps: you need to batch proce
 
 This results in a very smooth yet fast to load blurred background. I prepared some xnview scripts you can use for the conversion.
 
+*Blurred title shadows*
+
+You can add a attract mode art category called "logoblur" and use the provided xnview script to generate new artworks for blurred shadows to be placed under the title
+
 ** Previous versions history **
+
+*v 1.3*
+
+- Key repeat rate limited to allow more fluid scrolling of tiles 
+- Added selection sound
+- Changed splash screen graphics at startup
 
 *v 1.2*
 
