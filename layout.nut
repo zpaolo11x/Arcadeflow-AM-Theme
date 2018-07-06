@@ -1,23 +1,24 @@
-// Arcadeflow - v 1.7
+// Arcadeflow - v 1.8
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
 // Including code from the KeyboardSearch plugin by Andrew Mickelson (mickelson)
 
 class UserConfig </ help="" />{
-	</ label="Context Menu Button", help="Setup the button to use to recall game info and actions context menu", options="custom1, custom2, custom3, custom4, custom5, custom6", order=1 /> overmenubutton="custom1"
-	</ label="Theme Color", help="Setup theme color", options="Default, Dark, Light, Pop", order=2 /> colortheme="Default"
-	</ label="Blurred Logo Shadow", help="Use blurred logo artwork shadow", options="Yes, No", order=3 /> logoblurred="Yes"
-	</ label="Enable New Game Indicator", help="Games not played are marked with a glyph", options="Yes, No", order=4 /> newgame = "Yes"
-	</ label="Custom Background Image", help="Insert custom background art path", order=5 /> bgblurred=""
-	</ label="Search string entry method", help="Use keyboard or on-screen keys to enter search string", options="Keyboard, Screen keys", order=6 /> searchmeth = "Screen keys"
-	</ label="Immediate search", help="Live update results while searching", options="Yes, No", order=7 /> livesearch = "Yes"
-	</ label="Enable AF splash logo", help="Enable or disable the AF start logo", options="Yes, No",order = 8/> splashlogo = "Yes"
-	</ label="Rows in horizontal layout", help = "Number of rows to use in 'horizontal' mode", options="2, 3", order = 9 /> horizontalrows = "2"
-	</ label="Rows in vertical layout", help = "Number of rows to use in 'vertical' mode", options="2, 3", order = 10 /> verticalrows = "3"
-	</ label="History.dat", help="History.dat location.", order=11 /> dat_path="$HOME/mame/dats/history.dat"
-	</ label="Index Clones", help="Set whether entries for clones should be included in the index.  Enabling this will make the index significantly larger", order=12, options="Yes,No" /> index_clones="Yes"
-	</ label="Generate Index", help="Generate the history.dat index now (this can take some time)", is_function=true, order=13 />generate="generate_index"
+	</ label="Snaps aspect ratio", help="Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation", options ="Horizontal-Vertical, Square", order = 1 /> cropsnaps = "Horizontal-Vertical"
+	</ label="Context Menu Button", help="Setup the button to use to recall game info and actions context menu", options="custom1, custom2, custom3, custom4, custom5, custom6", order=2 /> overmenubutton="custom1"
+	</ label="Theme Color", help="Setup theme color", options="Default, Dark, Light, Pop", order=3 /> colortheme="Default"
+	</ label="Blurred Logo Shadow", help="Use blurred logo artwork shadow", options="Yes, No", order=4 /> logoblurred="Yes"
+	</ label="Enable New Game Indicator", help="Games not played are marked with a glyph", options="Yes, No", order=5 /> newgame = "Yes"
+	</ label="Custom Background Image", help="Insert custom background art path", order=6 /> bgblurred=""
+	</ label="Search string entry method", help="Use keyboard or on-screen keys to enter search string", options="Keyboard, Screen keys", order=7 /> searchmeth = "Screen keys"
+	</ label="Immediate search", help="Live update results while searching", options="Yes, No", order=8 /> livesearch = "Yes"
+	</ label="Enable AF splash logo", help="Enable or disable the AF start logo", options="Yes, No",order = 9/> splashlogo = "Yes"
+	</ label="Rows in horizontal layout", help = "Number of rows to use in 'horizontal' mode", options="2, 3", order = 10 /> horizontalrows = "2"
+	</ label="Rows in vertical layout", help = "Number of rows to use in 'vertical' mode", options="2, 3", order = 11 /> verticalrows = "3"
+	</ label="History.dat", help="History.dat location.", order=12 /> dat_path="$HOME/mame/dats/history.dat"
+	</ label="Index Clones", help="Set whether entries for clones should be included in the index.  Enabling this will make the index significantly larger", order=13, options="Yes,No" /> index_clones="Yes"
+	</ label="Generate Index", help="Generate the history.dat index now (this can take some time)", is_function=true, order=14 />generate="generate_index"
 }
 
 // for debug purposes
@@ -34,7 +35,7 @@ local my_config = fe.get_config()
 local overmenuflow = 0
 local historyflow = 0
 
-
+local CROPSNAPS = ( (my_config["cropsnaps"] == "Square") ? true : false)
 local COLORTHEME = my_config["colortheme"]
 local LOGOBLURRED = ( (my_config["logoblurred"] == "Yes") ? true : false)
 local NEWGAME = ( (my_config["newgame"] == "Yes") ? true : false)
@@ -145,6 +146,8 @@ local footer_h = 100*scalerate
 
 // multiplier of padding space (normally 1/6 of thumb area)
 local padding_scaler = 1/6.0
+if (CROPSNAPS) padding_scaler = 100/440.0
+
 
 local height = (flh-header_h-footer_h)/(rows+rows*padding_scaler+padding_scaler)
 local width = height
@@ -154,7 +157,7 @@ local widthpadded = width + 2*padding
 local heightpadded = height + 2*padding
 local bottompadding = padding
 
-local verticalshift = height*(16.0)/480.0
+local verticalshift = (CROPSNAPS ? 0 : height*(16.0)/480.0)
 
 //calculate number of columns
 local cols = (1+2*(floor((flw/2+width/2-padding)/(height+padding))))
@@ -239,6 +242,7 @@ class Carrier {
 	bd_vzTable = []
 	vidszTable = []
 	namezTable = []
+	namez2Table = []
 	
 	tilesTablePosX = []
 	tilesTablePosY = []
@@ -328,6 +332,8 @@ class Carrier {
 			local sh_hz = obj.add_image ("sh_h_5.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
 			local sh_vz = obj.add_image ("sh_v_5.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
 			sh_hz.alpha = sh_vz.alpha = 230
+			
+			if (CROPSNAPS) sh_hz.file_name = sh_vz.file_name = "sh_sq.png"
 
 			local bd_hz = obj.add_text ("",prescaler*padding*(1.0-whitemargin),prescaler*(-verticalshift + height/8.0 + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height*(3/4.0)+padding*2*whitemargin))
 			bd_hz.set_bg_rgb (255,255,255)
@@ -339,21 +345,57 @@ class Carrier {
 			bd_vz.bg_alpha = 240
 			bd_vz.visible = false
 
-			local snapz = obj.add_artwork("snap",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width,prescaler*height)
+			if (CROPSNAPS) {
+				bd_hz.set_pos (prescaler*padding*(1.0-whitemargin),prescaler*(-verticalshift + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height + padding*2*whitemargin))
+				bd_vz.set_pos (prescaler*padding*(1.0-whitemargin),prescaler*(-verticalshift + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height + padding*2*whitemargin))
+
+			}
+
+			local snapsurf = obj.add_surface (prescaler*width,prescaler*height)
+			snapsurf.set_pos (prescaler*padding,prescaler*(padding-verticalshift))
+
+			local snapz = null
+			
+			if (CROPSNAPS) {
+				snapz = snapsurf.add_artwork("snap",-prescaler*padding,-prescaler*(padding-verticalshift),prescaler*widthpadded,prescaler*heightpadded)
+			}
+			else {
+				snapz = snapsurf.add_artwork("snap",0,0,prescaler*width,prescaler*height)
+			}
 			snapz.preserve_aspect_ratio = true
 			snapz.video_flags = Vid.ImagesOnly
 			
-			local vidsz = obj.add_image("transparent.png",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width,prescaler*height)
+			local vidsz = null
+
+			if (CROPSNAPS) {
+				vidsz = snapsurf.add_image("transparent.png",-prescaler*padding,-prescaler*(padding-verticalshift),prescaler*widthpadded,prescaler*heightpadded)
+
+			}
+			else {
+				vidsz = snapsurf.add_image("transparent.png",0,0,prescaler*width,prescaler*height)
+			}
+
 			vidsz.preserve_aspect_ratio = true
 			//vidsz.visible = false
 			vidsz.video_flags = Vid.NoAudio
-			
+
+			local namez2 = snapsurf.add_text("",0,0,width*prescaler,height*prescaler)
+			namez2.set_bg_rgb (0,0,0)
+			namez2.set_rgb (255,255,255)
+			namez2.bg_alpha = 255*(DEBUG2?1:0)
+			namez2.charsize = height*1/12.0
+			namez2.word_wrap = true
+			namez2.alpha = 255*(DEBUG2?1:0)
+
 			local nw_hz = obj.add_image ("nw_h.png",prescaler*padding,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
 			local nw_vz = obj.add_image ("nw_v.png",prescaler*padding,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
 			nw_hz.visible = false
 			nw_vz.visible = false
 			nw_hz.alpha = nw_vz.alpha = ((NEWGAME == true)? 220 : 0)
 			
+			if (CROPSNAPS) nw_hz.file_name = nw_vz.file_name = "nw_sq.png"
+
+
 			local namez = obj.add_text("",padding*prescaler,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
 			namez.set_bg_rgb (0,0,0)
 			namez.set_rgb (255,255,255)
@@ -373,25 +415,41 @@ class Carrier {
 			local loshz = null
 			local logoz = null
 			
-			if (LOGOBLURRED == true) {
-				loshz = obj.add_artwork ("logoblur",prescaler*padding*0.5,prescaler*(padding*0.4*0.5-verticalshift),prescaler*(width+padding),prescaler*(height*0.5+padding))
-				loshz.alpha = 150
+			if (!CROPSNAPS){
 
-				logoz = obj.add_artwork ("wheel",prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
+				if (LOGOBLURRED == true) {
+					loshz = obj.add_artwork ("logoblur",prescaler*padding*0.5,prescaler*(padding*0.4*0.5-verticalshift),prescaler*(width+padding),prescaler*(height*0.5+padding))
+					loshz.alpha = 150
+
+					logoz = obj.add_artwork ("wheel",prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
+					logoz.preserve_aspect_ratio = true
+				}
+				
+				else if (LOGOBLURRED == false) {
+					loshz = obj.add_artwork ("wheel",prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
+					loshz.preserve_aspect_ratio = true
+					
+					logoz = obj.add_clone (loshz)	
+					loshz.set_rgb(0,0,0)
+					
+					loshz.set_pos(loshz.x+prescaler*3*scalerate,loshz.y+prescaler*6*scalerate)			
+					loshz.alpha = 120
+				}
+			
+			}
+
+			else{
+
+				local gradz = obj.add_image("gradient.png",padding*prescaler,(padding-verticalshift)*prescaler,width*prescaler,0.5*height*prescaler)
+				gradz.set_rgb(0,0,0)
+				gradz.alpha = 190
+
+				logoz = obj.add_artwork ("wheel",prescaler*(padding+0.05*width),prescaler*(padding-verticalshift),prescaler*width*0.9,prescaler*height*0.5)
 				logoz.preserve_aspect_ratio = true
+				loshz = obj.add_clone (logoz)
+				loshz.visible = false
 			}
-			
-			else if (LOGOBLURRED == false) {
-				loshz = obj.add_artwork ("wheel",prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
-				loshz.preserve_aspect_ratio = true
-				
-				logoz = obj.add_clone (loshz)	
-				loshz.set_rgb(0,0,0)
-				
-				loshz.set_pos(loshz.x+prescaler*3*scalerate,loshz.y+prescaler*6*scalerate)			
-				loshz.alpha = 120
-			}
-			
+
 			tilesTablePosX.push((width+padding) * (i/rows)  + padding)
 			tilesTablePosY.push((width+padding) * (i%rows)  + padding + carrier_y + verticalshift)
 			
@@ -411,6 +469,8 @@ class Carrier {
 			nw_vzTable.push (nw_vz)
 			vidszTable.push (vidsz)
 			namezTable.push (namez)
+			namez2Table.push (namez2)
+
 		}
 		
 
@@ -623,6 +683,7 @@ class Carrier {
 					logozTable[indexTemp].rawset_index_offset(index )
 
 					namezTable[indexTemp].msg = gamename(index + var )
+					namez2Table[indexTemp].msg = gamename(index + var )
 
 
 					//namezTable[indexTemp].msg = (snapzTable[indexTemp].texture_width > snapzTable[indexTemp].texture_height)

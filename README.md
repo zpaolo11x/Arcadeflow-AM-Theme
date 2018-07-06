@@ -1,28 +1,13 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 1.7**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 1.8**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
 
-*What's new in v 1.7*
+*What's new in v 1.8*
 
-- Overhauled the menu and functions system, now it works like this:
-  - When going "UP" from the tiles list you get to a "main menu" where you can select Filters Menu or Global Search
-  - When on a game using the configurable control button you get a "context menu" overlay with 4 game-specific functions you chose by using your joystick/keys:
-    - "UP" enters the "More of the same..." search menu
-    - "DOWN" enters the "History" page where you can see and scroll the game history and see a larger game preview
-    - "LEFT" to enter the Tags menu
-    - "RIGHT" to add/remove favorites
-- Implemented a version of the History.dat plugin so you can see history without the need to enable the plugin (see options)
-- Rolled back the way horizontal and vertical games are detected, the "new" one had some issues in many circumstances
-- Tweaked and updated search with on-screen keys
-- Added a workaround when invoking filters through the filters menu button to fix some tiles update
-
-- New theme options included: 
-  -	"History.dat" is the location of the History.dat file (no need to enable or configure the )
-  - "Index Clones" works like the same option in the History.dat plugin.
-  - "Generate Index" a one-time function to generate the history index
+- Introduced a new layout style where game snaps are not horizontal or vertical depending on game orientation, but cropped square. You can chose it in the options menu.
   
 *Custom controls*
 
@@ -65,7 +50,43 @@ This results in a very smooth yet fast to load blurred background. I prepared so
 
 You can add a attract mode art category called "logoblur" and use the provided xnview script to generate new artworks for blurred shadows to be placed under the title
 
+* Game options*
+
+- "Snaps aspect ratio" : Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation
+- "Context Menu Button" : Setup the button to use to recall game info and actions context menu
+- "Theme Color" : Setup theme color
+- "Blurred Logo Shadow" : Use blurred logo artwork shadow
+- "Enable New Game Indicator" : Games not played are marked with a glyph
+- "Custom Background Image" : Insert custom background art path
+- "Search string entry method" : Use keyboard or on-screen keys to enter search string
+- "Immediate search" : Live update results while searching
+- "Enable AF splash logo" : Enable or disable the AF start logo
+- "Rows in horizontal layout" : Number of rows to use in 'horizontal' mode
+- "Rows in vertical layout" : Number of rows to use in 'vertical' mode
+- "History.dat" : History.dat location
+- "Index Clones" : Set whether entries for clones should be included in the index.
+- "Generate Index" : Generate the history.dat index now (this can take some time)
+
 ** Previous versions history **
+
+*v 1.7*
+
+- Overhauled the menu and functions system, now it works like this:
+  - When going "UP" from the tiles list you get to a "main menu" where you can select Filters Menu or Global Search
+  - When on a game using the configurable control button you get a "context menu" overlay with 4 game-specific functions you chose by using your joystick/keys:
+    - "UP" enters the "More of the same..." search menu
+    - "DOWN" enters the "History" page where you can see and scroll the game history and see a larger game preview
+    - "LEFT" to enter the Tags menu
+    - "RIGHT" to add/remove favorites
+- Implemented a version of the History.dat plugin so you can see history without the need to enable the plugin (see options)
+- Rolled back the way horizontal and vertical games are detected, the "new" one had some issues in many circumstances
+- Tweaked and updated search with on-screen keys
+- Added a workaround when invoking filters through the filters menu button to fix some tiles update
+
+- New theme options included: 
+  -	"History.dat" is the location of the History.dat file (no need to enable or configure the )
+  - "Index Clones" works like the same option in the History.dat plugin.
+  - "Generate Index" a one-time function to generate the history index
 
 *v 1.6*
 
