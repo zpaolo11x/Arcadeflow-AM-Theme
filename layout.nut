@@ -1,4 +1,4 @@
-// Arcadeflow - v 1.8
+// Arcadeflow - v 1.9
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
@@ -21,9 +21,13 @@ class UserConfig </ help="" />{
 	</ label="Generate Index", help="Generate the history.dat index now (this can take some time)", is_function=true, order=14 />generate="generate_index"
 }
 
+/// Layout start  
+
 // for debug purposes
 local DEBUG = false
-local DEBUG2 = false
+local DEBUGAR = false
+local DEBUG_BLANK = false
+local DEBUG_SLOWDOWN = false
 local redstrober = 0
 local transdata = ["StartLayout", "EndLayout", "ToNewSelection","FromOldSelection","ToGame","FromGame","ToNewList","EndNavigation","ShowOverlay","HideOverlay","NewSelOverlay"]
 
@@ -31,9 +35,6 @@ local my_dir = fe.script_dir
 dofile( my_dir + "file_util.nut" )
 
 local my_config = fe.get_config()
-
-local overmenuflow = 0
-local historyflow = 0
 
 local CROPSNAPS = ( (my_config["cropsnaps"] == "Square") ? true : false)
 local COLORTHEME = my_config["colortheme"]
@@ -47,23 +48,42 @@ local VERTICALROWS = ( (my_config["verticalrows"] == "2") ? 2 : 3 )
 local HORIZONTALROWS = ( (my_config["horizontalrows"] == "2") ? 2 : 3 )
 local OVERMENUBUTTON = my_config["overmenubutton"]
 
-// Initialize search parameters
+// Initialize variables
+local var = 0
+local overmenuflow = 0
+local historyflow = 0
+
+local titleswitch = -1
+local titlezero = 0
+local titlezero2 = 0
+local titlecrossfade = 0
+local titlestart = true
+local titleroll = false
+local titlescroll = false
+local scrollincrement = 0
+
+local scrollwait = 2000
+local scrollmove = 1000
+local titlewait = scrollwait*2+scrollmove*2
+
+// Search parameters
 local search_base_rule = "Title"
 local backindex = -1
 local backcorrector = -1
 
-local filtermenu = false 
 local tagsmenu = false
 
-local filteract = false
-local globalcorrectorold = 0
-local globalcorrectornew = 0
+local	colstop = 0
+local	colstart = 0
+local columnoffset = 0
 
 // Apply color theme
 local themeoverlaycolor = 255
 local themeoverlayalpha = 80
 local themetextcolor = 255
 local themeshadow = 50
+local shadeval = 255
+local satinrate = 0.9
 
 if (COLORTHEME == "Default"){
 	themeoverlaycolor = 255
@@ -103,22 +123,25 @@ local rightcount = 0
 local leftcount = 0
 local movecount = 3
 
+local globalposnew = 0
+local	surfacePos = 0
+
 // layout preferences
 local rows = HORIZONTALROWS
 local vertical = false
 local logoshow = 1
 
 local guifont ="Roboto-Allcaps.ttf"
-local scrolltitle = 2
-local scrollincrement = 0
+
 
 //screen layout definition
 
 local scrw = ScreenWidth
 local scrh = ScreenHeight
-//DEBUG overlay screen width and height
-//scrw = 640/2
-//scrh = 480/2
+
+// DEBUG  overlay screen width and height
+//scrw = 640
+//scrh = 480
 
 local flw = scrw
 local flh = scrh
@@ -136,18 +159,16 @@ fe.layout.width = flw
 fe.layout.height = flh
 fe.layout.preserve_aspect_ratio = true
 fe.layout.page_size = rows
-fe.layout.font ="Roboto-Bold.ttf"
+fe.layout.font = "Roboto-Bold.ttf"
 
-local scalerate = flh/1200.0
-if (vertical) scalerate = flw/1200.0
+local scalerate = (vertical ? flw : flh)/1200.0
+local	tilesTotal = 0
 
 local header_h = 200*scalerate
 local footer_h = 100*scalerate
 
 // multiplier of padding space (normally 1/6 of thumb area)
-local padding_scaler = 1/6.0
-if (CROPSNAPS) padding_scaler = 100/440.0
-
+local padding_scaler = (CROPSNAPS ? 100/440.0 : 1/6.0)
 
 local height = (flh-header_h-footer_h)/(rows+rows*padding_scaler+padding_scaler)
 local width = height
@@ -155,7 +176,6 @@ local width = height
 local padding = height*padding_scaler
 local widthpadded = width + 2*padding
 local heightpadded = height + 2*padding
-local bottompadding = padding
 
 local verticalshift = (CROPSNAPS ? 0 : height*(16.0)/480.0)
 
@@ -172,7 +192,7 @@ local carrier_y = header_h
 
 // selector and zooming data
 local selectorscale = 1.5
-local whitemargin = 0.15
+local whitemargin = (CROPSNAPS ? 0.12 : 0.15) 
 local selectorwidth = selectorscale*widthpadded
 local selectoroffseth = (selectorwidth - widthpadded)*0.5
 local selectoroffsetv = (selectorwidth - widthpadded-verticalshift)*0.5
@@ -183,6 +203,7 @@ local centercorrection = 0
 local centercorrectionshift = centercorrection0
 
 local zorderscanner = 0
+local zordertop = 0
 
 // transitions speeds
 local scrollspeed = 0.9
@@ -208,6 +229,13 @@ local bgx = 0
 local bgy = (flh-flw)/2
 local bgw = flw
 
+// Picture background definition
+local bgpic_x = 0
+local bgpic_y = 0
+local bgpic_w = flw
+local bgpic_h = flh
+local bgpic_ar = 1
+
 if (vertical){
 	bgx = (flw-flh)/2
 	bgy = 0
@@ -221,11 +249,11 @@ local scrollstep = rows
 // keys definition for on screen keyboard 
 local key_names = { "a": "a", "b": "b", "c": "c", "d": "d", "e": "e", "f": "f", "g": "g", "h": "h", "i": "i", "j": "j", "k": "k", "l": "l", "m": "m", "n": "n", "o": "o", "p": "p", "q": "q", "r": "r", "s": "s", "t": "t", "u": "u", "v": "v", "w": "w", "x": "x", "y": "y", "z": "z", "1": "Num1", "2": "Num2", "3": "Num3", "4": "Num4", "5": "Num5", "6": "Num6", "7": "Num7", "8": "Num8", "9": "Num9", "0": "Num0", "<": "Backspace", " ": "Space", "-": "Clear", "~": "Done","_":"Nope" }
 local key_rows =  ["abcdefghi123", "jklmnopqr456", "stuvwxyz_789", "- <0","~"]
-if (vertical) 
-	key_rows = ["1234567890","abcdefghij","klmnopqrst","uvwxyz____","- <","~"]
+if (vertical) key_rows = ["1234567890","abcdefghij","klmnopqrst","uvwxyz____","- <","~"]
 local key_selected = [0,0]
 local s_text = ""
 
+/// Carrier Class Definition  
 class Carrier {
 	
 	tilesTable = []
@@ -241,21 +269,17 @@ class Carrier {
 	bd_hzTable = []
 	bd_vzTable = []
 	vidszTable = []
-	namezTable = []
-	namez2Table = []
+	nam1zTable = []
+	nam2zTable = []
 	
 	tilesTablePosX = []
 	tilesTablePosY = []
 	tilesTableOffset = 0
 	surfacePosOffset = 0
-	
-	surfacePos = 0
+
 	selector = null
-	tilesTotal = 0
 	tilesOffscreen = 0
-	corrector = 0
-	
-	
+	corrector = 0	
 
 	newfocusindex = 0
 	oldfocusindex = 0
@@ -268,8 +292,6 @@ class Carrier {
 	changedfav = false
 	snapbg1 = null
 	snapbg2 = null
-	snapbg3 = null
-	snapbg4 = null
 	alphapos = 0
 	zoompos = 0
 	zoomunpos = 0
@@ -285,18 +307,15 @@ class Carrier {
 	
 	debugarea = null
 
+	/// Carrier constructor  
 	constructor() {
 		
 		tilesCount = cols * rows
-		tilesOffscreen = 4 * rows
-		if (vertical) tilesOffscreen = 3 * rows
+		tilesOffscreen = (vertical ? 3 * rows : 4 * rows)
 		
 		tilesTotal = tilesCount + 2*tilesOffscreen
 		surfacePosOffset = (tilesOffscreen/rows) * (width+padding)
-
-		
-		local shadeval = 255
-		
+				
 		snapbg1 = fe.add_artwork("blur",bgx,bgy,bgw,bgw)
 		snapbg1.set_rgb (shadeval,shadeval,shadeval)
 		snapbg1.alpha = 255
@@ -307,10 +326,28 @@ class Carrier {
 		snapbg2.alpha = 255
 		snapbg2.trigger = Transition.EndNavigation
 
-		if (BGBLURRED != ""){
+
+		if (BGBLURRED != "")	{
 			bgpicture = fe.add_image(BGBLURRED,0,0,flw,flh)
+			bgpic_ar = bgpicture.texture_width*1.0 / bgpicture.texture_height
+
+			if (bgpic_ar >= flw/flh*1.0){
+				bgpic_h = flh
+				bgpic_w = bgpic_h * bgpic_ar
+				bgpic_y = 0
+				bgpic_x = - (bgpic_w - flw)*0.5
+			}
+			else {
+				bgpic_w = flw
+				bgpic_h = bgpic_w / bgpic_ar*1.0
+				bgpic_y = - (bgpic_h - flh)*0.5
+				bgpic_x = 0
+			}
+			bgpicture=fe.add_image (BGBLURRED,bgpic_x,bgpic_y,bgpic_w,bgpic_h)
 		}
-		
+
+
+
 		local whitebg = fe.add_text("",0,0,flw,flh)
 		whitebg.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
 		whitebg.bg_alpha = themeoverlayalpha
@@ -318,8 +355,7 @@ class Carrier {
 		local prescaler = selectorscale
 		zorderscanner = 0
 
-		// tile creation loop
-
+		/// Tile creation loop  
 		for ( local i = 0; i < tilesTotal; i++ ) {
 
 			local obj = fe.add_surface(widthpadded*prescaler,heightpadded*prescaler)
@@ -328,6 +364,7 @@ class Carrier {
 				zorderscanner = obj.zorder
 			else
 				obj.zorder = zorderscanner
+
 
 			local sh_hz = obj.add_image ("sh_h_5.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
 			local sh_vz = obj.add_image ("sh_v_5.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
@@ -348,61 +385,36 @@ class Carrier {
 			if (CROPSNAPS) {
 				bd_hz.set_pos (prescaler*padding*(1.0-whitemargin),prescaler*(-verticalshift + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height + padding*2*whitemargin))
 				bd_vz.set_pos (prescaler*padding*(1.0-whitemargin),prescaler*(-verticalshift + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height + padding*2*whitemargin))
-
 			}
 
-			local snapsurf = obj.add_surface (prescaler*width,prescaler*height)
-			snapsurf.set_pos (prescaler*padding,prescaler*(padding-verticalshift))
 
-			local snapz = null
+			local snapz = obj.add_artwork("snap",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width,prescaler*height)
 			
-			if (CROPSNAPS) {
-				snapz = snapsurf.add_artwork("snap",-prescaler*padding,-prescaler*(padding-verticalshift),prescaler*widthpadded,prescaler*heightpadded)
-			}
-			else {
-				snapz = snapsurf.add_artwork("snap",0,0,prescaler*width,prescaler*height)
-			}
 			snapz.preserve_aspect_ratio = true
 			snapz.video_flags = Vid.ImagesOnly
 			
-			local vidsz = null
-
-			if (CROPSNAPS) {
-				vidsz = snapsurf.add_image("transparent.png",-prescaler*padding,-prescaler*(padding-verticalshift),prescaler*widthpadded,prescaler*heightpadded)
-
-			}
-			else {
-				vidsz = snapsurf.add_image("transparent.png",0,0,prescaler*width,prescaler*height)
-			}
+			local vidsz = obj.add_image("transparent.png",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width,prescaler*height)
 
 			vidsz.preserve_aspect_ratio = true
 			//vidsz.visible = false
 			vidsz.video_flags = Vid.NoAudio
 
-			local namez2 = snapsurf.add_text("",0,0,width*prescaler,height*prescaler)
-			namez2.set_bg_rgb (0,0,0)
-			namez2.set_rgb (255,255,255)
-			namez2.bg_alpha = 255*(DEBUG2?1:0)
-			namez2.charsize = height*1/12.0
-			namez2.word_wrap = true
-			namez2.alpha = 255*(DEBUG2?1:0)
+			local nam2z = null
 
 			local nw_hz = obj.add_image ("nw_h.png",prescaler*padding,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
 			local nw_vz = obj.add_image ("nw_v.png",prescaler*padding,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
-			nw_hz.visible = false
-			nw_vz.visible = false
+			nw_hz.visible = nw_vz.visible = false
 			nw_hz.alpha = nw_vz.alpha = ((NEWGAME == true)? 220 : 0)
 			
 			if (CROPSNAPS) nw_hz.file_name = nw_vz.file_name = "nw_sq.png"
 
-
-			local namez = obj.add_text("",padding*prescaler,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
-			namez.set_bg_rgb (0,0,0)
-			namez.set_rgb (255,255,255)
-			namez.bg_alpha = 255*(DEBUG2?1:0)
-			namez.charsize = height*1/12.0
-			namez.word_wrap = true
-			namez.alpha = 255*(DEBUG2?1:0)
+			local nam1z = obj.add_text("",padding*prescaler,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
+			nam1z.set_bg_rgb (0,0,0)
+			nam1z.set_rgb (255,255,255)
+			nam1z.bg_alpha = 255*(DEBUG_BLANK?1:0)
+			nam1z.charsize = height*1/12.0
+			nam1z.word_wrap = true
+			nam1z.alpha = 255*(DEBUG_BLANK?1:0)
 
 			local donez = obj.add_image("completed.png",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width*0.8,prescaler*height*0.8)
 			donez.visible = false
@@ -417,7 +429,7 @@ class Carrier {
 			
 			if (!CROPSNAPS){
 
-				if (LOGOBLURRED == true) {
+				if (LOGOBLURRED) {
 					loshz = obj.add_artwork ("logoblur",prescaler*padding*0.5,prescaler*(padding*0.4*0.5-verticalshift),prescaler*(width+padding),prescaler*(height*0.5+padding))
 					loshz.alpha = 150
 
@@ -425,7 +437,7 @@ class Carrier {
 					logoz.preserve_aspect_ratio = true
 				}
 				
-				else if (LOGOBLURRED == false) {
+				else {
 					loshz = obj.add_artwork ("wheel",prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
 					loshz.preserve_aspect_ratio = true
 					
@@ -439,15 +451,23 @@ class Carrier {
 			}
 
 			else{
+				if (LOGOBLURRED) {
+					loshz = obj.add_artwork ("logoblur",prescaler*padding,prescaler*padding,prescaler*width,prescaler*width*320/560.0)
+					loshz.alpha = 150
 
-				local gradz = obj.add_image("gradient.png",padding*prescaler,(padding-verticalshift)*prescaler,width*prescaler,0.5*height*prescaler)
-				gradz.set_rgb(0,0,0)
-				gradz.alpha = 190
+					logoz = obj.add_artwork ("wheel",prescaler*(padding+width*40/560.0),prescaler*(padding+height*(48-16)/560.0),prescaler*width*480/560.0,prescaler*height*240/560.0)
+					logoz.preserve_aspect_ratio = true
+				}
+				else  {
+					local gradz = obj.add_image("gradient.png",padding*prescaler,(padding-verticalshift)*prescaler,width*prescaler,0.5*height*prescaler)
+					gradz.set_rgb(0,0,0)
+					gradz.alpha = 190
 
-				logoz = obj.add_artwork ("wheel",prescaler*(padding+0.05*width),prescaler*(padding-verticalshift),prescaler*width*0.9,prescaler*height*0.5)
-				logoz.preserve_aspect_ratio = true
-				loshz = obj.add_clone (logoz)
-				loshz.visible = false
+					logoz = obj.add_artwork ("wheel",prescaler*(padding+0.05*width),prescaler*padding,prescaler*width*0.9,prescaler*height*0.5)
+					logoz.preserve_aspect_ratio = true
+					loshz = obj.add_clone (logoz)
+					loshz.visible = false
+				}
 			}
 
 			tilesTablePosX.push((width+padding) * (i/rows)  + padding)
@@ -468,9 +488,7 @@ class Carrier {
 			nw_hzTable.push (nw_hz)
 			nw_vzTable.push (nw_vz)
 			vidszTable.push (vidsz)
-			namezTable.push (namez)
-			namez2Table.push (namez2)
-
+			nam1zTable.push (nam1z)
 		}
 		
 
@@ -485,20 +503,18 @@ class Carrier {
 		local scrolline = fe.add_image ("white.png",footermargin,flh-footer_h*0.5 - 1,flw-2*footermargin,2)
 		scrolline.alpha = 200
 		scrolline.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-		
+
 		scrollineglow = fe.add_image ("whitedisc2.png",footermargin, flh-footer_h*0.5 - 5,flw-2*footermargin, 10)
 		scrollineglow.visible = false
 		scrollineglow.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-		
+
 		scroller = fe.add_image ("whitedisc.png",footermargin - scrollersize*0.5,flh-footer_h*0.5-scrollersize*0.5,scrollersize,scrollersize)
 		scroller.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-		
+
 		scroller2 = fe.add_image ("whitedisc2.png",scroller.x - scrollersize*0.5, scroller.y-scrollersize*0.5,scrollersize*2,scrollersize*2)
 		scroller2.visible = false
 		scroller2.alpha = 200
 		scroller2.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-		
-
 
 		searchdata = fe.add_text (fe.list.search_rule,0,flh-footer_h*0.5,flw,footer_h*0.5)
 		searchdata.align = Align.Centre
@@ -509,105 +525,61 @@ class Carrier {
 		searchdata.font = guifont
 		searchdata.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 		
-		// large video preview definition		
-		local vid_w = (flh - header_h - footer_h)*1.1
-		local vid_h = vid_w
 		
-		if (vertical) {
-			vid_w = (flw)*0.9
-			vid_h = vid_w	
-		}
-		
-	
-		
-		// menu smooth background generation
-		local satinrate = 0.9
-		
-		if (BGBLURRED == "") {
-			snapbg3 = fe.add_clone (snapbg2)
-		}
-		else {
-			snapbg3 = fe.add_image(BGBLURRED,0,0,flw,flh)
-		}
-		
-		snapbg3.alpha = 255*satinrate
-		snapbg4 = fe.add_text("",0,0,flw,flh)
-		snapbg4.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
-		snapbg4.bg_alpha = themeoverlayalpha*satinrate
-		snapbg4.visible = false
-		snapbg3.visible = false
-		
+		zordertop = zorderscanner + tilesTotal + 2
+
 		// define initial carrier "surface" position
 		surfacePos = 0.5
 		
-		//DEBUG
-		if (DEBUG) {
+		//DEBUG create debugarea
+		if (DEBUGAR) {
 		debugarea = fe.add_text("DEBUG AREA",flw-700*scalerate,0,700*scalerate,flh)
 		debugarea.bg_alpha = 200
 		debugarea.alpha = 255
 		debugarea.word_wrap = true
 		debugarea.charsize = 60*scalerate
 		}
+		
 		::fe.add_signal_handler( this, "on_signal" )
-
 		::fe.add_transition_callback( this, "on_transition" )
 		::fe.add_ticks_callback( this, "tick" )
 		
 	}
 	
-	function recalculate( str ) {
-		if ( str.len() == 0 ) return ""
-		str = str.tolower()
-		local words = split( str, " " )
-		local temp=""
-		foreach ( idx, w in words ) {
-			//print("searching: " + w )
-			//if ( idx > 0 ) temp += " "
-			//foreach( c in w )
-			//    if ( c != " " ) temp += ( "1234567890".find(c.tochar()) != null ) ? c.tochar() : "[" + c.tochar().toupper() + c.tochar().tolower() + "]"
-			if ( temp.len() > 0 )
-			temp += " "
-			local f = w.slice( 0, 1 )
-			temp += ( "1234567890".find(f) != null ) ? "[" + f + "]" + w.slice(1) : "[" + f.toupper() + f.tolower() + "]" + w.slice(1)
-		}
-		return temp
-	}
 	
+	
+	/// On Transition  
 	function on_transition( ttype, var0, ttime ) {
 		
-		//DEBUG
+		//DEBUG print transition
 		if (DEBUG) print ("Tr:" + transdata[ttype] +" var:" + var0 + "\n")
 
-		local var = 0
+		//var = 0
 
 		if (ttype == Transition.ShowOverlay){
-		snapbg3.visible = snapbg4.visible =  true
-		if (var0 == Overlay.Tags) tagsmenu = true
-		overlay_show() 
+			if (var0 == Overlay.Tags) tagsmenu = true
+			overlay_show() 
 		}
 
 		if (ttype == Transition.HideOverlay){
-		snapbg3.visible = snapbg4.visible =  false
-		overlay_hide() 
-		if (tagsmenu) {
-			tagsmenu = false
-			zoompos = 1
-		}
+			overlay_hide() 
+			if (tagsmenu) {
+				tagsmenu = false
+				zoompos = 1
+			}
 		}
 
-
+		// var is updated only if we are going to a new selection
 		if (ttype == Transition.ToNewSelection) var = var0
 		
 		// scroller is always updated		
-		//if ((ttype == Transition.ToNewSelection) || (ttype == Transition.StartLayout)) {
 		scroller.x = footermargin + (((fe.list.index+var)/rows)/((fe.list.size*1.0)/rows-1))*(flw-2*footermargin-scrollersize)
 		scroller2.x = scroller.x-scrollersize*0.5
-		scrolltitle = 2
-		scrollincrement = 0
-		//}
-		
+//		titlescroll = 2
+//		scrollincrement = 0
+
 		// since the EndNavigation transition is fired many times I don't want the zoom/unzoom to take place in that case
-		if ((ttype != Transition.FromOldSelection) && (ttype != Transition.EndNavigation) && (ttype != Transition.HideOverlay) && (ttype != Transition.ShowOverlay) && (ttype != Transition.NewSelOverlay) && (filteract != true)) {
+		if ((ttype != Transition.FromOldSelection) && (ttype != Transition.EndNavigation) && (ttype != Transition.HideOverlay) && (ttype != Transition.ShowOverlay) && (ttype != Transition.NewSelOverlay) ) {
 			if (DEBUG) print ("TRANSBLOCK 1 \n")
 			zoompos = 1
 
@@ -624,206 +596,191 @@ class Carrier {
 				zoomunpos = 1
 			}
 		}
-		
-		if ( ( ttype == Transition.ToNewList ) || ( ttype == Transition.ToNewSelection ) || (ttype == Transition.FromGame) || (ttype == Transition.StartLayout)) {
+
+		// cases when the tiles will be updated
+		if ( ( ttype == Transition.ToNewList ) || ( ttype == Transition.ToNewSelection ) || (ttype == Transition.StartLayout)) {
+			
+			titlezero = fe.layout.time
+			titleswitch = 0
+			titlestart = true
+			titlezero2 = titlezero
+
 			if (DEBUG) print ("TRANSBLOCK 2 \n")
 			//zoompos = 1
 			vidpos = 1
-			
-		
+						
+			if (ttype == Transition.ToNewList) {
+				var = 0
+				tilesTableOffset = 0
+				surfacePos = 0.5
+				columnoffset = 0
+				centercorrection = 0
+				centercorrectionshift = centercorrection0
+			}
+
+
+			if (DEBUG) print ("flindex " + fe.list.index + "\n")
+
 			corrector = -((fe.list.index + var) % rows)
-			globalcorrectornew = corrector
 
-			local index = - (floor(tilesTotal/2) -1) + corrector
+			colstop = floor((fe.list.index + var)/rows)
+			colstart = floor((fe.list.index)/rows)
 
+			local index = - (floor(tilesTotal/2) -1) + corrector 
+			//if (ttype == Transition.ToNewList)  index = - (floor(tilesTotal/2) -1)  - floor(fe.list.index % rows)
+		
+			columnoffset =  (colstop - colstart)
+			tilesTableOffset += columnoffset*rows
 
-			
-			if ((ttype == Transition.ToNewSelection)||(ttype==Transition.StartLayout)||(ttype == Transition.ToNewList)) {
-				//if (ttype == Transition.ToNewSelection) 
-				tilesTableOffset += (var/rows)*rows
-				//else
-				//	tilesTableOffset = 0
-				
-				
-				
-				if ((fe.list.index + var < deltacol*rows) && (var < 0) ) {
-					if ((fe.list.index+var)/rows == deltacol - 1 ) centercorrectionshift = centercorrection0 + (deltacol - 1)*(width+padding)
-					else  centercorrectionshift = - (width+padding)
-				}
-				else if ((fe.list.index  < deltacol*rows) && (var > 0))  {
-					if ((fe.list.index)/rows == deltacol - 1 ) centercorrectionshift = -centercorrection0 - (deltacol - 1)* (width+padding)
-					else  centercorrectionshift =  (width+padding)
-				}
-				else {
-					centercorrectionshift = 0	
-				}
-				
-				
-				if (fe.list.index + var > deltacol*rows -1){
-					centercorrection = 0
-				}
-				else {
-					centercorrection = centercorrection0 + ((fe.list.index + var)/rows)*(width+padding)
-				}
-				
-				if ((var == 1) || (var == -1) || (var == 0)) centercorrectionshift = 0
-				
+			// Determine center position correction when reaching beginning or end of list
+			if ((colstop < deltacol) && (var < 0) ) {
+				if (colstop == deltacol - 1 ) centercorrectionshift = centercorrection0 + (deltacol - 1)*(width+padding)
+				else  centercorrectionshift = - (width+padding)
+			}
+			else if ((colstart  < deltacol) && (var > 0))  {
+				if (colstart == deltacol - 1 ) centercorrectionshift = -centercorrection0 - (deltacol - 1)* (width+padding)
+				else  centercorrectionshift =  (width+padding)
+			}
+			else {
+				centercorrectionshift = 0	
 			}
 			
-			// updates all the tiles, unless we are changing favourites
-			if (changedfav == false){
-				if (DEBUG) print ("TRANSBLOCK 3 \n")	
+			if (fe.list.index + var > deltacol*rows -1){
+				centercorrection = 0
+			}
+			else {
+				centercorrection = centercorrection0 + ((fe.list.index + var)/rows)*(width+padding)
+			}
+			
+			if (columnoffset == 0) centercorrectionshift = 0
+			
+			
+			// updates all the tiles, (NOT unless we are changing favourites)
+			//if (changedfav == false){
+			if (DEBUG) print ("TRANSBLOCK 3 \n")	
 
-				for ( local i = 0; i < tilesTotal ; i++ ) {
-					
-					local indexTemp = wrap( i + tilesTableOffset , tilesTotal )
+			for ( local i = 0; i < tilesTotal ; i++ ) {
+											
+				local indexTemp = wrap( i + tilesTableOffset, tilesTotal )
 
+				if ((ttype == Transition.ToNewList) || (ttype == Transition.StartLayout)){
+					snapzTable[indexTemp].index_offset = index
+					loshzTable[indexTemp].index_offset = index
+					logozTable[indexTemp].index_offset = index
+				}
+				else{
 					snapzTable[indexTemp].rawset_index_offset(index )
 					loshzTable[indexTemp].rawset_index_offset(index )
 					logozTable[indexTemp].rawset_index_offset(index )
-
-					namezTable[indexTemp].msg = gamename(index + var )
-					namez2Table[indexTemp].msg = gamename(index + var )
-
-
-					//namezTable[indexTemp].msg = (snapzTable[indexTemp].texture_width > snapzTable[indexTemp].texture_height)
-					
-					tilesTable[indexTemp].zorder = zorderscanner
-					
-					local m = fe.game_info(Info.Favourite, snapzTable[indexTemp].index_offset+var)
-					if (m == "1")
-					favezTable[indexTemp].visible = true
-					else
-					favezTable[indexTemp].visible = false
-					
-					local m = fe.game_info(Info.Tags, snapzTable[indexTemp].index_offset+var)
-					if (m.find("Completed") != null)
-					donezTable[indexTemp].visible = true
-					else
-					donezTable[indexTemp].visible = false
-					
-					
-					
-					//local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
-					local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
-					local m2 = fe.game_info(Info.PlayedCount,  snapzTable[indexTemp].index_offset+var)
-					if ((m == "0") || (m == "180") || (m == "horizontal") || (m == "Horizontal")){
-						sh_hzTable[indexTemp].visible = true
-						sh_vzTable[indexTemp].visible = false
-						nw_vzTable[indexTemp].visible = false
-						if (m2 == "0") 
-						nw_hzTable[indexTemp].visible = true
-						else
-						nw_hzTable[indexTemp].visible = false
-						
-					}
-					else {
-						sh_hzTable[indexTemp].visible = false
-						sh_vzTable[indexTemp].visible = true
-						nw_hzTable[indexTemp].visible = false
-						if (m2 == "0") 
-						nw_vzTable[indexTemp].visible = true
-						else
-						nw_vzTable[indexTemp].visible = false
-					}
-					
-					tilesTablePosX[indexTemp] = (i/rows) * (width+padding) + carrier_x + centercorrection
-					tilesTablePosY[indexTemp] = (i%rows) * (height + padding) + carrier_y + verticalshift
-					
-					if( (fe.list.index + var + index < 0) || (fe.list.index + var + index > fe.list.size-1) ){
-						tilesTable[indexTemp].visible = false
-					}
-					else {
-						tilesTable[indexTemp].visible = true
-					}
-					
-					// if tranisioning to a new list, reset position and size of all thumbnails, not needed in normal scroll
-					if (ttype == Transition.ToNewList){
-						//vidszTable[indexTemp].visible = false
-						vidszTable[indexTemp].file_name = "transparent.png"
-						tilesTable[indexTemp].width = widthpadded
-						tilesTable[indexTemp].height = heightpadded
-						tilesTable[indexTemp].zorder = zorderscanner
-						bd_hzTable[indexTemp].visible = bd_vzTable[indexTemp].visible = false
-					}
-					
-					index++
 				}
+
+				if (CROPSNAPS){
+					if (snapzTable[indexTemp].texture_width >= snapzTable[indexTemp].texture_height){
+						snapzTable[indexTemp].subimg_x = snapzTable[indexTemp].texture_width/6.0
+						snapzTable[indexTemp].subimg_width = snapzTable[indexTemp].texture_width*3/4.0
+					}
+					else{
+						snapzTable[indexTemp].subimg_y = snapzTable[indexTemp].texture_height/6.0
+						snapzTable[indexTemp].subimg_height = snapzTable[indexTemp].texture_height*3/4.0
+					}
+				}
+
+				nam1zTable[indexTemp].msg = gamename(index + var )
+
+				tilesTable[indexTemp].zorder = zorderscanner
+
+				favezTable[indexTemp].visible = (fe.game_info(Info.Favourite, snapzTable[indexTemp].index_offset + var) == "1")
+
+				donezTable[indexTemp].visible = ((fe.game_info(Info.Tags, snapzTable[indexTemp].index_offset + var)).find("Completed") != null)
+				
+				//local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
+				local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
+				if ((m == "0") || (m == "180") || (m == "horizontal") || (m == "Horizontal")){
+					sh_hzTable[indexTemp].visible = true
+					sh_vzTable[indexTemp].visible = false
+					
+					nw_hzTable[indexTemp].visible = (fe.game_info(Info.PlayedCount,  snapzTable[indexTemp].index_offset+var) == "0") 
+					nw_vzTable[indexTemp].visible = false					
+					
+				}
+				else {
+					sh_hzTable[indexTemp].visible = false
+					sh_vzTable[indexTemp].visible = true
+
+					nw_hzTable[indexTemp].visible = false
+					nw_vzTable[indexTemp].visible = (fe.game_info(Info.PlayedCount,  snapzTable[indexTemp].index_offset+var) == "0") 
+
+				}
+				
+				tilesTablePosX[indexTemp] = (i/rows) * (width+padding) + carrier_x + centercorrection
+				tilesTablePosY[indexTemp] = (i%rows) * (height + padding) + carrier_y + verticalshift
+
+				
+				tilesTable[indexTemp].visible = (( (fe.list.index + var + index < 0) || (fe.list.index + var + index > fe.list.size-1) ) == false)
+				
+				// if tranisioning to a new list, reset position and size of all thumbnails, not needed in normal scroll
+				if (ttype == Transition.ToNewList){
+					//vidszTable[indexTemp].visible = false
+					vidszTable[indexTemp].file_name = "transparent.png"
+					tilesTable[indexTemp].width = widthpadded
+					tilesTable[indexTemp].height = heightpadded
+					tilesTable[indexTemp].zorder = zorderscanner
+					bd_hzTable[indexTemp].visible = bd_vzTable[indexTemp].visible = false
+				}
+				
+				index++
 			}
-			else {
-				changedfav = false
-			}
+			//} CHANGEDFAV
+			//else {
+			//	changedfav = false
+			//}
 			
 			// updates the size and features of the previously selected item and new selected item
-			newfocusindex = wrap( tilesTotal/2-1-corrector + tilesTableOffset, tilesTotal )
-			oldfocusindex = wrap( tilesTotal/2-1-corrector -var + tilesTableOffset, tilesTotal )
+			newfocusindex = wrap( floor(tilesTotal/2)-1-corrector + tilesTableOffset, tilesTotal )
+			oldfocusindex = wrap( floor(tilesTotal/2)-1-corrector -var + tilesTableOffset, tilesTotal )
 			
 			tilesTable[oldfocusindex].width = widthpadded
 			tilesTable[oldfocusindex].height = heightpadded
 			tilesTable[oldfocusindex].zorder = zorderscanner
 			bd_hzTable[oldfocusindex].visible = bd_vzTable[oldfocusindex].visible = false
-			
+
 			tilesTable[newfocusindex].zorder = zorderscanner + tilesTotal
 			letterobj.zorder = zorderscanner + tilesTotal + 1
 
 			//vidszTable[oldfocusindex].visible = false
 			vidszTable[oldfocusindex].file_name = "transparent.png"
 			
-			
-			local m = fe.game_info(Info.Favourite, snapzTable[newfocusindex].index_offset+var)
-			if (m == "1")
-			favezTable[newfocusindex].visible = true
-			else
-			favezTable[newfocusindex].visible = false
-			
-			local m = fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset+var)
-			if (m.find("Completed") != null)
-			donezTable[newfocusindex].visible = true
-			else
-			donezTable[newfocusindex].visible = false
-			
+
+			favezTable[newfocusindex].visible = (fe.game_info(Info.Favourite, snapzTable[newfocusindex].index_offset+var) == "1")		
+			donezTable[newfocusindex].visible = ((fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset+var)).find("Completed") != null)
 			
 			//local m = fe.game_info(Info.Rotation, snapzTable[newfocusindex].index_offset+var)
 			local m = fe.game_info(Info.Rotation, snapzTable[newfocusindex].index_offset+var)
-			local m2 = fe.game_info(Info.PlayedCount,  snapzTable[newfocusindex].index_offset+var)
 			
 			if ((m == "0") || (m == "180") || (m == "horizontal") || (m == "Horizontal")){
 				bd_hzTable[newfocusindex].visible = true
 				bd_vzTable[newfocusindex].visible = false
+				nw_hzTable[newfocusindex].visible = (fe.game_info(Info.PlayedCount,  snapzTable[newfocusindex].index_offset+var) == "0")
 				nw_vzTable[newfocusindex].visible = false
-				if (m2 == "0") 
-				nw_hzTable[newfocusindex].visible = true
-				else
-				nw_hzTable[newfocusindex].visible = false
+
 			}
 			else {
 				bd_hzTable[newfocusindex].visible = false
 				bd_vzTable[newfocusindex].visible = true
 				nw_hzTable[newfocusindex].visible = false
-				if (m2 == "0") 
-				nw_vzTable[newfocusindex].visible = true
-				else
-				nw_vzTable[newfocusindex].visible = false
+				nw_vzTable[newfocusindex].visible = (fe.game_info(Info.PlayedCount,  snapzTable[newfocusindex].index_offset+var) == "0")
+
 			}
 
 		}
 		
 		
-		if (ttype == Transition.ToNewList){
-			if (DEBUG) print ("TRANSBLOCK 4 \n")
-			surfacePos = 0.5
-			if ((filtermenu) && (globalcorrectornew == globalcorrectorold)) filtermenu = false
-			else if (filtermenu) {
-				filtermenu = false
-				filteract = true
-			}
-		}
-		
 		// if the transition is to a new selection initialize zooming, scrolling and surfacepos
-		if( ttype == Transition.ToNewSelection )
+		if( (ttype == Transition.ToNewSelection) )
 		{
+			
 			if (DEBUG) print ("TRANSBLOCK 5 \n")
-			if (!filteract) snapbg1.rawset_index_offset (-var)
+			snapbg1.rawset_index_offset (-var)
 			
 			local l1 = gameletter (0)
 			local l2 = gameletter(var)
@@ -832,22 +789,27 @@ class Carrier {
 				fadeletter = 1
 			}
 			
-			if (!filteract) alphapos=255
+			alphapos=255
 			
-			surfacePos += ((var/rows) * (width + padding) ) - centercorrectionshift
+			surfacePos += (columnoffset * (width + padding) ) - centercorrectionshift
 			
 		}
-		
-		
 
 		return false
 	}
 	
+	/// On Tick  
 	function tick( tick_time ) {
 
+		if (DEBUG_SLOWDOWN) {
+			for ( local i = 0; i < 10000000; i++ )
+			{
 
-		//DEBUG
-		if (DEBUG) debugarea.msg = "\n list.index \n" + fe.list.index + "\n corrector \n" + corrector + "\n tilesTableOffset \n" + tilesTableOffset
+			}
+		}
+
+		//DEBUG debugarea update
+		if (DEBUGAR) debugarea.msg = "\n rows \n" + rows + "\n list.index \n" + fe.list.index + "\n titlesw \n" + titleswitch + "\n time \n" + fe.layout.time 
 
 		if ((rightcount != 0) && (fe.get_input_state("right")==false)){
 			rightcount = 0
@@ -872,12 +834,12 @@ class Carrier {
 		}
 		
 		
-		
 		// contemporary scrolling of tiles and zooming of selected tile
 		if ((surfacePos != 0)||(zoompos !=0)||(zoomunpos!=0)) {
 			if (zoompos == 1){
-				newfocusindex = wrap( tilesTotal/2-1-corrector + tilesTableOffset, tilesTotal )
-				
+				newfocusindex = wrap( floor(tilesTotal/2)-1 - corrector + tilesTableOffset, tilesTotal )
+				oldfocusindex = wrap( floor(tilesTotal/2)-1 - corrector - var + tilesTableOffset, tilesTotal )
+
 				// Useful check to update "Completed" tag when changing tags
 				local m = fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset)
 				if (m.find("Completed") != null)
@@ -909,8 +871,8 @@ class Carrier {
 			tilesTable[newfocusindex].y =  tilesTablePosY[newfocusindex] - ((selectoroffsetv)*(1-zoompos)) 
 			tilesTable[newfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(1.0-zoompos)
 			tilesTable[newfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(1.0-zoompos)
-			//tilesTable[newfocusindex].zorder = zorderscanner + tilesTotal
-			
+			globalposnew = tilesTable[newfocusindex].x
+
 			if (oldfocusindex != newfocusindex){
 				tilesTable[oldfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[oldfocusindex] - (selectoroffseth*(zoomunpos))
 				tilesTable[oldfocusindex].y =  tilesTablePosY[oldfocusindex] - ((selectoroffsetv)*(zoomunpos)) 
@@ -924,13 +886,24 @@ class Carrier {
 			
 			vidpos = vidpos - 0.01
 			if (vidpos < 0.01) vidpos = 0
-			newfocusindex = wrap( tilesTotal/2-1-corrector + tilesTableOffset, tilesTotal )
+			// newfocusindex = wrap( tilesTotal/2-1-corrector + tilesTableOffset, tilesTotal )
 			local delayvid = 0.4
 			local fadevid = 0.2
 			if ((vidpos < delayvid) && (vidpos > delayvid - 0.01)){
 				//vidszTable[newfocusindex].visible = true
 				vidszTable[newfocusindex].file_name = fe.get_art("snap")
 				vidszTable[newfocusindex].alpha = 0		
+				if (CROPSNAPS){
+					if (snapzTable[newfocusindex].texture_width >= snapzTable[newfocusindex].texture_height){
+						vidszTable[newfocusindex].subimg_x = vidszTable[newfocusindex].texture_width/6.0
+						vidszTable[newfocusindex].subimg_width = vidszTable[newfocusindex].texture_width*3/4.0
+					}
+					else{
+						vidszTable[newfocusindex].subimg_y = vidszTable[newfocusindex].texture_height/6.0
+						vidszTable[newfocusindex].subimg_height = vidszTable[newfocusindex].texture_height*3/4.0	
+					}
+				}
+
 			}
 			
 			if (vidpos <= fadevid)
@@ -950,15 +923,58 @@ class Carrier {
 	}
 	
 
-	// signal response function
+
+	/// On Signal  
 	function on_signal( sig )
 	{
+
 		if (DEBUG) print ("\n Si:" + sig )
-	
+
+			/*if (sig == "filters_menu"){
+				fe.list.index += corrector
+				return false
+			}*/
+
+
+		// Rotation controls
+		if(sig == "toggle_rotate_right"){
+			if (fe.layout.toggle_rotation == RotateScreen.None)
+			{
+				fe.layout.toggle_rotation = RotateScreen.Right
+				fe.signal ("reload")
+			}
+			else{
+				fe.layout.toggle_rotation = RotateScreen.None
+				fe.signal ("reload")
+			}
+			return true
+		}
+
+		if(sig ==  "toggle_rotate_left"){
+			if (fe.layout.toggle_rotation == RotateScreen.None)
+			{
+				fe.layout.toggle_rotation = RotateScreen.Left
+				fe.signal ("reload")
+			}
+			else{
+				fe.layout.toggle_rotation = RotateScreen.None
+				fe.signal ("reload")
+			}
+			return true
+		}
+
+		if(sig ==  "next_game"){
+			fe.list.index ++
+		}
+
+		if(sig ==  "prev_game"){
+			fe.list.index --
+		}
 
 		if (overmenu_visible())
 		{
 			if (DEBUG) print (" OVERMENU \n")
+
 
 			if (sig == "up"){
 				overmenu_hide(true)
@@ -1006,9 +1022,10 @@ class Carrier {
 						backindex = fe.list.index
 						//backcorrector = corrector
 					}
-					fe.list.index += corrector + tilesTotal 
+					//fe.list.index += corrector + tilesTotal 
+					fe.list.index ++
 					fe.list.search_rule = searchtext
-					fe.list.index = 0
+					//fe.list.index = 0
 					corrector = 0
 					searchdata.msg = searchtext
 				}
@@ -1032,7 +1049,7 @@ class Carrier {
 			else if (sig == "right") {
 				// add current game to favorites
 				overmenu_hide(true)
-				changedfav = true
+				//changedfav = true
 				fe.signal("add_favourite")
 				return true
 			}
@@ -1065,10 +1082,14 @@ class Carrier {
 			}
 
 			else if (sig == "left") {
+				fe.list.index--
+				history_show()
 				return true
 			}
 
 			else if (sig == "right") {
+				fe.list.index++
+				history_show()
 				return true
 			}
 
@@ -1077,9 +1098,6 @@ class Carrier {
 				return true
 			}
 
-			//else if (sig == OVERMENUBUTTON) {
-			//	history_exit()
-			//}
 
 			return false 
 		}
@@ -1125,64 +1143,6 @@ class Carrier {
 			if (DEBUG) print (" NORMAL \n")
 			switch ( sig )
 			{			
-
-			case "custom2":
-			wooshsound.playing=true
-			local searchtext =""
-			local switcharray = array(5)
-			switcharray[0]="Year"
-			switcharray[1]="Manufacturer"
-			switcharray[2]="Main Category"
-			switcharray[3]="Sub Category"
-			switcharray[4]="RESET"
-			local result = fe.overlay.list_dialog(switcharray,"More of the same...")
-
-			if(result==4){
-				//fe.list.index += corrector + rows 
-				fe.list.search_rule =""
-				searchdata.msg = ""
-				if (backindex != -1){
-					fe.list.index = backindex
-					corrector = backcorrector
-					backindex = -1
-				}
-				return
-			}
-
-			if (result == 0){
-				searchtext = "Year contains "+ fe.game_info(Info.Year)
-			}
-			if (result == 1){
-				searchtext = "Manufacturer contains "+fe.game_info(Info.Manufacturer)
-			}
-			if (result == 2){
-				searchtext = (fe.game_info(Info.Category))
-				local s = split( searchtext, "/" )
-				searchtext = "Category contains "+s[0]
-			}
-			if (result == 3){	
-				searchtext = "Category contains "+fe.game_info(Info.Category)		
-			}
-			
-			if ((result !=4) && (result != -1)){
-				if (backindex == -1){
-					backindex = fe.list.index
-					backcorrector = corrector
-				}
-				fe.list.index += corrector + rows 
-				fe.list.search_rule = searchtext
-				fe.list.index = 0
-				corrector = 0
-				searchdata.msg = searchtext
-				return true
-			}
-			return true
-
-
-				case "filters_menu":
-				globalcorrectorold = corrector
-				filtermenu = true
-				break
 
 				case OVERMENUBUTTON:
 				overmenu_show()
@@ -1232,14 +1192,21 @@ class Carrier {
 				}
 				else {
 					wooshsound.playing=true	
-					local switcharray1 = array(2)
-					switcharray1[0]="Filters menu"
+					local switcharray1 = array(3)
+					switcharray1[0]="Filters"
 					switcharray1[1]="Search for..."
+					switcharray1[2]="Layout options"
 					local result1 = fe.overlay.list_dialog(switcharray1," ")
 
 					if (result1 == 0){
 						//	wooshsound.playing=true
 						fe.signal("filters_menu")
+						wooshsound.playing=true
+					}
+
+					if (result1 == 2){
+						//	wooshsound.playing=true
+						fe.signal("layout_options")
 						wooshsound.playing=true
 					}	
 
@@ -1280,7 +1247,7 @@ class Carrier {
 						
 						if (KEYBOARD)
 						{
-							fe.list.index += corrector + tilesTotal
+							fe.list.index ++
 							fe.list.search_rule = switcharray[result]+" contains "+ recalculate(searchtext)
 							fe.list.index = 0
 							corrector = 0
@@ -1326,45 +1293,38 @@ class Carrier {
 				
 				// add favorites 
 				case "add_favourite":
-				changedfav = true
+				//changedfav = true
 				wooshsound.playing=true
 				break
-				
-
-				// Rotation controls
-				case "toggle_rotate_right":
-				if (fe.layout.toggle_rotation == RotateScreen.None)
-				{
-					fe.layout.toggle_rotation = RotateScreen.Right
-					fe.signal ("reload")
-				}
-				else{
-					fe.layout.toggle_rotation = RotateScreen.None
-					fe.signal ("reload")
-				}
-				return true
-				
-				case "toggle_rotate_left":
-				if (fe.layout.toggle_rotation == RotateScreen.None)
-				{
-					fe.layout.toggle_rotation = RotateScreen.Left
-					fe.signal ("reload")
-				}
-				else{
-					fe.layout.toggle_rotation = RotateScreen.None
-					fe.signal ("reload")
-				}
-				return true
-				
-				
+								
 				// All other cases
 				default:
 				wooshsound.playing=true
 				
-			} // END OF SWITCH SIGNAL LOOP 
-		} // CLOSE ELSE GROUP
+			}// END OF SWITCH SIGNAL LOOP 
+		}// CLOSE ELSE GROUP
 		return false
 	}
+}
+
+/// Misc functions  
+
+function recalculate( str ) {
+	if ( str.len() == 0 ) return ""
+	str = str.tolower()
+	local words = split( str, " " )
+	local temp=""
+	foreach ( idx, w in words ) {
+		//print("searching: " + w )
+		//if ( idx > 0 ) temp += " "
+		//foreach( c in w )
+		//    if ( c != " " ) temp += ( "1234567890".find(c.tochar()) != null ) ? c.tochar() : "[" + c.tochar().toupper() + c.tochar().tolower() + "]"
+		if ( temp.len() > 0 )
+		temp += " "
+		local f = w.slice( 0, 1 )
+		temp += ( "1234567890".find(f) != null ) ? "[" + f + "]" + w.slice(1) : "[" + f.toupper() + f.tolower() + "]" + w.slice(1)
+	}
+	return temp
 }
 
 // gets the first letter of the game name, # if it's a number
@@ -1388,6 +1348,31 @@ function gamename( offset ) {
 	local s = split( fe.game_info( Info.Title, offset ), "(" )
 	if ( s.len() > 0 ) {
 		return s[0]
+	}
+	return ""
+}
+
+function gamenames(offset){
+	local s1 = split( fe.game_info( Info.Title, offset ), "(" )
+	local s2 = split (s1[0], "/")
+	local s2len = s2.len()
+	if ( s2len > 0 ){
+		return s2len
+	}
+
+	return 0
+
+}
+
+function gamenamex(offset , index){
+	local s1 = split( fe.game_info( Info.Title, offset ), "(" )
+	local s2 = split (s1[0], "/")
+	local s2len = s2.len()
+	if (index == -1) index = s2len-1
+	local s2index = index % s2len
+	if ( s2len > 0 ){
+		local s2string = rstrip(lstrip(s2[s2index]))
+		return s2string + (s2len > 1 ? " ···" : "")
 	}
 	return ""
 }
@@ -1418,15 +1403,92 @@ function maincategory( offset ) {
 }
 
 
-// scrolling carrier call
+/// Display construction (CARRIER) 
 
+// scrolling carrier call
 local carrier = Carrier()
+
+
+/// Controls Overlays (Listbox)  
+
+local snapbg3 = null
+if (BGBLURRED == "") {
+	snapbg3 = fe.add_image("white.png",bgx,bgy,bgw,bgw)
+	snapbg3.set_rgb (shadeval,shadeval,shadeval)
+}
+else {
+	snapbg3 = fe.add_image(BGBLURRED,bgpic_x,bgpic_y,bgpic_w,bgpic_h)
+}
+
+snapbg3.alpha = 255*satinrate
+
+local snapbg4 = fe.add_text("",0,0,flw,flh)
+snapbg4.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
+snapbg4.bg_alpha = themeoverlayalpha*satinrate
+
+local overlay_charsize = floor( 50*scalerate )
+local overlay_rows = floor((flh-header_h-footer_h)/(overlay_charsize*3))
+local overlay_labelsize = floor ((flh-header_h-footer_h)/overlay_rows)
+
+// sfondo dell'area con le scritte
+local overlay_background = fe.add_text ("", 0 , header_h, flw, flh-header_h-footer_h)
+overlay_background.set_bg_rgb(200,200,200)
+overlay_background.bg_alpha = 64
+
+local overlay_listbox = fe.add_listbox( 0, header_h+overlay_labelsize, flw, flh-header_h-footer_h-overlay_labelsize )
+overlay_listbox.rows = overlay_rows - 1
+overlay_listbox.charsize = overlay_charsize
+overlay_listbox.bg_alpha = 0
+overlay_listbox.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
+overlay_listbox.set_bg_rgb( 0, 0, 0 )
+overlay_listbox.set_sel_rgb( 50, 50, 50 )
+overlay_listbox.set_selbg_rgb( 250,250,250 )
+overlay_listbox.selbg_alpha = 255
+overlay_listbox.font = guifont
+
+local overlay_label = fe.add_text( "dummy", 0, header_h, flw, overlay_labelsize )
+overlay_label.charsize = overlay_charsize
+overlay_label.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
+overlay_label.align = Align.Centre
+overlay_label.font = guifont
+
+local shader1 = fe.add_image ("wgradient.png",0,flh-footer_h,flw,50*scalerate)
+
+local shader2 = fe.add_image ("white.png",padding,header_h+overlay_labelsize-2,flw-2*padding,2)
+
+local shader3 = fe.add_image ("wgradient2.png",0,header_h-50*scalerate,flw,50*scalerate)
+
+shader1.alpha = 50
+shader2.alpha = 255
+shader3.alpha = 50
+shader1.set_rgb(0,0,0)
+shader3.set_rgb(0,0,0)
+
+snapbg3.visible = snapbg4.visible = overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false
+
+snapbg3.zorder = snapbg4.zorder = overlay_listbox.zorder = overlay_label.zorder = overlay_background.zorder = shader1.zorder = shader2.zorder = shader3.zorder = zordertop + 1
+
+fe.overlay.set_custom_controls( overlay_label, overlay_listbox )
+
+function overlay_show(){
+	if (BGBLURRED == "") snapbg3.file_name = fe.get_art("blur")
+	
+	snapbg3.visible = snapbg4.visible = overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = true
+}
+
+function overlay_hide(){
+	snapbg3.visible = snapbg4.visible = overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false		
+}
+
+/// Display construction (DATA)  
 
 local rightdata = 400*scalerate
 //local namesurf = fe.add_surface (flw-rightdata,header_h)
 
+local name_surf = fe.add_surface (flw - rightdata, header_h*2/3)
+
 // game name shadow
-local namesh_x =  fe.add_text( "[!gamename]", 3, 3, flw*2, header_h*2/3 )
+local namesh_x =  name_surf.add_text( "[!gamename]", 3, 3, flw*2, header_h*2/3 )
 namesh_x.align = Align.Left
 namesh_x.word_wrap = false
 namesh_x.set_rgb( 0, 0, 0)
@@ -1435,9 +1497,10 @@ namesh_x.alpha=themeshadow
 //namesh_x.bg_alpha = 128
 //namesh_x.bg_red = 255
 namesh_x.font = guifont
+namesh_x.alpha = 0
 
 // game name
-local name_x =  fe.add_text( "[!gamename]", 0, 0, flw*2, header_h*2/3 )
+local name_x =  name_surf.add_text( "[!gamename]", 0, 0, flw*2, header_h*2/3 )
 name_x.align = Align.Left
 name_x.word_wrap = false
 name_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
@@ -1445,10 +1508,31 @@ name_x.charsize = 60*scalerate
 //name_x.bg_alpha = 128
 //name_x.bg_red = 255
 name_x.font = guifont
+name_x.alpha = 0
 
+// game name shadow
+local namesh_x2 =  name_surf.add_text( "[!gamename]", 3, 3, flw*2, header_h*2/3 )
+namesh_x2.align = Align.Left
+namesh_x2.word_wrap = false
+namesh_x2.set_rgb( 0, 0, 0)
+namesh_x2.charsize = 60*scalerate
+namesh_x2.alpha=themeshadow
+//namesh_x.bg_alpha = 128
+//namesh_x.bg_red = 255
+namesh_x2.font = guifont
+
+// game name
+local name_x2 =  name_surf.add_text( "[!gamename]", 0, 0, flw*2, header_h*2/3 )
+name_x2.align = Align.Left
+name_x2.word_wrap = false
+name_x2.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+name_x2.charsize = 60*scalerate
+//name_x.bg_alpha = 128
+//name_x.bg_red = 255
+name_x2.font = guifont
 
 // game name second part (revision, details etc)
-local subname_x =  fe.add_text( " [!gamesubname]", 0, header_h*1/3+60*scalerate/2, flw, header_h*1/3 )
+local subname_x =  fe.add_text( " [!gamesubname]", 0, header_h*1/3+60*scalerate/2, flw - rightdata, header_h*1/3 )
 subname_x.align = Align.Left
 subname_x.word_wrap = true
 subname_x.set_rgb( 255, 255, 255)
@@ -1460,6 +1544,7 @@ subname_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
 // game year and some data
 local year_x =  fe.add_text( "© [Year] [Manufacturer]", flw-rightdata, 10*scalerate, rightdata, header_h/2)
+//local year_x =  fe.add_text( "© [Year] [Manufacturer]", flw-rightdata*2, header_h/2-10*scalerate, rightdata, header_h/2)
 year_x.align = Align.Centre
 year_x.set_rgb( 255, 255, 255)
 year_x.word_wrap = true
@@ -1471,16 +1556,16 @@ year_x.font = guifont
 year_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
 // game category and some data
-local year_x =  fe.add_text( "[!maincategory]", flw-rightdata, header_h/2-10*scalerate, rightdata, header_h/2)
-year_x.align = Align.Centre
-year_x.set_rgb( 255, 255, 255)
-year_x.word_wrap = true
-year_x.charsize = 30*scalerate
-year_x.visible = true
-//year_x.bg_alpha = 128
-//year_x.bg_green = 155
-year_x.font = guifont
-year_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+local year2_x =  fe.add_text( "[!maincategory]", flw-rightdata, header_h/2-10*scalerate, rightdata, header_h/2)
+year2_x.align = Align.Centre
+year2_x.set_rgb( 255, 255, 255)
+year2_x.word_wrap = true
+year2_x.charsize = 30*scalerate
+year2_x.visible = true
+//year2_x.bg_alpha = 128
+//year2_x.bg_red = 155
+year2_x.font = guifont
+year2_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
 local filterdata = fe.add_text ("[FilterName]",0,flh-footer_h,footermargin,footer_h)
 filterdata.align = Align.Centre
@@ -1500,99 +1585,54 @@ filternumbers.visible = true
 filternumbers.font = guifont
 filternumbers.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
+namesh_x.zorder = name_x.zorder = name_surf.zorder = namesh_x2.zorder = name_x2.zorder = subname_x.zorder = year_x.zorder = year2_x.zorder = filterdata.zorder = filternumbers.zorder = zordertop + 2
 
-// LOGO SPLASH SCREEN
+/// Splash Screen  
 
 // carica l'immagine sfumata del gioco attuale 
+
+local aflogo_surface = fe.add_surface(flw,flh)
+
 local afsplash = null
 
 if (BGBLURRED == ""){
-	afsplash = fe.add_image("white.png",bgx,bgy,bgw,bgw)
+	afsplash = aflogo_surface.add_image("white.png",bgx,bgy,bgw,bgw)
 	afsplash.file_name = fe.get_art("blur")
 }
 else{
-	afsplash = fe.add_image(BGBLURRED,0,0,flw,flh)
+	afsplash = aflogo_surface.add_image(BGBLURRED,bgpic_x,bgpic_y,bgpic_w,bgpic_h)
 }
 
 // aggiunge l'overlay bianco trasparente
-local afwhitebg = fe.add_text("",0,0,flw,flh)
+local afwhitebg = aflogo_surface.add_text("",0,0,flw,flh)
 afwhitebg.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
 afwhitebg.bg_alpha = themeoverlayalpha
 
-
 // aggiunge l'immagine del logo
-local aflogo = fe.add_image ("AFLOGO3b.png",0,(flh-(flw*1000/1600))/2,flw,flw*1000/1600)
+local aflogo = aflogo_surface.add_image ("AFLOGO3b.png",0,(flh-(flw*1000/1600))/2,flw,flw*1000/1600)
 
+if (!SPLASHON) aflogo_surface.visible = false
 
-// OVERLAY PER CONTROLLI CUSTOM (LISTBOX)
+aflogo_surface.zorder = 100
+//afsplash.zorder = zordertop + 100
+//afwhitebg.zorder = zordertop + 101
+//aflogo.zorder = zordertop + 102
 
-local overlay_charsize = floor( 50*scalerate )
-local overlay_rows = floor((flh-header_h-footer_h)/(overlay_charsize*3))
-local overlay_labelsize = floor ((flh-header_h-footer_h)/overlay_rows)
+/// Context Menu  
 
-// sfondo dell'area con le scritte
-local overlay_background = fe.add_text ("", 0 , header_h, flw, flh-header_h-footer_h)
-overlay_background.set_bg_rgb(200,200,200)
-overlay_background.bg_alpha = 64
-overlay_background.zorder=999
-
-local overlay_listbox = fe.add_listbox( 0, header_h+overlay_labelsize, flw, flh-header_h-footer_h-overlay_labelsize )
-overlay_listbox.rows = overlay_rows - 1
-overlay_listbox.charsize = overlay_charsize
-overlay_listbox.bg_alpha = 0
-overlay_listbox.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
-overlay_listbox.set_bg_rgb( 0, 0, 0 )
-overlay_listbox.set_sel_rgb( 50, 50, 50 )
-overlay_listbox.set_selbg_rgb( 250,250,250 )
-overlay_listbox.selbg_alpha = 255
-overlay_listbox.zorder=999
-overlay_listbox.font = guifont
-
-local overlay_label = fe.add_text( "dummy", 0, header_h, flw, overlay_labelsize )
-overlay_label.charsize = overlay_charsize
-overlay_label.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
-overlay_label.align = Align.Centre
-overlay_label.zorder=999
-overlay_label.font = guifont
-
-local shader1 = fe.add_image ("wgradient.png",0,flh-footer_h,flw,50*scalerate)
-local shader2 = fe.add_image ("white.png",padding,header_h+overlay_labelsize-2,flw-2*padding,2)
-local shader3 = fe.add_image ("wgradient2.png",0,header_h-50*scalerate,flw,50*scalerate)
-
-shader1.alpha = 50
-shader2.alpha = 255
-shader3.alpha = 50
-shader1.set_rgb(0,0,0)
-shader3.set_rgb(0,0,0)
-
-overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false
-
-fe.overlay.set_custom_controls( overlay_label, overlay_listbox )
-
-function overlay_show(){
-	overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = true
-}
-
-function overlay_hide(){
-	overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false		
-}
-
-
-// CONTEXT MENU
-
-
-local overmenu = fe.add_image("overmenu.png",flw*0.5-selectorwidth*0.5,flh*0.5-selectorwidth*0.5,selectorwidth,selectorwidth)
+//local overmenuwidth = (vertical ? flw * 0.7 : flh * 0.7)
+local overmenuwidth = selectorwidth * 0.9
+local overmenu = fe.add_image("overmenu.png",flw*0.5-overmenuwidth*0.5,flh*0.5-overmenuwidth*0.5,overmenuwidth,overmenuwidth)
 overmenu.visible = false
 overmenu.alpha = 0
 
 function overmenu_visible(){
-	return (overmenu.visible)
+	return ((overmenu.visible) && (overmenuflow != -1))
 }
 
 function overmenu_show(){
-	//vidszTable[newfocusindex].visible = false
-	//vidszTable[newfocusindex].file_name = "transparent.png"
-
+	overmenu.y = flh*0.5*0 + header_h + heightpadded*0.5 -overmenuwidth*0.5 - corrector * (heightpadded - padding)
+	overmenu.x = flw*0.5 - overmenuwidth*0.5 + centercorrection
 	wooshsound.playing=true
 	overmenu.visible = true
 	overmenuflow = 1
@@ -1604,25 +1644,19 @@ function overmenu_hide(strict){
 	overmenuflow = -1
 }
 
+overmenu.zorder = zordertop + 200
 
-// SEARCH MODULE
+/// Search Module  
 
-if (SPLASHON == false) afsplash.visible = afwhitebg.visible = aflogo.visible = false
-
-
-
-local search_surface = fe.add_surface(fe.layout.width, fe.layout.height)
+local search_surface = fe.add_surface(flw, flh)
 local keys = null
 keys = {}
 local search_text = null
-search_surface.zorder = 999999
 
 search_surface.preserve_aspect_ratio = true
 search_surface.alpha = 255*0
 
-
 //select( config.keys.selected[0], config.keys.selected[1] )
-
 
 function search_toggle() {
 	search_surface.alpha = ( search_surface.alpha == 0 ) ? 255: 0
@@ -1634,13 +1668,13 @@ function search_toggle() {
 	}
 	
 	if ((search_visible() == false) && (fe.list.search_rule == "")) {
-			if (backindex != -1) {
-				fe.list.search_rule == ""
-				fe.list.index = backindex
-				//corrector = backcorrector
-				backindex = -1
-			}
+		if (backindex != -1) {
+			fe.list.search_rule == ""
+			fe.list.index = backindex
+			//corrector = backcorrector
+			backindex = -1
 		}
+	}
 	
 }
 
@@ -1658,7 +1692,6 @@ function search_visible() {
 
 function search_select_relative( rel_col, rel_row )
 {
-	
 	search_select( key_selected[0] + rel_col, key_selected[1] + rel_row )
 }
 
@@ -1674,16 +1707,14 @@ function search_select( col, row )
 	keys[selected].set_rgb( 255,255,255 )
 	keys[selected].alpha = 255
 	key_selected = [ col, row ]
-	
 }
 
 function search_type( c )
 {
-	
 	if ( c == "<" )
-	s_text = ( s_text.len() > 0 ) ? s_text.slice( 0, s_text.len() - 1 ) : ""
+		s_text = ( s_text.len() > 0 ) ? s_text.slice( 0, s_text.len() - 1 ) : ""
 	else if ( c == "-" )
-	search_clear()
+		search_clear()
 	else if ( c == "~" )
 	{
 		//search_update_rule ()
@@ -1692,7 +1723,7 @@ function search_type( c )
 		return
 	}
 	else if (c != "_")
-	s_text = s_text + c
+		s_text = s_text + c
 	search_text.msg = search_base_rule + ": " + s_text 
 	if (LIVESEARCH) search_update_rule()
 }
@@ -1703,9 +1734,10 @@ function search_update_rule(){
 		local rule = search_base_rule + " contains " + recalculate (s_text)
 		//fe.list.search_rule = "Title contains mario"
 		//fe.list.search_rule = ""
-		fe.list.index += corrector + tilesTotal
+		//fe.list.index += corrector + tilesTotal
+		fe.list.index ++
 		fe.list.search_rule = ( s_text.len() > 0 ) ? rule : ""
-		fe.list.index = 0
+		//fe.list.index = 0
 		corrector = 0
 		if(fe.list.search_rule == ""){
 			searchdata.msg = ""
@@ -1725,9 +1757,8 @@ function search_update_rule(){
 function draw_osd() {
 	
 	//draw the search surface bg
-	local bg = search_surface.add_image("kbg.png", 0, 0, search_surface.width, search_surface.height)
+	local bg = search_surface.add_image("kbg2.png", 0, 0, search_surface.width, search_surface.height)
 	bg.alpha = 230
-	
 	
 	//draw the search text object
 	local osd_search = {
@@ -1757,11 +1788,9 @@ function draw_osd() {
 		textkey.set_rgb( 180,180,180)
 		textkey.alpha = 255
 		
-		
 		keys[ key.tolower() ] <- textkey
 		
 	}
-	
 	
 	
 	//set search key positions
@@ -1796,22 +1825,23 @@ function draw_osd() {
 	}
 }
 
-
-
 draw_osd()
 search_select (key_selected[0],key_selected[1])
 
-// DEBUG
+search_surface.zorder = zordertop + 300
+
+// DEBUG redstrobe function 
 
 function redstrobe(){
 	redstrober = 10
 }
 
+/// History Page  
 
-local hist_title_x = flw*0.5
-local hist_title_y = 0
-local hist_title_w = flw*0.5
-local hist_title_h = flh*0.25
+local hist_title_x = flw*0.5+15*scalerate
+local hist_title_y = 0+15*scalerate
+local hist_title_w = flw*0.5-30*scalerate
+local hist_title_h = flh*0.25-30*scalerate
 
 local hist_screen_x = 0
 local hist_screen_y = (flh-flw*0.5)*0.5
@@ -1822,7 +1852,6 @@ local hist_text_x = flw*0.5
 local hist_text_y = flh*0.25
 local hist_text_w = flw*0.5
 local hist_text_h = flh*0.75
-
 
 if (vertical){
 	hist_title_x = 0
@@ -1841,27 +1870,15 @@ if (vertical){
 	hist_text_h = flh*0.5*0.7
 }
 
-
 local historypadding = hist_screen_w * 0.05
-
 local hist_curr_rom = ""
-
 local history_surface = fe.add_surface(flw,flh)
-
-local hist_bgblur = null
-
-if (BGBLURRED == ""){
-	hist_bgblur = history_surface.add_image("white.png",bgx,bgy,bgw,bgw)
-}
-else{
-	hist_bgblur = history_surface.add_image(BGBLURRED,0,0,flw,flh)
-}
+local hist_bgblur = ((BGBLURRED == "") ? history_surface.add_image("white.png",bgx,bgy,bgw,bgw) : history_surface.add_image(BGBLURRED,bgpic_x,bgpic_y,bgpic_w,bgpic_h) )
 
 // aggiunge l'overlay bianco trasparente
 local hist_bgwhite = history_surface.add_text("",0,0,flw,flh)
 hist_bgwhite.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
 hist_bgwhite.bg_alpha = themeoverlayalpha
-
 
 local hist_bg = history_surface.add_text ("",0,0,flw,flh)
 hist_bg.bg_alpha = 150
@@ -1870,7 +1887,6 @@ local hist_title = history_surface.add_image ("transparent.png",hist_title_x,his
 hist_title.preserve_aspect_ratio = true
 
 local hist_black = history_surface.add_image ("hbg1.png",hist_screen_x+historypadding,hist_screen_y+historypadding,hist_screen_w-2*historypadding,hist_screen_h-2*historypadding)
-
 
 local hist_screen = history_surface.add_image ("transparent.png",hist_screen_x+historypadding,hist_screen_y+historypadding,hist_screen_w-2*historypadding,hist_screen_h-2*historypadding)
 hist_screen.preserve_aspect_ratio = true
@@ -1883,16 +1899,15 @@ hist_text.visible=true
 
 history_surface.visible = false
 history_surface.alpha = 0
+history_surface.zorder = zordertop + 400
 
 function history_show()
 {
-
-	if (BGBLURRED == "") 	hist_bgblur.file_name = fe.get_art("blur")
-
+	if (BGBLURRED == "") hist_bgblur.file_name = fe.get_art("blur")
 
 	hist_title.file_name = fe.get_art ("wheel")
 	hist_screen.file_name = fe.get_art ("snap")
-
+	
 	local sys = split( fe.game_info( Info.System ), ";" )
 	local rom = fe.game_info( Info.Name )
 
@@ -1935,7 +1950,7 @@ function history_hide() {
 }
 
 function history_visible() {
-	return (history_surface.visible)
+	return ((history_surface.visible) && (historyflow >= 0))
 }
 
 function on_scroll_up()
@@ -1951,22 +1966,106 @@ function on_scroll_down()
 function history_exit (){
 	hist_title.file_name = "transparent.png"
 	hist_screen.file_name = "transparent.png"
-	//hist_marquee.file_name ="transparent.png"
 	history_hide()
 }
 
 fe.add_ticks_callback( this, "tick2" )
 
+local timerscan = 10.0
+local timerstep = 3
 
-local timerscan = 300.0
+
 
 local flowspeed = 25
 
-
-
-
+/// On Tick (2)  
 function tick2( tick_time ) {
-	
+
+	if ((overmenu.visible) && (overmenuflow >= 0) && (surfacePos != 0)) {
+		overmenu.x = globalposnew + selectorwidth * 0.5 - overmenuwidth*0.5 
+	}
+
+	if (titlestart){
+		name_x.msg = gamenamex ( name_x.index_offset,titleswitch - 1)
+		namesh_x.msg = gamenamex ( name_x.index_offset,titleswitch - 1)
+		name_x2.msg = gamenamex ( name_x.index_offset,titleswitch)
+		namesh_x2.msg = gamenamex ( name_x.index_offset,titleswitch)
+		
+		name_x2.x =0
+		namesh_x2.x =3
+		scrollincrement = 0
+
+		titlecrossfade = 0
+		name_x.alpha = 0
+		namesh_x.alpha = 0
+		name_x2.alpha = 255
+		namesh_x2.alpha = themeshadow
+		titlestart = false
+		if (gamenames (name_x.index_offset) > 1) 
+			titleroll = true
+		else
+			titleroll = false
+
+		if (name_x2.msg_width > flw - rightdata) 
+			titlescroll = true
+		else
+			titlescroll = false
+
+	}
+
+	if ((titleroll) && (tick_time - titlezero >= titlewait)) {
+		//print("tick time:" + tick_time + "  title zero:" + titlezero + " \n")	
+		titleswitch ++
+		name_x.msg = gamenamex ( name_x.index_offset,titleswitch - 1)
+		namesh_x.msg = gamenamex ( name_x.index_offset,titleswitch - 1)
+		name_x2.msg = gamenamex ( name_x.index_offset,titleswitch)
+		namesh_x2.msg = gamenamex ( name_x.index_offset,titleswitch)
+		
+		name_x2.x =0
+		namesh_x2.x =3
+
+		if (name_x2.msg_width > flw - rightdata) 
+			titlescroll = true
+		else
+			titlescroll = false
+
+		scrollincrement = 0
+		titlezero = tick_time
+		titlezero2 = tick_time
+		titlecrossfade = 1
+	}
+
+
+	if (titlecrossfade >= 0){
+		name_x.alpha = titlecrossfade * 255
+		namesh_x.alpha = titlecrossfade * themeshadow
+		name_x2.alpha = (1 - titlecrossfade) * 255
+		namesh_x2.alpha = (1 - titlecrossfade)*themeshadow
+		titlecrossfade -= 0.05
+	}
+
+
+	local deltastep = floor((name_x2.msg_width - flw + rightdata + 50*scalerate)*1.1)
+
+	if (titlescroll){
+		
+		scrollincrement = tick_time - titlezero2
+
+		if (scrollincrement > (scrollwait*2+scrollmove*2)) titlezero2 = tick_time
+
+		if ((scrollincrement >= scrollwait) && (scrollincrement <= (scrollwait + scrollmove)))
+		{
+			name_x2.x = - deltastep * (scrollincrement - scrollwait)/scrollmove
+			namesh_x2.x = 3 + name_x2.x
+		}
+		if ((scrollincrement >= (scrollwait+scrollmove+scrollwait)) && (scrollincrement <= (scrollwait+scrollmove+scrollwait+scrollmove)))
+		{
+			name_x2.x = - deltastep * ((scrollwait+scrollmove+scrollwait+scrollmove) - scrollincrement)/scrollmove
+			namesh_x2.x = 3 + name_x2.x
+		}
+	}
+
+//print(name_x2.x +"\n")
 
 	if (overmenuflow > 0) {
 		if (overmenu.alpha < 255-flowspeed) overmenu.alpha = overmenu.alpha + flowspeed
@@ -2001,19 +2100,8 @@ function tick2( tick_time ) {
 		}
 	}
 
-	if (filteract) {
-		if ((fe.list.index % rows) > 0) {
-			fe.list.index --
-			fe.list.index ++
-		}
-		else {
-			fe.list.index ++
-			fe.list.index --				
-		}
-		filteract = false
-	}
 
-	// DEBUG
+	// DEBUG redstrobe
 	/*
 	if (redstrober <= 1) 
 		redstrober =0
@@ -2031,48 +2119,12 @@ function tick2( tick_time ) {
 		logoshow = logoshow - 0.018	
 		if (logoshow < 0.01) {
 			logoshow = 0
-			afsplash.visible = aflogo.visible = afwhitebg.visible = false
+			aflogo_surface.visible = false
 		}
-		afsplash.alpha = 255*(1-pow((1-logoshow),3))
+		/*afsplash.alpha = 255*(1-pow((1-logoshow),3))
 		aflogo.alpha = 255*(1-pow((1-logoshow),3))
-		afwhitebg.bg_alpha = themeoverlayalpha*(1-pow((1-logoshow),3))
-	}
-	
-	
-	if (scrolltitle == 2){
-		name_x.x =0
-		namesh_x.x =3
-		scrolltitle = 0
-	}
-	
-	if (name_x.msg_width < flw -rightdata){
-		if (scrolltitle == 1){
-			name_x.x =0
-			namesh_x.x =3
-		}
-		scrolltitle = 0
-		scrollincrement = 0
-	}
-	else {
-		scrolltitle = 1
-	}
-	
-	local deltastep = (name_x.msg_width - flw+rightdata)*1.1
-	
-	if (scrolltitle == 1){
-		scrollincrement ++
-		if (scrollincrement == 22*timerscan) scrollincrement = 0
-		if ((scrollincrement > 5*timerscan) && (scrollincrement < (5+1)*timerscan))
-		{
-			name_x.x = - deltastep * (scrollincrement - timerscan*5)/timerscan
-			namesh_x.x = 3 + name_x.x
-		}
-		if ((scrollincrement > (5+1+5)*timerscan) && (scrollincrement < (5+1+5+1)*timerscan))
-		{
-			name_x.x = - deltastep * ((5+1+5+1)*timerscan - scrollincrement)/timerscan
-			namesh_x.x = 3 + name_x.x
-		}
+		afwhitebg.bg_alpha = themeoverlayalpha*(1-pow((1-logoshow),3))*/
+		aflogo_surface.alpha = 255*(1-pow((1-logoshow),3))
 	}
 	
 }
-

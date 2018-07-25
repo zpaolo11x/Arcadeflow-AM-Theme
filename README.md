@@ -1,13 +1,23 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 1.8**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 1.9**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
 
-*What's new in v 1.8*
+*What's new in v 1.9*
 
-- Introduced a new layout style where game snaps are not horizontal or vertical depending on game orientation, but cropped square. You can chose it in the options menu.
+- AM 2.4 was released while coding AF 1.9, adapted the code so it works both in 2.3 and 2.4:
+  - Fixed the zorder management 
+  - Implemented a new way to crop thumbnails for "square" thumbs layout 
+  - 2.4 users can access the "Layout Options" menu directly from the "General" menu accessible going "Up" from the game grid
+  - Rewritten the scrolling title routine with proper timing
+- Custom background picture is not stretched but scaled/cropped to fit the theme aspect ratio
+- Thoroughly rewritten the transition response routine, it's cleaner and works much better now.
+- Thanks to the above rewrite you can now use "left" and "right" on the History screen to go to the previous/next game, the layout should now respond correctly even to "jump to letter" calls and page jumps.
+- "Square" thumbnails layout now responds to the "Blurred Logo Shadow" option, if you enable it you'll get game name overlay with drop shadow, otherwise plain game name with gradient background.
+- When a game has a multi-language title separated by "/" (e.g. Fatal Fury / Garou Densetsu) the theme will crossfade the titles so that title scrolling is needed less often.
+
   
 *Custom controls*
 
@@ -17,9 +27,9 @@ You can define a custom control to call the game context menu, from which you ca
 - "LEFT" to enter the Tags menu
 - "RIGHT" to add/remove favorites
 
-*Filters & Search*
+*Filters, Search and Layout options*
 
-You can access the "Filters" menu and the "Search" function by going "UP" from the first row of icons.
+You can access the "Filters" menu and the "Search" function by going "UP" from the first row of icons. In the same menu you'll get the "Layout options" access (in AM 2.4)
 
 *Tags*
 
@@ -68,6 +78,10 @@ You can add a attract mode art category called "logoblur" and use the provided x
 - "Generate Index" : Generate the history.dat index now (this can take some time)
 
 ** Previous versions history **
+
+*v 1.8*
+
+- Introduced a new layout style where game snaps are not horizontal or vertical depending on game orientation, but cropped square. You can chose it in the options menu.
 
 *v 1.7*
 
