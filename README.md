@@ -1,22 +1,16 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 1.9**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.0**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
 
-*What's new in v 1.9*
+*What's new in v 2.0*
 
-- AM 2.4 was released while coding AF 1.9, adapted the code so it works both in 2.3 and 2.4:
-  - Fixed the zorder management 
-  - Implemented a new way to crop thumbnails for "square" thumbs layout 
-  - 2.4 users can access the "Layout Options" menu directly from the "General" menu accessible going "Up" from the game grid
-  - Rewritten the scrolling title routine with proper timing
-- Custom background picture is not stretched but scaled/cropped to fit the theme aspect ratio
-- Thoroughly rewritten the transition response routine, it's cleaner and works much better now.
-- Thanks to the above rewrite you can now use "left" and "right" on the History screen to go to the previous/next game, the layout should now respond correctly even to "jump to letter" calls and page jumps.
-- "Square" thumbnails layout now responds to the "Blurred Logo Shadow" option, if you enable it you'll get game name overlay with drop shadow, otherwise plain game name with gradient background.
-- When a game has a multi-language title separated by "/" (e.g. Fatal Fury / Garou Densetsu) the theme will crossfade the titles so that title scrolling is needed less often.
+- New feature: you can now change the splash logo
+- New feature: background artwork can be a semi-transparent PNG and will show the blurred background behind it
+- Under the hood changes: version 2.0 is a huge rewrite of AF, no need to generate blurred backgrounds or blurred logo shadows with xnview, the theme can generate on the fly shadows and backgrounds from your snapshots and wheel artwork. The theme may be a bit slower on your system depending on the size of artworks which is generally larger than xnview generated blurred pictures.
+- If you have issues with the new way "blur" is generated you can use the layout_noshader.nut file instead, just chose it from the layout options menu (AM 2.4) or rename it to layout.nut (AM 2.3). This layout file has all the features of the new one, but in a standard framework using xnview generated artwork
 
   
 *Custom controls*
@@ -45,7 +39,7 @@ You can go "DOWN" from the altest row to enter a "large jumps" scrolling mode.
 
 Arcadeflow requires that the aspect ratio of the snapshots is 4:3 or 3:4 depending on the game orientation, it will not correct the snapshot aspect ratio and won't look good otherwise. You can resize your snapshots using batch processing software like xnview, don't use bilinear or lanzcos scaling but just "nearest neighbor" if you want to keep the file size small.
 
-*Blurred background*
+*Blurred background (replaced by sahders)*
 
 The blurred background is not calculated from the snaps: you need to batch process your snapshots and create a custom art category in attract mode called  "blur". What I do is:
 
@@ -56,7 +50,7 @@ The blurred background is not calculated from the snaps: you need to batch proce
 
 This results in a very smooth yet fast to load blurred background. I prepared some xnview scripts you can use for the conversion.
 
-*Blurred title shadows*
+*Blurred title shadows (replaced by shaders)*
 
 You can add a attract mode art category called "logoblur" and use the provided xnview script to generate new artworks for blurred shadows to be placed under the title
 
@@ -65,12 +59,13 @@ You can add a attract mode art category called "logoblur" and use the provided x
 - "Snaps aspect ratio" : Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation
 - "Context Menu Button" : Setup the button to use to recall game info and actions context menu
 - "Theme Color" : Setup theme color
-- "Blurred Logo Shadow" : Use blurred logo artwork shadow
+- "Blurred Logo Shadow" : Use blurred logo artwork shadow (works only in layout_noshader.nut)
 - "Enable New Game Indicator" : Games not played are marked with a glyph
 - "Custom Background Image" : Insert custom background art path
 - "Search string entry method" : Use keyboard or on-screen keys to enter search string
 - "Immediate search" : Live update results while searching
 - "Enable AF splash logo" : Enable or disable the AF start logo
+- "Custom AF splash logo" : Chose a custom picture as splash logo
 - "Rows in horizontal layout" : Number of rows to use in 'horizontal' mode
 - "Rows in vertical layout" : Number of rows to use in 'vertical' mode
 - "History.dat" : History.dat location
@@ -78,6 +73,19 @@ You can add a attract mode art category called "logoblur" and use the provided x
 - "Generate Index" : Generate the history.dat index now (this can take some time)
 
 ** Previous versions history **
+
+*v 1.9*
+
+- AM 2.4 was released while coding AF 1.9, adapted the code so it works both in 2.3 and 2.4:
+  - Fixed the zorder management 
+  - Implemented a new way to crop thumbnails for "square" thumbs layout 
+  - 2.4 users can access the "Layout Options" menu directly from the "General" menu accessible going "Up" from the game grid
+  - Rewritten the scrolling title routine with proper timing
+- Custom background picture is not stretched but scaled/cropped to fit the theme aspect ratio
+- Thoroughly rewritten the transition response routine, it's cleaner and works much better now.
+- Thanks to the above rewrite you can now use "left" and "right" on the History screen to go to the previous/next game, the layout should now respond correctly even to "jump to letter" calls and page jumps.
+- "Square" thumbnails layout now responds to the "Blurred Logo Shadow" option, if you enable it you'll get game name overlay with drop shadow, otherwise plain game name with gradient background.
+- When a game has a multi-language title separated by "/" (e.g. Fatal Fury / Garou Densetsu) the theme will crossfade the titles so that title scrolling is needed less often.
 
 *v 1.8*
 

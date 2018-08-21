@@ -1,0 +1,29 @@
+uniform sampler2D source;
+uniform vec2 offsetFactor;
+
+void main() {
+    vec2 sourceCoordinates = gl_TexCoord[0].xy;
+    vec4 color = vec4(0.0);
+    color += texture2D(source, sourceCoordinates - 10.0 * offsetFactor) * 0.0012;
+    color += texture2D(source, sourceCoordinates - 9.0 * offsetFactor) * 0.0015;
+    color += texture2D(source, sourceCoordinates - 8.0 * offsetFactor) * 0.0038;
+    color += texture2D(source, sourceCoordinates - 7.0 * offsetFactor) * 0.0087;
+    color += texture2D(source, sourceCoordinates - 6.0 * offsetFactor) * 0.0180;
+    color += texture2D(source, sourceCoordinates - 5.0 * offsetFactor) * 0.0332;
+    color += texture2D(source, sourceCoordinates - 4.0 * offsetFactor) * 0.0547;
+    color += texture2D(source, sourceCoordinates - 3.0 * offsetFactor) * 0.0807;
+    color += texture2D(source, sourceCoordinates - 2.0 * offsetFactor) * 0.1065;
+    color += texture2D(source, sourceCoordinates - offsetFactor) * 0.1258;
+    color += texture2D(source, sourceCoordinates) * 0.1330;
+    color += texture2D(source, sourceCoordinates + offsetFactor) * 0.1258;
+    color += texture2D(source, sourceCoordinates + 2.0 * offsetFactor) * 0.1065;
+    color += texture2D(source, sourceCoordinates + 3.0 * offsetFactor) * 0.0807;
+    color += texture2D(source, sourceCoordinates + 4.0 * offsetFactor) * 0.0547;
+    color += texture2D(source, sourceCoordinates + 5.0 * offsetFactor) * 0.0332;
+    color += texture2D(source, sourceCoordinates + 6.0 * offsetFactor) * 0.0180;
+    color += texture2D(source, sourceCoordinates - 7.0 * offsetFactor) * 0.0087;
+    color += texture2D(source, sourceCoordinates - 8.0 * offsetFactor) * 0.0038;
+    color += texture2D(source, sourceCoordinates - 9.0 * offsetFactor) * 0.0015;
+    color += texture2D(source, sourceCoordinates - 10.0 * offsetFactor) * 0.0012;
+    gl_FragColor = color;
+}

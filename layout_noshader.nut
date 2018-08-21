@@ -1,8 +1,9 @@
-// Arcadeflow - v 1.9
+// Arcadeflow - v 2.0
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
 // Including code from the KeyboardSearch plugin by Andrew Mickelson (mickelson)
+
 
 class UserConfig </ help="" />{
 	</ label="Snaps aspect ratio", help="Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation", options ="Horizontal-Vertical, Square", order = 1 /> cropsnaps = "Horizontal-Vertical"
@@ -43,7 +44,7 @@ local my_config = fe.get_config()
 
 local CROPSNAPS = ( (my_config["cropsnaps"] == "Square") ? true : false)
 local COLORTHEME = my_config["colortheme"]
-//local LOGOBLURRED = ( (my_config["logoblurred"] == "Yes") ? true : false)
+local LOGOBLURRED = ( (my_config["logoblurred"] == "Yes") ? true : false)
 local NEWGAME = ( (my_config["newgame"] == "Yes") ? true : false)
 local BGBLURRED = my_config["bgblurred"]
 local KEYBOARD = ( (my_config["searchmeth"] == "Keyboard") ? true : false)
@@ -252,13 +253,13 @@ if (vertical){
 local scrolljump = false
 local scrollstep = rows
 
-
 // keys definition for on screen keyboard 
 local key_names = { "a": "a", "b": "b", "c": "c", "d": "d", "e": "e", "f": "f", "g": "g", "h": "h", "i": "i", "j": "j", "k": "k", "l": "l", "m": "m", "n": "n", "o": "o", "p": "p", "q": "q", "r": "r", "s": "s", "t": "t", "u": "u", "v": "v", "w": "w", "x": "x", "y": "y", "z": "z", "1": "Num1", "2": "Num2", "3": "Num3", "4": "Num4", "5": "Num5", "6": "Num6", "7": "Num7", "8": "Num8", "9": "Num9", "0": "Num0", "<": "Backspace", " ": "Space", "-": "Clear", "~": "Done","_":"Nope" }
 local key_rows =  ["abcdefghi123", "jklmnopqr456", "stuvwxyz_789", "- <0","~"]
 if (vertical) key_rows = ["1234567890","abcdefghij","klmnopqrst","uvwxyz____","- <","~"]
 local key_selected = [0,0]
 local s_text = ""
+local bgpicture = null
 
 /// Carrier Class Definition  
 class Carrier {
@@ -316,8 +317,6 @@ class Carrier {
 	/// Carrier constructor  
 	constructor() {
 		
-		//carrier_surface = fe.add_surface(flw,flh)
-
 		tilesCount = cols * rows
 		tilesOffscreen = (vertical ? 3 * rows : 4 * rows)
 		
@@ -327,78 +326,16 @@ class Carrier {
 		local prescaler = selectorscale
 		zorderscanner = 0
 
-
-		// fading letter
-		letterobj = fe.add_text("[!gameletter]",0,carrier_y+carrier_h*0.5-lettersize*0.5,flw,lettersize)
-		letterobj.alpha = 0
-		letterobj.charsize = lettersize
-		letterobj.font = guifont
-		letterobj.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-		// scroller definition
-		local scrolline = fe.add_image ("white.png",footermargin,flh-footer_h*0.5 - 1,flw-2*footermargin,2)
-		scrolline.alpha = 200
-		scrolline.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-		scrollineglow = fe.add_image ("whitedisc2.png",footermargin, flh-footer_h*0.5 - 5,flw-2*footermargin, 10)
-		scrollineglow.visible = false
-		scrollineglow.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-		scroller = fe.add_image ("whitedisc.png",footermargin - scrollersize*0.5,flh-footer_h*0.5-scrollersize*0.5,scrollersize,scrollersize)
-		scroller.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-		scroller2 = fe.add_image ("whitedisc2.png",scroller.x - scrollersize*0.5, scroller.y-scrollersize*0.5,scrollersize*2,scrollersize*2)
-		scroller2.visible = false
-		scroller2.alpha = 200
-		scroller2.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-		searchdata = fe.add_text (fe.list.search_rule,0,flh-footer_h*0.5,flw,footer_h*0.5)
-		searchdata.align = Align.Centre
-		searchdata.set_rgb( 255, 255, 255)
-		searchdata.word_wrap = true
-		searchdata.charsize = 25*scalerate
-		searchdata.visible = true
-		searchdata.font = guifont
-		searchdata.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
 		/// Tile creation loop  
 		for ( local i = 0; i < tilesTotal; i++ ) {
-			local loshz = null
-			local logoz = null
-			local logosurf1 = null
-			local logosurf2 = null
 
-			if (!CROPSNAPS){
-				logosurf2 = fe.add_surface (prescaler*(width+padding),prescaler*(height*0.5+padding))
-				loshz = logosurf2.add_artwork ("wheel",prescaler*padding*0.5,prescaler*(padding*0.5),prescaler*width,prescaler*height*0.5)
-				logosurf1 = fe.add_surface (prescaler*(width+padding),prescaler*(height*0.5+padding))
-				logosurf1.set_pos(prescaler*padding*0.5,prescaler*(padding*0.4*0.5-verticalshift))
-			}
-			else {
-				logosurf2 = fe.add_surface (prescaler*width,prescaler*width*320/560.0)
-				loshz = logosurf2.add_artwork ("wheel",prescaler*(width*40/560.0),prescaler*(width*40/560.0),prescaler*width*480/560.0,prescaler*height*240/560.0)
-				logosurf1 = fe.add_surface (prescaler*width,prescaler*width*320/560.0)
-				logosurf1.set_pos(prescaler*padding,prescaler*(padding*1.05))
-
-			}
-
-			local shaderV = fe.add_shader( Shader.Fragment, "frag.txt" )
-			shaderV.set_texture_param( "source")
-			shaderV.set_param("offsetFactor", 0.0000, 0.008)
-			logosurf2.shader = shaderV
-
-			local shaderH = fe.add_shader( Shader.Fragment, "frag.txt" )
-			shaderH.set_texture_param( "source")
-			shaderH.set_param("offsetFactor", 0.008, 0.0)
-			logosurf1.shader = shaderH
-
-
-			local obj = fe.add_surface(widthpadded*prescaler,heightpadded*prescaler)
+			local obj = carrier_surface.add_surface(widthpadded*prescaler,heightpadded*prescaler)
 			
 			if(i == 0) 
 				zorderscanner = obj.zorder
 			else
 				obj.zorder = zorderscanner
+
 
 			local sh_hz = obj.add_image ("sh_h_5.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
 			local sh_vz = obj.add_image ("sh_v_5.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
@@ -421,7 +358,6 @@ class Carrier {
 				bd_vz.set_pos (prescaler*padding*(1.0-whitemargin),prescaler*(-verticalshift + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height + padding*2*whitemargin))
 			}
 
-			local nam2z = null
 
 			local snapz = obj.add_artwork("snap",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width,prescaler*height)
 			
@@ -433,6 +369,8 @@ class Carrier {
 			vidsz.preserve_aspect_ratio = true
 			//vidsz.visible = false
 			vidsz.video_flags = Vid.NoAudio
+
+			local nam2z = null
 
 			local nw_hz = obj.add_image ("nw_h.png",prescaler*padding,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
 			local nw_vz = obj.add_image ("nw_v.png",prescaler*padding,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
@@ -457,27 +395,51 @@ class Carrier {
 			favez.visible = false
 			favez.preserve_aspect_ratio = false
 
-			logosurf2.visible = false
-			logosurf2 = logosurf1.add_clone (logosurf2)
-			logosurf2.visible = true
-
-			logosurf1.visible = false
-			logosurf1 = obj.add_clone (logosurf1)
-			logosurf1.visible = true
-
-			logoz = obj.add_clone (loshz)
-			logoz.preserve_aspect_ratio = true
-
-			if (!CROPSNAPS){
-				logoz.set_pos (prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
-			}
-			else {
-				logoz.set_pos (prescaler*(padding+width*40/560.0),prescaler*(padding+height*(48-16)/560.0),prescaler*width*480/560.0,prescaler*height*240/560.0)
-			}
+			local loshz = null
+			local logoz = null
 			
-			loshz.alpha = 150
-			loshz.preserve_aspect_ratio = true
-			loshz.set_rgb(0,0,0)
+			if (!CROPSNAPS){
+
+				if (LOGOBLURRED) {
+					loshz = obj.add_artwork ("logoblur",prescaler*padding*0.5,prescaler*(padding*0.4*0.5-verticalshift),prescaler*(width+padding),prescaler*(height*0.5+padding))
+					loshz.alpha = 150
+
+					logoz = obj.add_artwork ("wheel",prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
+					logoz.preserve_aspect_ratio = true
+				}
+				
+				else {
+					loshz = obj.add_artwork ("wheel",prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
+					loshz.preserve_aspect_ratio = true
+					
+					logoz = obj.add_clone (loshz)	
+					loshz.set_rgb(0,0,0)
+					
+					loshz.set_pos(loshz.x+prescaler*3*scalerate,loshz.y+prescaler*6*scalerate)			
+					loshz.alpha = 120
+				}
+			
+			}
+
+			else{
+				if (LOGOBLURRED) {
+					loshz = obj.add_artwork ("logoblur",prescaler*padding,prescaler*padding,prescaler*width,prescaler*width*320/560.0)
+					loshz.alpha = 150
+
+					logoz = obj.add_artwork ("wheel",prescaler*(padding+width*40/560.0),prescaler*(padding+height*(48-16)/560.0),prescaler*width*480/560.0,prescaler*height*240/560.0)
+					logoz.preserve_aspect_ratio = true
+				}
+				else  {
+					local gradz = obj.add_image("gradient.png",padding*prescaler,(padding-verticalshift)*prescaler,width*prescaler,0.5*height*prescaler)
+					gradz.set_rgb(0,0,0)
+					gradz.alpha = 190
+
+					logoz = obj.add_artwork ("wheel",prescaler*(padding+0.05*width),prescaler*padding,prescaler*width*0.9,prescaler*height*0.5)
+					logoz.preserve_aspect_ratio = true
+					loshz = obj.add_clone (logoz)
+					loshz.visible = false
+				}
+			}
 
 			tilesTablePosX.push((width+padding) * (i/rows)  + padding)
 			tilesTablePosY.push((width+padding) * (i%rows)  + padding + carrier_y + verticalshift)
@@ -498,22 +460,50 @@ class Carrier {
 			nw_vzTable.push (nw_vz)
 			vidszTable.push (vidsz)
 			nam1zTable.push (nam1z)
-			//nam2zTable.push (nam2z)
-
 		}
 		
 
+		// fading letter
+		letterobj = carrier_surface.add_text("[!gameletter]",0,carrier_y+carrier_h*0.5-lettersize*0.5,flw,lettersize)
+		letterobj.alpha = 0
+		letterobj.charsize = lettersize
+		letterobj.font = guifont
+		letterobj.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+
+		// scroller definition
+		local scrolline = carrier_surface.add_image ("white.png",footermargin,flh-footer_h*0.5 - 1,flw-2*footermargin,2)
+		scrolline.alpha = 200
+		scrolline.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+
+		scrollineglow = carrier_surface.add_image ("whitedisc2.png",footermargin, flh-footer_h*0.5 - 5,flw-2*footermargin, 10)
+		scrollineglow.visible = false
+		scrollineglow.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+
+		scroller = carrier_surface.add_image ("whitedisc.png",footermargin - scrollersize*0.5,flh-footer_h*0.5-scrollersize*0.5,scrollersize,scrollersize)
+		scroller.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+
+		scroller2 = carrier_surface.add_image ("whitedisc2.png",scroller.x - scrollersize*0.5, scroller.y-scrollersize*0.5,scrollersize*2,scrollersize*2)
+		scroller2.visible = false
+		scroller2.alpha = 200
+		scroller2.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+
+		searchdata = carrier_surface.add_text (fe.list.search_rule,0,flh-footer_h*0.5,flw,footer_h*0.5)
+		searchdata.align = Align.Centre
+		searchdata.set_rgb( 255, 255, 255)
+		searchdata.word_wrap = true
+		searchdata.charsize = 25*scalerate
+		searchdata.visible = true
+		searchdata.font = guifont
+		searchdata.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 		
 		zordertop = zorderscanner + tilesTotal + 2
-
-		//letterobj.zorder = scrolline.zorder = scrollineglow.zorder = scroller.zorder = scroller2.zorder = searchdata.zorder = zordertop
 
 		// define initial carrier "surface" position
 		surfacePos = 0.5
 		
 		//DEBUG create debugarea
 		if (DEBUGAR) {
-		debugarea = fe.add_text("DEBUG AREA",flw-700*scalerate,0,700*scalerate,flh)
+		debugarea = carrier_surface.add_text("DEBUG AREA",flw-700*scalerate,0,700*scalerate,flh)
 		debugarea.bg_alpha = 200
 		debugarea.alpha = 255
 		debugarea.word_wrap = true
@@ -646,10 +636,12 @@ class Carrier {
 				if ((ttype == Transition.ToNewList) || (ttype == Transition.StartLayout)){
 					snapzTable[indexTemp].index_offset = index
 					loshzTable[indexTemp].index_offset = index
+					logozTable[indexTemp].index_offset = index
 				}
 				else{
 					snapzTable[indexTemp].rawset_index_offset(index )
 					loshzTable[indexTemp].rawset_index_offset(index )
+					logozTable[indexTemp].rawset_index_offset(index )
 				}
 
 				if (CROPSNAPS){
@@ -664,7 +656,6 @@ class Carrier {
 				}
 
 				nam1zTable[indexTemp].msg = gamename(index + var )
-				//nam2zTable[indexTemp].msg = gamename(index + var )
 
 				tilesTable[indexTemp].zorder = zorderscanner
 
@@ -1384,59 +1375,36 @@ function maincategory( offset ) {
 /// Display construction (BACKGROUND)  
 
 
-local xsurf1 = null
-local xsurf2 = null
-local bg_surface = null
-local whitebg = null
-local smallsize = 32
-local blursize = 0.03
+// 16 8 16 , 16 4 16 , 16 4 8
+/*
+local xsize1 = 16
+local xsize2 = 4
+local xsize3 = 8
+local xsize9 = flw
 
-xsurf1 = fe.add_surface(smallsize,smallsize)
+local xsurf3 = fe.add_surface (xsize3,xsize3)
+local xsurf2 = xsurf3.add_surface (xsize2,xsize2)
+local xsurf1 = xsurf2.add_surface (xsize1,xsize1)
 
-snapbg1 = xsurf1.add_artwork ("snap",-smallsize*1/6.0,-smallsize*1/6.0,smallsize*4/3.0,smallsize*4/3.0)
+snapbg1 = xsurf1.add_artwork ("snap",-xsize1*1/6.0,-xsize1*1/6.0,xsize1*4/3.0,xsize1*4/3.0)
 snapbg1.set_rgb (shadeval,shadeval,shadeval)
 snapbg1.alpha = 255
 snapbg1.trigger = Transition.EndNavigation
 snapbg1.video_flags = Vid.ImagesOnly
-snapbg1.smooth = true
 
-snapbg2 = xsurf1.add_artwork ("snap",-smallsize*1/6.0,-smallsize*1/6.0,smallsize*4/3.0,smallsize*4/3.0)
+snapbg2 = xsurf1.add_artwork ("snap",-xsize1*1/6.0,-xsize1*1/6.0,xsize1*4/3.0,xsize1*4/3.0)
 snapbg2.set_rgb (shadeval,shadeval,shadeval)
 snapbg2.alpha = 255
 snapbg2.trigger = Transition.EndNavigation
 snapbg2.video_flags = Vid.ImagesOnly
-snapbg2.smooth = true
 
-
-xsurf2 = fe.add_surface(smallsize,smallsize)
-
-bg_surface = fe.add_surface(flw,flh)
-
-local shaderH1 = fe.add_shader( Shader.Fragment, "frag.txt" )
-shaderH1.set_texture_param( "source")
-shaderH1.set_param("offsetFactor", blursize, 0.0)
-xsurf1.shader = shaderH1
-
-local shaderV1 = fe.add_shader( Shader.Fragment, "frag.txt" )
-shaderV1.set_texture_param( "source")
-shaderV1.set_param("offsetFactor", 0.0000, blursize)
-xsurf2.shader = shaderV1
-
-xsurf2.visible = false
-xsurf2 = bg_surface.add_clone(xsurf2)
-xsurf2.visible = true
-
-xsurf1.visible = false
-xsurf1 = xsurf2.add_clone(xsurf1)
-xsurf1.visible = true
-
-xsurf2.set_pos(bgx,bgy,bgw,bgw)
-
-local bgpicture = null
+xsurf1.set_pos (0,0,xsize2,xsize2)
+xsurf2.set_pos (0,0,xsize3,xsize3)
+xsurf3.set_pos (bgx,bgy,bgw,bgw)
 
 
 if (BGBLURRED != "")	{
-	bgpicture = bg_surface.add_image(BGBLURRED,0,0,flw,flh)
+	bgpicture = fe.add_image(BGBLURRED,0,0,flw,flh)
 	bgpicture.visible = false
 	bgpic_ar = (bgpicture.texture_width*1.0) / bgpicture.texture_height
 
@@ -1452,41 +1420,118 @@ if (BGBLURRED != "")	{
 		bgpic_y = - (bgpic_h - flh)*0.5
 		bgpic_x = 0
 	}
-	bgpicture=bg_surface.add_image (BGBLURRED,bgpic_x,bgpic_y,bgpic_w,bgpic_h)
-	bgpicture.visible=true
-
-
+	bgpicture=fe.add_image (BGBLURRED,bgpic_x,bgpic_y,bgpic_w,bgpic_h)
 }
 
-	whitebg = bg_surface.add_text("",0,0,flw,flh)
-	whitebg.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
-	whitebg.bg_alpha = themeoverlayalpha
+*/
+
+		snapbg1 = fe.add_artwork("blur",bgx,bgy,bgw,bgw)
+		snapbg1.set_rgb (shadeval,shadeval,shadeval)
+		snapbg1.alpha = 255
+		snapbg1.trigger = Transition.EndNavigation
+		snapbg1.video_flags = Vid.ImagesOnly
+		
+		snapbg2 = fe.add_artwork("blur",bgx,bgy,bgw,bgw)
+		snapbg2.set_rgb (shadeval,shadeval,shadeval)
+		snapbg2.alpha = 255
+		snapbg2.trigger = Transition.EndNavigation
+		snapbg2.video_flags = Vid.ImagesOnly
+
+		if (BGBLURRED != "")	{
+			bgpicture = fe.add_image(BGBLURRED,0,0,flw,flh)
+			bgpicture.visible = false
+			bgpic_ar = (bgpicture.texture_width*1.0) / bgpicture.texture_height
+
+			if (bgpic_ar >= flw/(flh*1.0)){
+				bgpic_h = flh
+				bgpic_w = bgpic_h * bgpic_ar
+				bgpic_y = 0
+				bgpic_x = - (bgpic_w - flw)*0.5
+			}
+			else {
+				bgpic_w = flw
+				bgpic_h = bgpic_w / bgpic_ar*1.0
+				bgpic_y = - (bgpic_h - flh)*0.5
+				bgpic_x = 0
+			}
+			bgpicture=fe.add_image (BGBLURRED,bgpic_x,bgpic_y,bgpic_w,bgpic_h)
+		}
 
 
+local whitebg = fe.add_text("",0,0,flw,flh)
+whitebg.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
+whitebg.bg_alpha = themeoverlayalpha
 
 /// Display construction (CARRIER) 
 
 // scrolling carrier call
-
+carrier_surface = fe.add_surface(flw,flh)
 local carrier = Carrier()
 
+/// Controls Overlays (Listbox)  
 
+local overlay_charsize = floor( 50*scalerate )
+local overlay_rows = floor((flh-header_h-footer_h)/(overlay_charsize*3))
+local overlay_labelsize = floor ((flh-header_h-footer_h)/overlay_rows)
 
-/// Foreground panel surface  
+// sfondo dell'area con le scritte
+local overlay_background = fe.add_text ("", 0 , header_h, flw, flh-header_h-footer_h)
+overlay_background.set_bg_rgb(200,200,200)
+overlay_background.bg_alpha = 64
 
-local fg_surface = fe.add_clone(bg_surface)
-fg_surface.zorder = zordertop + 2
+local overlay_listbox = fe.add_listbox( 0, header_h+overlay_labelsize, flw, flh-header_h-footer_h-overlay_labelsize )
+overlay_listbox.rows = overlay_rows - 1
+overlay_listbox.charsize = overlay_charsize
+overlay_listbox.bg_alpha = 0
+overlay_listbox.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
+overlay_listbox.set_bg_rgb( 0, 0, 0 )
+overlay_listbox.set_sel_rgb( 50, 50, 50 )
+overlay_listbox.set_selbg_rgb( 250,250,250 )
+overlay_listbox.selbg_alpha = 255
+overlay_listbox.font = guifont
 
-//fg_surface.alpha = 120
-//fg_surface.set_pos(bgx,bgy,bgw,bgw)
+local overlay_label = fe.add_text( "dummy", 0, header_h, flw, overlay_labelsize )
+overlay_label.charsize = overlay_charsize
+overlay_label.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
+overlay_label.align = Align.Centre
+overlay_label.font = guifont
+
+local shader1 = fe.add_image ("wgradient.png",0,flh-footer_h,flw,50*scalerate)
+
+local shader2 = fe.add_image ("white.png",padding,header_h+overlay_labelsize-2,flw-2*padding,2)
+
+local shader3 = fe.add_image ("wgradient2.png",0,header_h-50*scalerate,flw,50*scalerate)
+
+shader1.alpha = 50
+shader2.alpha = 255
+shader3.alpha = 50
+shader1.set_rgb(0,0,0)
+shader3.set_rgb(0,0,0)
+
+overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false
+
+overlay_listbox.zorder = overlay_label.zorder = overlay_background.zorder = shader1.zorder = shader2.zorder = shader3.zorder = zordertop + 1
+
+fe.overlay.set_custom_controls( overlay_label, overlay_listbox )
+
+function overlay_show(){
+	carrier_surface.alpha = 255 * (1-satinrate)
+	overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = true
+}
+
+function overlay_hide(){
+	carrier_surface.alpha = 255
+	overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false		
+}
 
 /// Display construction (DATA)  
 
+local data_surface = fe.add_surface(flw,flh)
 
 local rightdata = 400*scalerate
 //local namesurf = fe.add_surface (flw-rightdata,header_h)
 
-local name_surf = fe.add_surface (flw - rightdata, header_h*2/3)
+local name_surf = data_surface.add_surface (flw - rightdata, header_h*2/3)
 
 // game name shadow
 local namesh_x =  name_surf.add_text( "[!gamename]", 3, 3, flw*2, header_h*2/3 )
@@ -1531,12 +1576,6 @@ name_x2.charsize = 60*scalerate
 //name_x.bg_alpha = 128
 //name_x.bg_red = 255
 name_x2.font = guifont
-
-local data_surface = fe.add_surface (flw,flh)
-
-name_surf.visible = false
-name_surf = data_surface.add_clone (name_surf)
-name_surf.visible = true
 
 // game name second part (revision, details etc)
 local subname_x =  data_surface.add_text( " [!gamesubname]", 0, header_h*1/3+60*scalerate/2, flw - rightdata, header_h*1/3 )
@@ -1592,66 +1631,7 @@ filternumbers.visible = true
 filternumbers.font = guifont
 filternumbers.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
-data_surface.zorder = zordertop + 3
-//name_surf.zorder = subname_x.zorder = year_x.zorder = year2_x.zorder = filterdata.zorder = filternumbers.zorder = zordertop + 1
-
-/// Controls Overlays (Listbox)  
-
-local overlay_charsize = floor( 50*scalerate )
-local overlay_rows = floor((flh-header_h-footer_h)/(overlay_charsize*3))
-local overlay_labelsize = floor ((flh-header_h-footer_h)/overlay_rows)
-
-// sfondo dell'area con le scritte
-local overlay_background = fe.add_text ("", 0 , header_h, flw, flh-header_h-footer_h)
-overlay_background.set_bg_rgb(200,200,200)
-overlay_background.bg_alpha = 64
-
-local overlay_listbox = fe.add_listbox( 0, header_h+overlay_labelsize, flw, flh-header_h-footer_h-overlay_labelsize )
-overlay_listbox.rows = overlay_rows - 1
-overlay_listbox.charsize = overlay_charsize
-overlay_listbox.bg_alpha = 0
-overlay_listbox.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
-overlay_listbox.set_bg_rgb( 0, 0, 0 )
-overlay_listbox.set_sel_rgb( 50, 50, 50 )
-overlay_listbox.set_selbg_rgb( 250,250,250 )
-overlay_listbox.selbg_alpha = 255
-overlay_listbox.font = guifont
-
-local overlay_label = fe.add_text( "dummy", 0, header_h, flw, overlay_labelsize )
-overlay_label.charsize = overlay_charsize
-overlay_label.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
-overlay_label.align = Align.Centre
-overlay_label.font = guifont
-
-local shader1 = fe.add_image ("wgradient.png",0,flh-footer_h,flw,50*scalerate)
-
-local shader2 = fe.add_image ("white.png",padding,header_h+overlay_labelsize-2,flw-2*padding,2)
-
-local shader3 = fe.add_image ("wgradient2.png",0,header_h-50*scalerate,flw,50*scalerate)
-
-shader1.alpha = 50
-shader2.alpha = 255
-shader3.alpha = 50
-shader1.set_rgb(0,0,0)
-shader3.set_rgb(0,0,0)
-
-overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false
-
-overlay_listbox.zorder = overlay_label.zorder = overlay_background.zorder = shader1.zorder = shader2.zorder = shader3.zorder = zordertop + 4
-
-fe.overlay.set_custom_controls( overlay_label, overlay_listbox )
-
-function overlay_show(){
-	fg_surface.alpha = 255 * (satinrate)
-	overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = true
-}
-
-function overlay_hide(){
-	fg_surface.alpha = 0
-	overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false		
-}
-
-
+namesh_x.zorder = name_x.zorder = name_surf.zorder = namesh_x2.zorder = name_x2.zorder = subname_x.zorder = year_x.zorder = year2_x.zorder = filterdata.zorder = filternumbers.zorder = zordertop + 2
 
 /// Splash Screen  
 
@@ -1660,7 +1640,20 @@ function overlay_hide(){
 local aflogo_surface = fe.add_surface(flw,flh)
 
 local afsplash = null
+/*
+if (BGBLURRED == ""){
+	afsplash = aflogo_surface.add_image("white.png",bgx,bgy,bgw,bgw)
+	afsplash.file_name = fe.get_art("blur")
+}
+else{
+	afsplash = aflogo_surface.add_image(BGBLURRED,bgpic_x,bgpic_y,bgpic_w,bgpic_h)
+}
 
+// aggiunge l'overlay bianco trasparente
+local afwhitebg = aflogo_surface.add_text("",0,0,flw,flh)
+afwhitebg.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
+afwhitebg.bg_alpha = themeoverlayalpha
+*/
 
 // aggiunge l'immagine del logo
 local aflogo = aflogo_surface.add_image (SPLASHLOGOFILE,0,0,flw,flh)
@@ -1691,7 +1684,7 @@ local aflogo2 = aflogo_surface.add_image (SPLASHLOGOFILE,aflogo_x,aflogo_y,aflog
 
 if (!SPLASHON) aflogo_surface.visible = false
 
-aflogo_surface.zorder = zordertop + 100
+aflogo_surface.zorder = 100
 //afsplash.zorder = zordertop + 100
 //afwhitebg.zorder = zordertop + 101
 //aflogo.zorder = zordertop + 102
@@ -1951,9 +1944,16 @@ if (vertical){
 local historypadding = hist_screen_w * 0.05
 local hist_curr_rom = ""
 local history_surface = fe.add_surface(flw,flh)
+/*
+local hist_bgblur = ((BGBLURRED == "") ? history_surface.add_image("white.png",bgx,bgy,bgw,bgw) : history_surface.add_image(BGBLURRED,bgpic_x,bgpic_y,bgpic_w,bgpic_h) )
+
+// aggiunge l'overlay bianco trasparente
+local hist_bgwhite = history_surface.add_text("",0,0,flw,flh)
+hist_bgwhite.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
+hist_bgwhite.bg_alpha = themeoverlayalpha
+*/
 
 local hist_bg = history_surface.add_text ("",0,0,flw,flh)
-hist_bg.set_bg_rgb(0,0,0)
 hist_bg.bg_alpha = 120
 
 local hist_title = history_surface.add_image ("transparent.png",hist_title_x,hist_title_y,hist_title_w,hist_title_h)
@@ -2160,27 +2160,23 @@ function tick2( tick_time ) {
 	if (historyflow > 0) {
 		if (history_surface.alpha < 255-flowspeed) {
 			history_surface.alpha = history_surface.alpha + flowspeed
-			fg_surface.alpha = history_surface.alpha
-			data_surface.alpha = 255-fg_surface.alpha
+			data_surface.alpha = carrier_surface.alpha = 255 - history_surface.alpha
 		}
 		else {
 			history_surface.alpha = 255
-			fg_surface.alpha = 255
-			data_surface.alpha = 255-fg_surface.alpha
+			data_surface.alpha = carrier_surface.alpha = 0
 			historyflow = 0
 			}
 	}
 	if (historyflow < 0) {
 		if (history_surface.alpha > flowspeed) {
 			history_surface.alpha = history_surface.alpha - flowspeed
-			fg_surface.alpha = history_surface.alpha
-			data_surface.alpha = 255-fg_surface.alpha
+			data_surface.alpha = carrier_surface.alpha = 255 - history_surface.alpha
 		}
 		else {
 			historyflow = 0
 			history_surface.alpha = 0
-			fg_surface.alpha = 0
-			data_surface.alpha = 255-fg_surface.alpha
+			data_surface.alpha = carrier_surface.alpha = 255
 			history_surface.visible = false
 		}
 	}
@@ -2210,8 +2206,7 @@ function tick2( tick_time ) {
 		aflogo.alpha = 255*(1-pow((1-logoshow),3))
 		afwhitebg.bg_alpha = themeoverlayalpha*(1-pow((1-logoshow),3))*/
 		aflogo_surface.alpha = 255*(1-pow((1-logoshow),3))
-		fg_surface.alpha = aflogo_surface.alpha
-			data_surface.alpha = 255-fg_surface.alpha
+		data_surface.alpha = carrier_surface.alpha = 255-aflogo_surface.alpha
 	}
 	
 }
