@@ -1,16 +1,15 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.0**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.1**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
 
-*What's new in v 2.0*
+*What's new in v 2.1*
 
-- New feature: you can now change the splash logo
-- New feature: background artwork can be a semi-transparent PNG and will show the blurred background behind it
-- Under the hood changes: version 2.0 is a huge rewrite of AF, no need to generate blurred backgrounds or blurred logo shadows with xnview, the theme can generate on the fly shadows and backgrounds from your snapshots and wheel artwork. The theme may be a bit slower on your system depending on the size of artworks which is generally larger than xnview generated blurred pictures.
-- If you have issues with the new way "blur" is generated you can use the layout_noshader.nut file instead, just chose it from the layout options menu (AM 2.4) or rename it to layout.nut (AM 2.3). This layout file has all the features of the new one, but in a standard framework using xnview generated artwork
+- Added some tweaks to make scrolling more fluid and correct slowdowns
+- Fixed a bug in the background scaling blurred snap routine
+- Changed the blur shader, now there are three layouts to chose from: layout, layout_noshader, layout_oldshader (with a lighter shader that is faster on some machines)
 
   
 *Custom controls*
@@ -73,6 +72,13 @@ You can add a attract mode art category called "logoblur" and use the provided x
 - "Generate Index" : Generate the history.dat index now (this can take some time)
 
 ** Previous versions history **
+
+*v 2.0*
+
+- New feature: you can now change the splash logo
+- New feature: background artwork can be a semi-transparent PNG and will show the blurred background behind it
+- Under the hood changes: version 2.0 is a huge rewrite of AF, no need to generate blurred backgrounds or blurred logo shadows with xnview, the theme can generate on the fly shadows and backgrounds from your snapshots and wheel artwork. The theme may be a bit slower on your system depending on the size of artworks which is generally larger than xnview generated blurred pictures.
+- If you have issues with the new way "blur" is generated you can use the layout_noshader.nut file instead, just chose it from the layout options menu (AM 2.4) or rename it to layout.nut (AM 2.3). This layout file has all the features of the new one, but in a standard framework using xnview generated artwork
 
 *v 1.9*
 

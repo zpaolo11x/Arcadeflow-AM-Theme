@@ -389,7 +389,7 @@ class Carrier {
 			nam3z.charsize = height*1/12.0
 			nam3z.word_wrap = true
 			nam3z.alpha = 255*(DEBUG_BLANK?1:0)
-/*
+
 			local shaderV = fe.add_shader( Shader.Fragment, "gauss_kern9.txt" )
 			shaderV.set_texture_param( "source")
 			shaderV.set_param("offsetFactor", 0.0000, 2.0/160.0)
@@ -399,19 +399,6 @@ class Carrier {
 			shaderH.set_texture_param( "source")
 			shaderH.set_param("offsetFactor", 2.0/280.0, 0.0)
 			logosurf1.shader = shaderH
-*/
-			local shaderV = fe.add_shader( Shader.Fragment, "gauss_kernsigma.txt" )
-			shaderV.set_texture_param( "source")
-			shaderV.set_param("kernelZ", 11.0 , 2.5)
-			shaderV.set_param("offsetFactor", 0.0000, 2.0/160.0)
-			logosurf2.shader = shaderV
-
-			local shaderH = fe.add_shader( Shader.Fragment, "gauss_kernsigma.txt" )
-			shaderH.set_texture_param( "source")
-			shaderH.set_param("kernelZ", 11.0 , 2.5)
-			shaderH.set_param("offsetFactor", 2.0/280.0, 0.0)
-			logosurf1.shader = shaderH
-
 
 			if (!CROPSNAPS)
 			logosurf1.set_pos (prescaler*padding*0.5,prescaler*(padding*0.4*0.5-verticalshift),prescaler*(width+padding),prescaler*(height*0.5+padding))
@@ -1443,7 +1430,6 @@ xsurf2 = fe.add_surface(smallsize,smallsize)
 
 bg_surface = fe.add_surface(flw,flh)
 
-/*
 local shaderH1 = fe.add_shader( Shader.Fragment, "gauss_kern9.txt" )
 shaderH1.set_texture_param( "source")
 shaderH1.set_param("offsetFactor", blursize, 0.0)
@@ -1451,19 +1437,6 @@ xsurf1.shader = shaderH1
 
 local shaderV1 = fe.add_shader( Shader.Fragment, "gauss_kern9.txt" )
 shaderV1.set_texture_param( "source")
-shaderV1.set_param("offsetFactor", 0.0, blursize)
-xsurf2.shader = shaderV1
-*/
-
-local shaderH1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma.txt" )
-shaderH1.set_texture_param( "source")
-shaderH1.set_param("kernelZ", 11.0, 2.5)
-shaderH1.set_param("offsetFactor", blursize, 0.0)
-xsurf1.shader = shaderH1
-
-local shaderV1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma.txt" )
-shaderV1.set_texture_param( "source")
-shaderV1.set_param("kernelZ", 11.0, 2.5)
 shaderV1.set_param("offsetFactor", 0.0, blursize)
 xsurf2.shader = shaderV1
 

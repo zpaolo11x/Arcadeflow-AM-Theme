@@ -1,9 +1,8 @@
-// Arcadeflow - v 2.0
+// Arcadeflow - v 2.1
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
 // Including code from the KeyboardSearch plugin by Andrew Mickelson (mickelson)
-
 
 class UserConfig </ help="" />{
 	</ label="Snaps aspect ratio", help="Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation", options ="Horizontal-Vertical, Square", order = 1 /> cropsnaps = "Horizontal-Vertical"
