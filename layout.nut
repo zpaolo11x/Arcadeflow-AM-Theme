@@ -1,4 +1,4 @@
-// Arcadeflow - v 2.1
+// Arcadeflow - v 2.2
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
@@ -8,7 +8,7 @@ class UserConfig </ help="" />{
 	</ label="Snaps aspect ratio", help="Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation", options ="Horizontal-Vertical, Square", order = 1 /> cropsnaps = "Horizontal-Vertical"
 	</ label="Context Menu Button", help="Setup the button to use to recall game info and actions context menu", options="custom1, custom2, custom3, custom4, custom5, custom6", order=2 /> overmenubutton="custom1"
 	</ label="Theme Color", help="Setup theme color", options="Default, Dark, Light, Pop", order=3 /> colortheme="Default"
-	</ label="Blurred Logo Shadow", help="Use blurred logo artwork shadow", options="Yes, No", order=4 /> logoblurred="Yes"
+	</ label="Smooth Gradient Snap", help="Fades the artwork behind the game logo to its average color", options="Yes, No", order=4 /> snapgradient="Yes"
 	</ label="Enable New Game Indicator", help="Games not played are marked with a glyph", options="Yes, No", order=5 /> newgame = "Yes"
 	</ label="Custom Background Image", help="Insert custom background art path", order=6 /> bgblurred=""
 	</ label="Search string entry method", help="Use keyboard or on-screen keys to enter search string", options="Keyboard, Screen keys", order=7 /> searchmeth = "Screen keys"
@@ -43,7 +43,7 @@ local my_config = fe.get_config()
 
 local CROPSNAPS = ( (my_config["cropsnaps"] == "Square") ? true : false)
 local COLORTHEME = my_config["colortheme"]
-//local LOGOBLURRED = ( (my_config["logoblurred"] == "Yes") ? true : false)
+local SNAPGRADIENT = ( (my_config["snapgradient"] == "Yes") ? true : false)
 local NEWGAME = ( (my_config["newgame"] == "Yes") ? true : false)
 local BGBLURRED = my_config["bgblurred"]
 local KEYBOARD = ( (my_config["searchmeth"] == "Keyboard") ? true : false)
@@ -259,6 +259,10 @@ if (vertical) key_rows = ["1234567890","abcdefghij","klmnopqrst","uvwxyz____","-
 local key_selected = [0,0]
 local s_text = ""
 
+// used in shaders
+//local picalpha = fe.add_image("alpha.png",0,0,1,2)
+
+
 /// Carrier Class Definition  
 class Carrier {
 	
@@ -367,10 +371,16 @@ class Carrier {
 			local logoz = null
 			local logosurf1 = null
 			local logosurf2 = null
-							
-			logosurf2 = fe.add_surface (280,160)
+
+			local logo_w = 240.0
+			local logo_h = (CROPSNAPS ? 105.0 : 120.0)
+			local logomargin = 20.0
+			local logosh_w = logo_w+2*logomargin
+			local logosh_h = logo_h+2*logomargin
+
+			logosurf2 = fe.add_surface (logosh_w,logosh_h)
 		
-			local nam2z = logosurf2.add_text("",0,0,280,160)
+			local nam2z = logosurf2.add_text("",0,0,logosh_w,logosh_h)
 			nam2z.set_bg_rgb (0,0,0)
 			nam2z.set_rgb (255,255,255)
 			nam2z.bg_alpha = 255*(DEBUG_BLANK?1:0)
@@ -378,45 +388,35 @@ class Carrier {
 			nam2z.word_wrap = true
 			nam2z.alpha = 255*(DEBUG_BLANK?1:0)
 
-			loshz = logosurf2.add_artwork ("wheel",20,20,240,120)
+			loshz = logosurf2.add_artwork ("wheel",logomargin,logomargin,logo_w,logo_h)
 
-			logosurf1 = fe.add_surface (280,160)
+			logosurf1 = fe.add_surface (logosh_w,logosh_h)
 			
-			local nam3z = logosurf1.add_text("",0,0,280,160)
+			local nam3z = logosurf1.add_text("",0,0,logosh_w,logosh_h)
 			nam3z.set_bg_rgb (0,0,0)
 			nam3z.set_rgb (255,255,255)
 			nam3z.bg_alpha = 255*(DEBUG_BLANK?1:0)
 			nam3z.charsize = height*1/12.0
 			nam3z.word_wrap = true
 			nam3z.alpha = 255*(DEBUG_BLANK?1:0)
-/*
-			local shaderV = fe.add_shader( Shader.Fragment, "gauss_kern9.txt" )
-			shaderV.set_texture_param( "source")
-			shaderV.set_param("offsetFactor", 0.0000, 2.0/160.0)
-			logosurf2.shader = shaderV
 
-			local shaderH = fe.add_shader( Shader.Fragment, "gauss_kern9.txt" )
-			shaderH.set_texture_param( "source")
-			shaderH.set_param("offsetFactor", 2.0/280.0, 0.0)
-			logosurf1.shader = shaderH
-*/
 			local shaderV = fe.add_shader( Shader.Fragment, "gauss_kernsigma.txt" )
 			shaderV.set_texture_param( "source")
 			shaderV.set_param("kernelZ", 11.0 , 2.5)
-			shaderV.set_param("offsetFactor", 0.0000, 2.0/160.0)
+			shaderV.set_param("offsetFactor", 0.0000, 2.0/logosh_h)
 			logosurf2.shader = shaderV
 
 			local shaderH = fe.add_shader( Shader.Fragment, "gauss_kernsigma.txt" )
 			shaderH.set_texture_param( "source")
 			shaderH.set_param("kernelZ", 11.0 , 2.5)
-			shaderH.set_param("offsetFactor", 2.0/280.0, 0.0)
+			shaderH.set_param("offsetFactor", 2.0/logosh_w, 0.0)
 			logosurf1.shader = shaderH
 
 
 			if (!CROPSNAPS)
 			logosurf1.set_pos (prescaler*padding*0.5,prescaler*(padding*0.4*0.5-verticalshift),prescaler*(width+padding),prescaler*(height*0.5+padding))
 			else
-			logosurf1.set_pos (prescaler*padding,prescaler*(padding*1.05),prescaler*width,prescaler*width*320/560.0)
+			logosurf1.set_pos (prescaler*padding,prescaler*padding,prescaler*width,prescaler*width*logosh_h/logosh_w)
 
 
 			local obj = fe.add_surface(widthpadded*prescaler,heightpadded*prescaler)
@@ -453,7 +453,20 @@ class Carrier {
 			
 			snapz.preserve_aspect_ratio = true
 			snapz.video_flags = Vid.ImagesOnly
-			
+
+			local snap_avg = null
+
+			if (SNAPGRADIENT){
+				snap_avg = fe.add_shader( Shader.Fragment, "powersample.glsl" )
+				snap_avg.set_texture_param( "texture",snapz)
+				snap_avg.set_param ("level",6.0)
+				if (CROPSNAPS) 
+					snap_avg.set_param ("limits",0.2,0.7)
+				else
+					snap_avg.set_param ("limits",0.15,0.65)
+				snapz.shader = snap_avg
+			}
+
 			local vidsz = obj.add_image("transparent.png",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width,prescaler*height)
 
 			vidsz.preserve_aspect_ratio = true
@@ -498,7 +511,7 @@ class Carrier {
 				logoz.set_pos (prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
 			}
 			else {
-				logoz.set_pos (prescaler*(padding+width*40/560.0),prescaler*(padding+height*(48-16)/560.0),prescaler*width*480/560.0,prescaler*height*240/560.0)
+				logoz.set_pos (prescaler*(padding+width*logomargin/logosh_w),prescaler*(padding+width*(15/20.0)*logomargin/logosh_w),prescaler*width*logo_w/logosh_w,prescaler*height*logo_h/logosh_w)
 			}
 			
 			loshz.alpha = 150
@@ -683,11 +696,11 @@ class Carrier {
 
 				if (CROPSNAPS){
 					if (snapzTable[indexTemp].texture_width >= snapzTable[indexTemp].texture_height){
-						snapzTable[indexTemp].subimg_x = snapzTable[indexTemp].texture_width/6.0
+						snapzTable[indexTemp].subimg_x = snapzTable[indexTemp].texture_width/8.0
 						snapzTable[indexTemp].subimg_width = snapzTable[indexTemp].texture_width*3/4.0
 					}
 					else{
-						snapzTable[indexTemp].subimg_y = snapzTable[indexTemp].texture_height/6.0
+						snapzTable[indexTemp].subimg_y = snapzTable[indexTemp].texture_height/8.0
 						snapzTable[indexTemp].subimg_height = snapzTable[indexTemp].texture_height*3/4.0
 					}
 				}
@@ -904,11 +917,11 @@ class Carrier {
 				vidszTable[newfocusindex].alpha = 0		
 				if (CROPSNAPS){
 					if (snapzTable[newfocusindex].texture_width >= snapzTable[newfocusindex].texture_height){
-						vidszTable[newfocusindex].subimg_x = vidszTable[newfocusindex].texture_width/6.0
+						vidszTable[newfocusindex].subimg_x = vidszTable[newfocusindex].texture_width/8.0
 						vidszTable[newfocusindex].subimg_width = vidszTable[newfocusindex].texture_width*3/4.0
 					}
 					else{
-						vidszTable[newfocusindex].subimg_y = vidszTable[newfocusindex].texture_height/6.0
+						vidszTable[newfocusindex].subimg_y = vidszTable[newfocusindex].texture_height/8.0
 						vidszTable[newfocusindex].subimg_height = vidszTable[newfocusindex].texture_height*3/4.0	
 					}
 				}

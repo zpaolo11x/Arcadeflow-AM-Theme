@@ -1,4 +1,4 @@
-// Arcadeflow - v 2.1
+// Arcadeflow - v 2.2
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)

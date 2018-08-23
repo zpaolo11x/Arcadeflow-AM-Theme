@@ -1,15 +1,15 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.1**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.2**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
 
-*What's new in v 2.1*
+*What's new in v 2.2*
 
-- Added some tweaks to make scrolling more fluid and correct slowdowns
-- Fixed a bug in the background scaling blurred snap routine
-- Changed the blur shader, now there are three layouts to chose from: layout, layout_noshader, layout_oldshader (with a lighter shader that is faster on some machines)
+- The thumbnail art fades to the average thumbnail color in the area behind the title logo, to improve readability
+- Added an option "Smooth Gradient Snap" to enable/disable the fade effect
+- In "Square" thumbs mode changed the position and aspect ratio of the logo so it's more on the top of the thumb
 
   
 *Custom controls*
@@ -59,6 +59,7 @@ You can add a attract mode art category called "logoblur" and use the provided x
 - "Context Menu Button" : Setup the button to use to recall game info and actions context menu
 - "Theme Color" : Setup theme color
 - "Blurred Logo Shadow" : Use blurred logo artwork shadow (works only in layout_noshader.nut)
+- "Smooth gradient snap" : Fades the artwork behind the game logo to its average color
 - "Enable New Game Indicator" : Games not played are marked with a glyph
 - "Custom Background Image" : Insert custom background art path
 - "Search string entry method" : Use keyboard or on-screen keys to enter search string
@@ -72,6 +73,12 @@ You can add a attract mode art category called "logoblur" and use the provided x
 - "Generate Index" : Generate the history.dat index now (this can take some time)
 
 ** Previous versions history **
+
+*v 2.1*
+
+- Added some tweaks to make scrolling more fluid and correct slowdowns
+- Fixed a bug in the background scaling blurred snap routine
+- Changed the blur shader, now there are three layouts to chose from: layout, layout_noshader, layout_oldshader (with a lighter shader that is faster on some machines)
 
 *v 2.0*
 
