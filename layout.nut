@@ -1,25 +1,53 @@
-// Arcadeflow - v 2.2
+// Arcadeflow - v 2.3
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
 // Including code from the KeyboardSearch plugin by Andrew Mickelson (mickelson)
 
+
+local orderx = 0
+local liner = " "
+local preliner = "    ○ "
+local prelinerh = "● "
+local postliner = "                                                                                                  "
+local postlinerh = "                                                                                                 "
+
 class UserConfig </ help="" />{
-	</ label="Snaps aspect ratio", help="Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation", options ="Horizontal-Vertical, Square", order = 1 /> cropsnaps = "Horizontal-Vertical"
-	</ label="Context Menu Button", help="Setup the button to use to recall game info and actions context menu", options="custom1, custom2, custom3, custom4, custom5, custom6", order=2 /> overmenubutton="custom1"
-	</ label="Theme Color", help="Setup theme color", options="Default, Dark, Light, Pop", order=3 /> colortheme="Default"
-	</ label="Smooth Gradient Snap", help="Fades the artwork behind the game logo to its average color", options="Yes, No", order=4 /> snapgradient="Yes"
-	</ label="Enable New Game Indicator", help="Games not played are marked with a glyph", options="Yes, No", order=5 /> newgame = "Yes"
-	</ label="Custom Background Image", help="Insert custom background art path", order=6 /> bgblurred=""
-	</ label="Search string entry method", help="Use keyboard or on-screen keys to enter search string", options="Keyboard, Screen keys", order=7 /> searchmeth = "Screen keys"
-	</ label="Immediate search", help="Live update results while searching", options="Yes, No", order=8 /> livesearch = "Yes"
-	</ label="Enable AF splash logo", help="Enable or disable the AF start logo", options="Yes, No",order = 9/> splashlogo = "Yes"
-	</ label="Custom AF splash logo", help="Insert the path to a custom AF splash logo (or keep blank for default logo)", order = 10/> splashlogofile = ""
-	</ label="Rows in horizontal layout", help = "Number of rows to use in 'horizontal' mode", options="2, 3", order = 11 /> horizontalrows = "2"
-	</ label="Rows in vertical layout", help = "Number of rows to use in 'vertical' mode", options="2, 3", order = 12 /> verticalrows = "3"
-	</ label="History.dat", help="History.dat location.", order=13 /> dat_path="$HOME/mame/dats/history.dat"
-	</ label="Index Clones", help="Set whether entries for clones should be included in the index.  Enabling this will make the index significantly larger", order=14, options="Yes,No" /> index_clones="Yes"
-	</ label="Generate Index", help="Generate the history.dat index now (this can take some time)", is_function=true, order=15 />generate="generate_index"
+	</ label=prelinerh + "GENERAL" + postlinerh, help=" ", options = liner, order=orderx++ /> paramx1 = liner
+		</ label=preliner + "Context menu button" + postliner, help="Chose the button to open the game context menu", options="custom1, custom2, custom3, custom4, custom5, custom6", order=orderx++ /> overmenubutton="custom1"
+		</ label=preliner + "Rows in horizontal layout" + postliner, help = "Number of rows to use in 'horizontal' mode", options="2, 3", order = orderx++ /> horizontalrows = "2"
+		</ label=preliner + "Rows in vertical layout" + postliner, help = "Number of rows to use in 'vertical' mode", options="2, 3", order = orderx++ /> verticalrows = "3"
+
+	</ label=prelinerh + "THUMBNAILS" + postlinerh, help=" ", options =liner, order=orderx++ /> paramx2 = liner
+		</ label=preliner+"Aspect ratio" + postliner, help="Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation", options ="Horizontal-Vertical, Square", order = orderx++ /> cropsnaps = "Horizontal-Vertical"
+		</ label=preliner+"Glow effect" + postliner, help="Add a glowing halo around the selected game thumbnail", options="Yes, No", order=orderx++ /> snapglow ="No"
+		</ label=preliner+"Video thumbs" + postliner, help="Enable video overlay on snapshot thumbnails", options="Yes, No", order=orderx++ /> thumbvideo ="yes"
+		</ label=preliner+"Color gradient" + postliner, help="Fades the artwork behind the game logo to its average color", options="Yes, No", order=orderx++ /> snapgradient="Yes"
+		</ label=preliner+"New game indicator" + postliner, help="Games not played are marked with a glyph", options="Yes, No", order=orderx++ /> newgame = "Yes"
+
+	</ label=prelinerh + "BACKDROP" + postlinerh, help=" ", options =liner, order=orderx++ /> paramx3 = liner
+		</ label=preliner+"Overlay color" + postliner, help="Setup theme luminosity overlay, Shallow is slightly muted, Dark is darker, Light has a white overlay and dark text, Pop keeps the colors unaltered", options="Basic, Dark, Light, Pop", order=orderx++ /> colortheme="Basic"
+		</ label=preliner+"Custom background image" + postliner, help="Insert custom background art path", order=orderx++ /> bgblurred=""
+		</ label=preliner+"Background snap" + postliner, help="Add a faded game snapshot to the background", options="Yes, No", order=orderx++ /> layersnap ="No"
+		</ label=preliner+"Animate background snap" + postliner, help="Animate video on background", options="Yes, No", order=orderx++ /> layervideo ="No"
+
+	</ label=prelinerh + "LOGO" + postlinerh, help=" ", options =liner, order=orderx++ /> paramx4 = liner
+		</ label=preliner+"Enable splash logo" + postliner, help="Enable or disable the AF start logo", options="Yes, No",order = orderx++/> splashlogo = "Yes"
+		</ label=preliner+"Custom splash logo" + postliner, help="Insert the path to a custom AF splash logo (or keep blank for default logo)", order = orderx++/> splashlogofile = ""
+
+	</ label=prelinerh + "SEARCH" + postlinerh, help=" ", options =liner, order=orderx++ /> paramx5 = liner
+		</ label=preliner+"Search string entry method" + postliner, help="Use keyboard or on-screen keys to enter search string", options="Keyboard, Screen keys", order=orderx++ /> searchmeth = "Screen keys"
+		</ label=preliner+"Immediate search" + postliner, help="Live update results while searching", options="Yes, No", order=orderx++ /> livesearch = "Yes"
+
+	</ label=prelinerh + "HISTORY" + postlinerh, help=" ", options =liner, order=orderx++ /> paramx6 = liner
+		</ label=preliner+"History.dat" + postliner, help="History.dat location.", order=orderx++ /> dat_path="$HOME/mame/dats/history.dat"
+		</ label=preliner+"Index clones" + postliner, help="Set whether entries for clones should be included in the index.  Enabling this will make the index significantly larger", order=orderx++, options="Yes,No" /> index_clones="Yes"
+		</ label=preliner+"Generate index" + postliner, help="Generate the history.dat index now (this can take some time)", is_function=true, order=orderx++ />generate="generate_index"
+
+	</ label=prelinerh + "AUDIO" + postlinerh, help=" ", options =liner, order=orderx++ /> paramx7 = liner
+		</ label=preliner+"Audio in videos (thumbs)" + postliner, help="Select wether you want to play audio in videos on thumbs", options="Yes, No", order=orderx++ /> audiovidsnaps="No"
+		</ label=preliner+"Audio in videos (history)" + postliner, help="Select wether you want to play audio in videos on history detail page", options="Yes, No", order=orderx++ /> audiovidhistory="No"
+
 }
 
 /// Layout start  
@@ -35,6 +63,9 @@ local redstrober = 0
 local transdata = ["StartLayout", "EndLayout", "ToNewSelection","FromOldSelection","ToGame","FromGame","ToNewList","EndNavigation","ShowOverlay","HideOverlay","NewSelOverlay"]
 local	snapbg1 = null
 local	snapbg2 = null
+local bgvid1 = null
+local bgvid2 = null
+local bgvidsurf = null
 
 local my_dir = fe.script_dir
 dofile( my_dir + "file_util.nut" )
@@ -53,6 +84,13 @@ local SPLASHLOGOFILE = ( my_config["splashlogofile"] == "" ? "AFLOGO3b.png" : my
 local VERTICALROWS = ( (my_config["verticalrows"] == "2") ? 2 : 3 )
 local HORIZONTALROWS = ( (my_config["horizontalrows"] == "2") ? 2 : 3 )
 local OVERMENUBUTTON = my_config["overmenubutton"]
+local AUDIOVIDSNAPS = ( (my_config["audiovidsnaps"] == "Yes") ? true : false)
+local AUDIOVIDHISTORY = ( (my_config["audiovidhistory"] == "Yes") ? true : false)
+local LAYERVIDEO = ( (my_config["layervideo"] == "Yes") ? true : false)
+local THUMBVIDEO = ( (my_config["thumbvideo"] == "Yes") ? true : false)
+local LAYERSNAP = ( (my_config["layersnap"] == "Yes") ? true : false)
+local SNAPGLOW = ( (my_config["snapglow"] == "Yes") ? true : false)
+
 
 // Initialize variables
 local var = 0
@@ -91,7 +129,9 @@ local themeshadow = 50
 local shadeval = 255
 local satinrate = 0.9
 
-if (COLORTHEME == "Default"){
+local vidsatin = 40
+
+if (COLORTHEME == "Basic"){
 	themeoverlaycolor = 255
 	themeoverlayalpha = 80
 	themetextcolor = 255
@@ -281,7 +321,9 @@ class Carrier {
 	vidszTable = []
 	nam1zTable = []
 	nam2zTable = []
-		nam3zTable = []
+	nam3zTable = []
+	glohzTable = []
+	glovzTable = []
 
 	tilesTablePosX = []
 	tilesTablePosY = []
@@ -378,38 +420,41 @@ class Carrier {
 			local logosh_w = logo_w+2*logomargin
 			local logosh_h = logo_h+2*logomargin
 
-			logosurf2 = fe.add_surface (logosh_w,logosh_h)
+         local logoshscale = 0.5
+
+			logosurf2 = fe.add_surface (logosh_w*logoshscale,logosh_h*logoshscale)
 		
-			local nam2z = logosurf2.add_text("",0,0,logosh_w,logosh_h)
+			local nam2z = logosurf2.add_text("",0,0,logosh_w*logoshscale,logosh_h*logoshscale)
 			nam2z.set_bg_rgb (0,0,0)
 			nam2z.set_rgb (255,255,255)
 			nam2z.bg_alpha = 255*(DEBUG_BLANK?1:0)
-			nam2z.charsize = height*1/12.0
+			nam2z.charsize = 1
 			nam2z.word_wrap = true
 			nam2z.alpha = 255*(DEBUG_BLANK?1:0)
 
-			loshz = logosurf2.add_artwork ("wheel",logomargin,logomargin,logo_w,logo_h)
+			loshz = logosurf2.add_artwork ("wheel",logomargin*logoshscale,logomargin*logoshscale,logo_w*logoshscale,logo_h*logoshscale)
 
-			logosurf1 = fe.add_surface (logosh_w,logosh_h)
+			logosurf1 = fe.add_surface (logosh_w*logoshscale,logosh_h*logoshscale)
 			
-			local nam3z = logosurf1.add_text("",0,0,logosh_w,logosh_h)
+         
+			local nam3z = logosurf1.add_text("",0,0,logosh_w*logoshscale,logosh_h*logoshscale)
 			nam3z.set_bg_rgb (0,0,0)
 			nam3z.set_rgb (255,255,255)
 			nam3z.bg_alpha = 255*(DEBUG_BLANK?1:0)
-			nam3z.charsize = height*1/12.0
+			nam3z.charsize = 1
 			nam3z.word_wrap = true
 			nam3z.alpha = 255*(DEBUG_BLANK?1:0)
 
-			local shaderV = fe.add_shader( Shader.Fragment, "gauss_kernsigma.txt" )
+			local shaderV = fe.add_shader( Shader.Fragment, "gauss_kernsigma.glsl" )
 			shaderV.set_texture_param( "source")
-			shaderV.set_param("kernelZ", 11.0 , 2.5)
-			shaderV.set_param("offsetFactor", 0.0000, 2.0/logosh_h)
+			shaderV.set_param("kernelZ", 7.0 , 2.5)
+			shaderV.set_param("offsetFactor", 0.0000, 1.0/(logosh_h*logoshscale))
 			logosurf2.shader = shaderV
 
-			local shaderH = fe.add_shader( Shader.Fragment, "gauss_kernsigma.txt" )
+			local shaderH = fe.add_shader( Shader.Fragment, "gauss_kernsigma.glsl" )
 			shaderH.set_texture_param( "source")
-			shaderH.set_param("kernelZ", 11.0 , 2.5)
-			shaderH.set_param("offsetFactor", 2.0/logosh_w, 0.0)
+			shaderH.set_param("kernelZ", 7.0 , 2.5)
+			shaderH.set_param("offsetFactor", 1.0/(logosh_w*logoshscale), 0.0)
 			logosurf1.shader = shaderH
 
 
@@ -426,11 +471,16 @@ class Carrier {
 			else
 				obj.zorder = zorderscanner
 
-			local sh_hz = obj.add_image ("sh_h_5.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
-			local sh_vz = obj.add_image ("sh_v_5.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
+			local sh_hz = obj.add_image ("sh_h_7.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
+			local sh_vz = obj.add_image ("sh_v_7.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
 			sh_hz.alpha = sh_vz.alpha = 230
 			
-			if (CROPSNAPS) sh_hz.file_name = sh_vz.file_name = "sh_sq.png"
+			if (CROPSNAPS) sh_hz.file_name = sh_vz.file_name = "sh_sq_7.png"
+
+			local glohz =	obj.add_image ("glowx4.png",0,-prescaler*verticalshift,widthpadded*prescaler,prescaler*heightpadded)
+			local glovz =	obj.add_image ("glowx4.png",0,-prescaler*verticalshift,widthpadded*prescaler,prescaler*heightpadded)
+			
+			if (CROPSNAPS) glohz.file_name = glovz.file_name = "glow_sq.png"
 
 			local bd_hz = obj.add_text ("",prescaler*padding*(1.0-whitemargin),prescaler*(-verticalshift + height/8.0 + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height*(3/4.0)+padding*2*whitemargin))
 			bd_hz.set_bg_rgb (255,255,255)
@@ -453,38 +503,64 @@ class Carrier {
 			
 			snapz.preserve_aspect_ratio = true
 			snapz.video_flags = Vid.ImagesOnly
+			//snapz.mipmap = 1
 
 			local snap_avg = null
 
 			if (SNAPGRADIENT){
-				snap_avg = fe.add_shader( Shader.Fragment, "powersample.glsl" )
+				snap_avg = fe.add_shader( Shader.Fragment, "powersampler.glsl" )
 				snap_avg.set_texture_param( "texture",snapz)
-				snap_avg.set_param ("level",6.0)
+				snap_avg.set_param ("level",2.0)
 				if (CROPSNAPS) 
 					snap_avg.set_param ("limits",0.2,0.7)
 				else
 					snap_avg.set_param ("limits",0.15,0.65)
 				snapz.shader = snap_avg
 			}
+		
+		local snap_glow_h = null
+		local snap_glow_v = null
+
+		if (SNAPGLOW){
+			snap_glow_h = fe.add_shader( Shader.Fragment, "powerglow.glsl" )
+			snap_glow_h.set_texture_param( "texture",snapz)
+			snap_glow_h.set_texture_param( "textureglow",glohz)
+			snap_glow_h.set_param ("level",2.0)
+			snap_glow_h.set_param ("vertical",0.0)
+			glohz.shader = snap_glow_h
+
+			snap_glow_v = fe.add_shader( Shader.Fragment, "powerglow.glsl" )
+			snap_glow_v.set_texture_param( "texture",snapz)
+			snap_glow_v.set_texture_param( "textureglow",glovz)
+			snap_glow_v.set_param ("level",2.0)
+			snap_glow_v.set_param ("vertical",1.0)
+			glovz.shader = snap_glow_v
+		}
+
+			glohz.visible = false
+			glovz.visible = false
 
 			local vidsz = obj.add_image("transparent.png",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width,prescaler*height)
 
 			vidsz.preserve_aspect_ratio = true
 			//vidsz.visible = false
-			vidsz.video_flags = Vid.NoAudio
+			if (!AUDIOVIDSNAPS) vidsz.video_flags = Vid.NoAudio
 
-			local nw_hz = obj.add_image ("nw_h.png",prescaler*padding,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
-			local nw_vz = obj.add_image ("nw_v.png",prescaler*padding,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
+			local nw_hz = obj.add_image ("nw_1.png",prescaler*padding,prescaler*(padding-verticalshift+height*6.0/8.0),width*prescaler/8.0,height*prescaler/8.0)
+			local nw_vz = obj.add_image ("nw_1.png",prescaler*(padding+width/8.0),prescaler*(padding-verticalshift+height*7.0/8.0),width*prescaler/8.0,height*prescaler/8.0)
 			nw_hz.visible = nw_vz.visible = false
 			nw_hz.alpha = nw_vz.alpha = ((NEWGAME == true)? 220 : 0)
-			
-			if (CROPSNAPS) nw_hz.file_name = nw_vz.file_name = "nw_sq.png"
+
+			if (CROPSNAPS) {
+            nw_hz.set_pos(prescaler*padding,prescaler*(padding-verticalshift+height*7.0/8.0),width*prescaler/8.0,height*prescaler/8.0)
+            nw_vz.set_pos(prescaler*padding,prescaler*(padding-verticalshift+height*7.0/8.0),width*prescaler/8.0,height*prescaler/8.0)
+         }
 
 			local nam1z = obj.add_text("",padding*prescaler,prescaler*(padding-verticalshift),width*prescaler,height*prescaler)
 			nam1z.set_bg_rgb (0,0,0)
 			nam1z.set_rgb (255,255,255)
 			nam1z.bg_alpha = 255*(DEBUG_BLANK?1:0)
-			nam1z.charsize = height*1/12.0
+			nam1z.charsize = 1
 			nam1z.word_wrap = true
 			nam1z.alpha = 255*(DEBUG_BLANK?1:0)
 
@@ -541,7 +617,8 @@ class Carrier {
 			nam1zTable.push (nam1z)
 			nam2zTable.push (nam2z)
 			nam3zTable.push (nam3z)
-
+			glohzTable.push (glohz)
+			glovzTable.push (glovz)
 		}
 		
 
@@ -611,7 +688,7 @@ class Carrier {
 				tilesTable[oldfocusindex].width = widthpadded
 				tilesTable[oldfocusindex].height = heightpadded
 				tilesTable[oldfocusindex].zorder = zorderscanner
-				bd_hzTable[oldfocusindex].visible = bd_vzTable[oldfocusindex].visible = false
+				glovzTable[oldfocusindex].visible = glohzTable[oldfocusindex].visible = bd_hzTable[oldfocusindex].visible = bd_vzTable[oldfocusindex].visible = false
 				//vidszTable[oldfocusindex].visible = false
 				//vidszTable[oldfocusindex].file_name = "transparent.png"
 				
@@ -743,11 +820,11 @@ class Carrier {
 				// if tranisioning to a new list, reset position and size of all thumbnails, not needed in normal scroll
 				if (ttype == Transition.ToNewList){
 					//vidszTable[indexTemp].visible = false
-					vidszTable[indexTemp].file_name = "transparent.png"
+					if (THUMBVIDEO) vidszTable[indexTemp].file_name = "transparent.png"
 					tilesTable[indexTemp].width = widthpadded
 					tilesTable[indexTemp].height = heightpadded
 					tilesTable[indexTemp].zorder = zorderscanner
-					bd_hzTable[indexTemp].visible = bd_vzTable[indexTemp].visible = false
+					glovzTable[oldfocusindex].visible = glohzTable[oldfocusindex].visible = bd_hzTable[indexTemp].visible = bd_vzTable[indexTemp].visible = false
 				}
 				
 				index++
@@ -770,7 +847,7 @@ class Carrier {
 			letterobj.zorder = zorderscanner + tilesTotal + 1
 
 			//vidszTable[oldfocusindex].visible = false
-			vidszTable[oldfocusindex].file_name = "transparent.png"
+			if (THUMBVIDEO) vidszTable[oldfocusindex].file_name = "transparent.png"
 			
 
 			favezTable[newfocusindex].visible = (fe.game_info(Info.Favourite, snapzTable[newfocusindex].index_offset+var) == "1")		
@@ -780,14 +857,16 @@ class Carrier {
 			local m = fe.game_info(Info.Rotation, snapzTable[newfocusindex].index_offset+var)
 			
 			if ((m == "0") || (m == "180") || (m == "horizontal") || (m == "Horizontal")){
+				glohzTable[newfocusindex].visible = SNAPGLOW
 				bd_hzTable[newfocusindex].visible = true
-				bd_vzTable[newfocusindex].visible = false
+				glovzTable[newfocusindex].visible = bd_vzTable[newfocusindex].visible = false
 				nw_hzTable[newfocusindex].visible = (fe.game_info(Info.PlayedCount,  snapzTable[newfocusindex].index_offset+var) == "0")
 				nw_vzTable[newfocusindex].visible = false
 
 			}
 			else {
-				bd_hzTable[newfocusindex].visible = false
+				glohzTable[newfocusindex].visible = bd_hzTable[newfocusindex].visible = false
+				glovzTable[newfocusindex].visible = SNAPGLOW
 				bd_vzTable[newfocusindex].visible = true
 				nw_hzTable[newfocusindex].visible = false
 				nw_vzTable[newfocusindex].visible = (fe.game_info(Info.PlayedCount,  snapzTable[newfocusindex].index_offset+var) == "0")
@@ -803,7 +882,8 @@ class Carrier {
 			
 			if (DEBUG) print ("TRANSBLOCK 5 \n")
 			snapbg1.rawset_index_offset (-var)
-			
+			if (LAYERSNAP) bgvid1.rawset_index_offset (-var)
+
 			local l1 = gameletter (0)
 			local l2 = gameletter(var)
 			
@@ -824,7 +904,7 @@ class Carrier {
 	function tick( tick_time ) {
 
 		if (DEBUG_SLOWDOWN) {
-			for ( local i = 0; i < 10000000; i++ )
+			for ( local i = 0; i < 2000000; i++ )
 			{
 
 			}
@@ -846,6 +926,8 @@ class Carrier {
 			if (alphapos < 0.1 && alphapos > -0.1 ) alphapos = 0
 			alphapos = alphapos * fadespeed
 			snapbg2.alpha = 255-alphapos
+			if (LAYERSNAP) bgvid2.alpha = 255-alphapos 
+         //if (LAYERSNAP) bgvid2.alpha = vidsatin*((255-alphapos)/255) 
 		}
 
 		// fading of the initial letter of the name
@@ -872,8 +954,12 @@ class Carrier {
 			}
 			if ((surfacePos < 0.1) && (surfacePos > -0.1)) surfacePos = 0
 			if ((zoompos < 0.01) && (zoompos > -0.01 )) zoompos = 0
-			if ((zoomunpos < 0.01) && (zoomunpos > -0.01 )) zoomunpos = 0
-			
+			if ((zoomunpos < 0.01) && (zoomunpos > -0.01 )) {
+				zoomunpos = 0
+				if (oldfocusindex != newfocusindex){
+					glohzTable[oldfocusindex].visible = glovzTable[oldfocusindex].visible = false
+				}
+			}
 			
 			surfacePos = surfacePos * scrollspeed
 			zoompos = zoompos * zoomspeed
@@ -893,6 +979,8 @@ class Carrier {
 			tilesTable[newfocusindex].y =  tilesTablePosY[newfocusindex] - ((selectoroffsetv)*(1-zoompos)) 
 			tilesTable[newfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(1.0-zoompos)
 			tilesTable[newfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(1.0-zoompos)
+			glohzTable[newfocusindex].alpha = 255*(1-zoompos)
+			glovzTable[newfocusindex].alpha = 255*(1-zoompos)
 			globalposnew = tilesTable[newfocusindex].x
 
 			if (oldfocusindex != newfocusindex){
@@ -900,6 +988,8 @@ class Carrier {
 				tilesTable[oldfocusindex].y =  tilesTablePosY[oldfocusindex] - ((selectoroffsetv)*(zoomunpos)) 
 				tilesTable[oldfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(zoomunpos)
 				tilesTable[oldfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(zoomunpos)
+				glohzTable[oldfocusindex].alpha = 255*(zoomunpos)
+				glovzTable[oldfocusindex].alpha = 255*(zoomunpos)
 			}
 		}
 		
@@ -913,7 +1003,7 @@ class Carrier {
 			local fadevid = 0.2
 			if ((vidpos < delayvid) && (vidpos > delayvid - 0.01)){
 				//vidszTable[newfocusindex].visible = true
-				vidszTable[newfocusindex].file_name = fe.get_art("snap")
+				if (THUMBVIDEO) vidszTable[newfocusindex].file_name = fe.get_art("snap")
 				vidszTable[newfocusindex].alpha = 0		
 				if (CROPSNAPS){
 					if (snapzTable[newfocusindex].texture_width >= snapzTable[newfocusindex].texture_height){
@@ -1431,8 +1521,8 @@ local xsurf1 = null
 local xsurf2 = null
 local bg_surface = null
 local whitebg = null
-local smallsize = 32
-local blursize = 1/32.0
+local smallsize = 26
+local blursize = 1/26.0
 
 xsurf1 = fe.add_surface(smallsize,smallsize)
 
@@ -1455,28 +1545,17 @@ snapbg2.preserve_aspect_ratio = true
 xsurf2 = fe.add_surface(smallsize,smallsize)
 
 bg_surface = fe.add_surface(flw,flh)
+bg_surface.alpha=255
 
-/*
-local shaderH1 = fe.add_shader( Shader.Fragment, "gauss_kern9.txt" )
+local shaderH1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma.glsl" )
 shaderH1.set_texture_param( "source")
+shaderH1.set_param("kernelZ", 9.0, 2.2)
 shaderH1.set_param("offsetFactor", blursize, 0.0)
 xsurf1.shader = shaderH1
 
-local shaderV1 = fe.add_shader( Shader.Fragment, "gauss_kern9.txt" )
+local shaderV1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma.glsl" )
 shaderV1.set_texture_param( "source")
-shaderV1.set_param("offsetFactor", 0.0, blursize)
-xsurf2.shader = shaderV1
-*/
-
-local shaderH1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma.txt" )
-shaderH1.set_texture_param( "source")
-shaderH1.set_param("kernelZ", 11.0, 2.5)
-shaderH1.set_param("offsetFactor", blursize, 0.0)
-xsurf1.shader = shaderH1
-
-local shaderV1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma.txt" )
-shaderV1.set_texture_param( "source")
-shaderV1.set_param("kernelZ", 11.0, 2.5)
+shaderV1.set_param("kernelZ", 9.0, 2.2)
 shaderV1.set_param("offsetFactor", 0.0, blursize)
 xsurf2.shader = shaderV1
 
@@ -1489,6 +1568,41 @@ xsurf1 = xsurf2.add_clone(xsurf1)
 xsurf1.visible = true
 
 xsurf2.set_pos(bgx,bgy,bgw,bgw)
+
+local pixelgrid = null
+local bgvidsize = 128.0
+
+if (LAYERSNAP){
+
+bgvidsurf = fe.add_surface(bgvidsize,bgvidsize)
+bgvid1 = bgvidsurf.add_artwork("snap",0,0,bgvidsize,bgvidsize)
+bgvid1.preserve_aspect_ratio = true
+bgvid1.video_flags = Vid.ImagesOnly
+
+if (LAYERVIDEO) bgvid1.visible = false
+
+bgvid1.trigger = Transition.EndNavigation
+bgvid1.smooth = true
+
+bgvid2 = bgvidsurf.add_artwork("snap",0,0,bgvidsize,bgvidsize)
+bgvid2.preserve_aspect_ratio = true
+if (LAYERVIDEO) 
+   bgvid2.video_flags = Vid.NoAudio
+else
+   bgvid2.video_flags = Vid.ImagesOnly
+
+bgvid2.trigger = Transition.EndNavigation
+bgvid2.smooth = true
+
+bgvidsurf.smooth = false
+
+bgvidsurf.alpha = vidsatin
+
+bgvidsurf.set_pos(bgx-bgw/6.0,bgy-bgw/6.0,bgw*4.0/3.0,bgw*4.0/3.0)
+
+pixelgrid = fe.add_image("grid128x.png",bgx-bgw/6.0,bgy-bgw/6.0,bgw*4.0/3.0,bgw*4.0/3.0)
+pixelgrid.alpha = 60
+}
 
 local bgpicture = null
 
@@ -2021,7 +2135,7 @@ local hist_black = history_surface.add_image ("hbg1.png",hist_screen_x+historypa
 
 local hist_screen = history_surface.add_image ("transparent.png",hist_screen_x+historypadding,hist_screen_y+historypadding,hist_screen_w-2*historypadding,hist_screen_h-2*historypadding)
 hist_screen.preserve_aspect_ratio = true
-hist_screen.video_flags = Vid.NoAudio
+if (!AUDIOVIDHISTORY) hist_screen.video_flags = Vid.NoAudio
 
 local hist_text = history_surface.add_text( "", hist_text_x, hist_text_y, hist_text_w, hist_text_h )
 hist_text.first_line_hint = 0
@@ -2038,7 +2152,7 @@ function history_show()
 
 	hist_title.file_name = fe.get_art ("wheel")
 	hist_screen.file_name = fe.get_art ("snap")
-	
+
 	local sys = split( fe.game_info( Info.System ), ";" )
 	local rom = fe.game_info( Info.Name )
 
@@ -2100,6 +2214,30 @@ function history_exit (){
 	history_hide()
 }
 
+/*
+local monitor = fe.add_text ("",0,0,fe.layout.width,100)
+monitor.align = Align.Centre
+monitor.set_bg_rgb (255,0,0)
+monitor.charsize = 50
+local monitor2 = fe.add_text ("",0,0,1,1)
+local tick000 = 0
+local x0 = 0
+fe.add_ticks_callback(this,"monitortick")
+function monitortick(tick_time){
+	monitor2.x ++
+	if (monitor2.x - x0 == 10) {
+		monitor.msg = 10000/(tick_time - tick000)
+		tick000 = tick_time
+		x0 = monitor2.x
+	}
+   if (monitor2.x >= flw) {
+      monitor2.x = 0
+      x0 = 0
+      tick000=0
+   }
+}
+
+*/
 fe.add_ticks_callback( this, "tick2" )
 
 local timerscan = 10.0
@@ -2231,14 +2369,14 @@ function tick2( tick_time ) {
 	if (historyflow < 0) {
 		if (history_surface.alpha > flowspeed) {
 			history_surface.alpha = history_surface.alpha - flowspeed
-			fg_surface.alpha = history_surface.alpha
-			data_surface.alpha = 255-fg_surface.alpha
+			if(!overlay_listbox.visible) fg_surface.alpha = history_surface.alpha
+			data_surface.alpha = 255-history_surface.alpha
 		}
 		else {
 			historyflow = 0
 			history_surface.alpha = 0
-			fg_surface.alpha = 0
-			data_surface.alpha = 255-fg_surface.alpha
+			if(!overlay_listbox.visible) fg_surface.alpha = 0
+			data_surface.alpha = 255-history_surface.alpha
 			history_surface.visible = false
 		}
 	}
@@ -2267,9 +2405,17 @@ function tick2( tick_time ) {
 		/*afsplash.alpha = 255*(1-pow((1-logoshow),3))
 		aflogo.alpha = 255*(1-pow((1-logoshow),3))
 		afwhitebg.bg_alpha = themeoverlayalpha*(1-pow((1-logoshow),3))*/
-		aflogo_surface.alpha = 255*(1-pow((1-logoshow),3))
-		fg_surface.alpha = aflogo_surface.alpha
-			data_surface.alpha = 255-fg_surface.alpha
+		if (SPLASHON) {
+			aflogo_surface.alpha = 255*(1-pow((1-logoshow),3))
+			if(!overlay_listbox.visible) fg_surface.alpha = aflogo_surface.alpha
+			data_surface.alpha = 255-aflogo_surface.alpha
+		}
+		else
+		{
+			aflogo_surface.alpha = 0
+			if(!overlay_listbox.visible) fg_surface.alpha = aflogo_surface.alpha
+			data_surface.alpha = 255-aflogo_surface.alpha			
+		}
 	}
 	
 }

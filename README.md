@@ -1,16 +1,17 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.2**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.3**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
 
-*What's new in v 2.2*
+*What's new in v 2.3*
 
-- The thumbnail art fades to the average thumbnail color in the area behind the title logo, to improve readability
-- Added an option "Smooth Gradient Snap" to enable/disable the fade effect
-- In "Square" thumbs mode changed the position and aspect ratio of the logo so it's more on the top of the thumb
-
+- Improved the overall speed by optimizing shaders and textures
+- Added a new effect on the background where you can get a pixellated version of the snap or video
+- Added a new glow effect around selected thumbs with the average thumb color
+- Added the possibility to hear audio of the videos in the thumb and/or in the history page
+- Revamped the options to make it more clear
   
 *Custom controls*
 
@@ -73,6 +74,12 @@ You can add a attract mode art category called "logoblur" and use the provided x
 - "Generate Index" : Generate the history.dat index now (this can take some time)
 
 ** Previous versions history **
+
+*v 2.2*
+
+- The thumbnail art fades to the average thumbnail color in the area behind the title logo, to improve readability
+- Added an option "Smooth Gradient Snap" to enable/disable the fade effect
+- In "Square" thumbs mode changed the position and aspect ratio of the logo so it's more on the top of the thumb
 
 *v 2.1*
 
