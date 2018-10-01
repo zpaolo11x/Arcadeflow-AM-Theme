@@ -4,7 +4,6 @@
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
 // Including code from the KeyboardSearch plugin by Andrew Mickelson (mickelson)
 
-
 local orderx = 0
 local liner = " "
 local preliner = "    ○ "
@@ -17,6 +16,8 @@ class UserConfig </ help="" />{
 		</ label=preliner + "Context menu button" + postliner, help="Chose the button to open the game context menu", options="custom1, custom2, custom3, custom4, custom5, custom6", order=orderx++ /> overmenubutton="custom1"
 		</ label=preliner + "Rows in horizontal layout" + postliner, help = "Number of rows to use in 'horizontal' mode", options="2, 3", order = orderx++ /> horizontalrows = "2"
 		</ label=preliner + "Rows in vertical layout" + postliner, help = "Number of rows to use in 'vertical' mode", options="2, 3", order = orderx++ /> verticalrows = "3"
+		</ label=preliner + "Screen rotation" + postliner, help = "Rotate screen", options="None, Left, Right, Flip", order = orderx++ /> baserotation = "None"
+		
 
 	</ label=prelinerh + "THUMBNAILS" + postlinerh, help=" ", options =liner, order=orderx++ /> paramx2 = liner
 		</ label=preliner+"Aspect ratio" + postliner, help="Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation", options ="Horizontal-Vertical, Square", order = orderx++ /> cropsnaps = "Horizontal-Vertical"
@@ -91,6 +92,17 @@ local LAYERVIDEO = ( (my_config["layervideo"] == "Yes") ? true : false)
 local THUMBVIDEO = ( (my_config["thumbvideo"] == "Yes") ? true : false)
 local LAYERSNAP = ( (my_config["layersnap"] == "Yes") ? true : false)
 local SNAPGLOW = ( (my_config["snapglow"] == "Yes") ? true : false)
+local BASEROTATION =  my_config["baserotation"]
+
+if (BASEROTATION == "None")
+		fe.layout.base_rotation = RotateScreen.None
+else if (BASEROTATION == "Left")
+		fe.layout.base_rotation = RotateScreen.Left
+else if (BASEROTATION == "Right")
+		fe.layout.base_rotation = RotateScreen.Right
+else if (BASEROTATION == "Flip")
+		fe.layout.base_rotation = RotateScreen.Flip
+
 
 
 // Initialize variables
@@ -195,8 +207,12 @@ local scrh = ScreenHeight
 local flw = scrw
 local flh = scrh
 
-if ((flw < flh) && (fe.layout.toggle_rotation == RotateScreen.None)) vertical = true
-if ((flw > flh) && (fe.layout.toggle_rotation != RotateScreen.None)) {
+local realrotation = ( fe.layout.base_rotation + fe.layout.toggle_rotation ) % 4
+local rotate90 = ((realrotation % 2) != 0)
+
+print (realrotation+"\n")
+if ((flw < flh) && (!rotate90)) vertical = true
+if ((flw > flh) && ( rotate90 )) {
 	vertical = true
 	flw = scrh
 	flh = scrw
