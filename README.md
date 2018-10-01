@@ -1,18 +1,17 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.3**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.4**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
 
-*What's new in v 2.3*
+*What's new in v 2.4*
 
-- Improved the overall speed by optimizing shaders and textures
-- Added a new effect on the background where you can get a pixellated version of the snap or video
-- Added a new glow effect around selected thumbs with the average thumb color
-- Added the possibility to hear audio of the videos in the thumb and/or in the history page
-- Revamped the options to make it more clear
-  
+- Snapshots aspect ratio is now adapted to 4:3 or 3:4 automatically
+- Some improvements to shaders, cleaned up the code
+- Revamped the History page adding a CRT-like shader to the game preview
+- Tweaked the appearance of themes (dark is now darker) and fixed some bugs in snapshots scaling
+
 *Custom controls*
 
 You can define a custom control to call the game context menu, from which you can activate the following functions:
@@ -74,6 +73,14 @@ You can add a attract mode art category called "logoblur" and use the provided x
 - "Generate Index" : Generate the history.dat index now (this can take some time)
 
 ** Previous versions history **
+
+*v 2.3*
+
+- Improved the overall speed by optimizing shaders and textures
+- Added a new effect on the background where you can get a pixellated version of the snap or video
+- Added a new glow effect around selected thumbs with the average thumb color
+- Added the possibility to hear audio of the videos in the thumb and/or in the history page
+- Revamped the options to make it more clear
 
 *v 2.2*
 
