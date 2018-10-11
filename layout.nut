@@ -1,8 +1,17 @@
-// Arcadeflow - v 2.4
+// Arcadeflow - v 2.6
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
 // Including code from the KeyboardSearch plugin by Andrew Mickelson (mickelson)
+
+fe.load_module("file")
+
+function file_exist(fullpathfilename)
+   {
+   try {file(fullpathfilename, "r" );return true;}catch(e){return false;}
+   }
+
+
 
 local orderx = 0
 local liner = " "
@@ -17,8 +26,8 @@ class UserConfig </ help="" />{
 		</ label=preliner + "Rows in horizontal layout" + postliner, help = "Number of rows to use in 'horizontal' mode", options="2, 3", order = orderx++ /> horizontalrows = "2"
 		</ label=preliner + "Rows in vertical layout" + postliner, help = "Number of rows to use in 'vertical' mode", options="2, 3", order = orderx++ /> verticalrows = "3"
 		</ label=preliner + "Screen rotation" + postliner, help = "Rotate screen", options="None, Left, Right, Flip", order = orderx++ /> baserotation = "None"
+		</ label=preliner + "Frosted glass" + postliner, help = "Enable a frosted glass effect for overlay menus", options="Yes, No", order = orderx++ /> frostedglass = "Yes"
 		
-
 	</ label=prelinerh + "THUMBNAILS" + postlinerh, help=" ", options =liner, order=orderx++ /> paramx2 = liner
 		</ label=preliner+"Aspect ratio" + postliner, help="Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation", options ="Horizontal-Vertical, Square", order = orderx++ /> cropsnaps = "Horizontal-Vertical"
 		</ label=preliner+"Glow effect" + postliner, help="Add a glowing halo around the selected game thumbnail", options="Yes, No", order=orderx++ /> snapglow ="No"
@@ -27,7 +36,7 @@ class UserConfig </ help="" />{
 		</ label=preliner+"New game indicator" + postliner, help="Games not played are marked with a glyph", options="Yes, No", order=orderx++ /> newgame = "Yes"
 
 	</ label=prelinerh + "BACKDROP" + postlinerh, help=" ", options =liner, order=orderx++ /> paramx3 = liner
-		</ label=preliner+"Overlay color" + postliner, help="Setup theme luminosity overlay, Shallow is slightly muted, Dark is darker, Light has a white overlay and dark text, Pop keeps the colors unaltered", options="Basic, Dark, Light, Pop", order=orderx++ /> colortheme="Basic"
+		</ label=preliner+"Overlay color" + postliner, help="Setup theme luminosity overlay, Basic is slightly muted, Dark is darker, Light has a white overlay and dark text, Pop keeps the colors unaltered", options="Basic, Dark, Light, Pop", order=orderx++ /> colortheme="Basic"
 		</ label=preliner+"Custom background image" + postliner, help="Insert custom background art path", order=orderx++ /> bgblurred=""
 		</ label=preliner+"Background snap" + postliner, help="Add a faded game snapshot to the background", options="Yes, No", order=orderx++ /> layersnap ="No"
 		</ label=preliner+"Animate background snap" + postliner, help="Animate video on background", options="Yes, No", order=orderx++ /> layervideo ="No"
@@ -93,6 +102,7 @@ local THUMBVIDEO = ( (my_config["thumbvideo"] == "Yes") ? true : false)
 local LAYERSNAP = ( (my_config["layersnap"] == "Yes") ? true : false)
 local SNAPGLOW = ( (my_config["snapglow"] == "Yes") ? true : false)
 local BASEROTATION =  my_config["baserotation"]
+local FROSTEDGLASS = ( (my_config["frostedglass"] == "Yes") ? true : false)
 
 if (BASEROTATION == "None")
 		fe.layout.base_rotation = RotateScreen.None
@@ -104,6 +114,20 @@ else if (BASEROTATION == "Flip")
 		fe.layout.base_rotation = RotateScreen.Flip
 
 
+// cleanup grabbed files
+
+local dir0 = DirectoryListing( FeConfigDirectory )
+local fpos01 = null
+local fpos02 = null
+
+foreach ( f in dir0.results )
+{
+	fpos01 = f.find(".png")
+	fpos02 = f.find("grab")
+	if ((fpos01 != null) && (fpos02 != null)){
+		remove(f)
+	}
+}
 
 // Initialize variables
 local var = 0
@@ -122,6 +146,9 @@ local scrollincrement = 0
 local scrollwait = 2000
 local scrollmove = 1000
 local titlewait = scrollwait*2+scrollmove*2
+
+local frost_surface = null
+local frost_pic = null
 
 // Search parameters
 local search_base_rule = "Title"
@@ -201,8 +228,8 @@ local scrw = ScreenWidth
 local scrh = ScreenHeight
 
 // DEBUG  overlay screen width and height
-//scrw = 1024
-//scrh = 768
+//scrw = 768
+//scrh = 1024
 
 local flw = scrw
 local flh = scrh
@@ -210,7 +237,6 @@ local flh = scrh
 local realrotation = ( fe.layout.base_rotation + fe.layout.toggle_rotation ) % 4
 local rotate90 = ((realrotation % 2) != 0)
 
-print (realrotation+"\n")
 if ((flw < flh) && (!rotate90)) vertical = true
 if ((flw > flh) && ( rotate90 )) {
 	vertical = true
@@ -313,6 +339,17 @@ local s_text = ""
 // used in shaders
 //local picalpha = fe.add_image("alpha.png",0,0,1,2)
 
+// Frosted glass variables
+local grabdither = 0
+local grabticker = 0
+local oldgrabnum = 0
+local grabpath = ""
+local grabpath0 = ""
+local grabsignal = ""
+local immediatesignal = false
+local numgrabs = 0
+local createdgrabs = []
+
 
 /// Carrier Class Definition  
 class Carrier {
@@ -378,7 +415,6 @@ class Carrier {
 		tilesTotal = tilesCount + 2*tilesOffscreen
 		surfacePosOffset = (tilesOffscreen/rows) * (width+padding)
 
-		local prescaler = selectorscale
 		zorderscanner = 0
 
 
@@ -451,50 +487,54 @@ class Carrier {
 
 
 			if (!CROPSNAPS)
-			logosurf1.set_pos (prescaler*padding*0.5,prescaler*(padding*0.4*0.5-verticalshift),prescaler*(width+padding),prescaler*(height*0.5+padding))
+			logosurf1.set_pos (selectorscale*padding*0.5,selectorscale*(padding*0.4*0.5-verticalshift),selectorscale*(width+padding),selectorscale*(height*0.5+padding))
 			else
-			logosurf1.set_pos (prescaler*padding,prescaler*padding,prescaler*width,prescaler*width*logosh_h/logosh_w)
+			logosurf1.set_pos (selectorscale*padding,selectorscale*padding,selectorscale*width,selectorscale*width*logosh_h/logosh_w)
 
-			local obj = fe.add_surface(widthpadded*prescaler,heightpadded*prescaler)
+			local obj = fe.add_surface(widthpadded*selectorscale,heightpadded*selectorscale)
 			
 			if(i == 0) 
 				zorderscanner = obj.zorder
 			else
 				obj.zorder = zorderscanner
 
-			local sh_hz = obj.add_image ("sh_h_7.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
-			local sh_vz = obj.add_image ("sh_v_7.png",0,0,widthpadded*prescaler,heightpadded*prescaler)
+			local sh_hz = obj.add_image ("sh_h_7.png",0,0,widthpadded*selectorscale,heightpadded*selectorscale)
+			local sh_vz = obj.add_image ("sh_v_7.png",0,0,widthpadded*selectorscale,heightpadded*selectorscale)
 			sh_hz.alpha = sh_vz.alpha = 230
 			
 			if (CROPSNAPS) sh_hz.file_name = sh_vz.file_name = "sh_sq_7.png"
 
-			local glohz =	obj.add_image ("glowx4.png",0,-prescaler*verticalshift,widthpadded*prescaler,prescaler*heightpadded)
-			local glovz =	obj.add_image ("glowx4.png",0,-prescaler*verticalshift,widthpadded*prescaler,prescaler*heightpadded)
+			local glohz =	obj.add_image ("glowx4.png",0,-selectorscale*verticalshift,widthpadded*selectorscale,selectorscale*heightpadded)
+			local glovz =	obj.add_image ("glowx4.png",0,-selectorscale*verticalshift,widthpadded*selectorscale,selectorscale*heightpadded)
 			
 			if (CROPSNAPS) glohz.file_name = glovz.file_name = "glow_sq.png"
 
-			local bd_hz = obj.add_text ("",prescaler*padding*(1.0-whitemargin),prescaler*(-verticalshift + height/8.0 + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height*(3/4.0)+padding*2*whitemargin))
+			local bd_hz = obj.add_text ("",selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + height/8.0 + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height*(3/4.0)+padding*2.0*whitemargin))
 			bd_hz.set_bg_rgb (255,255,255)
 			bd_hz.bg_alpha = 240
 			bd_hz.visible = false
 
-			local bd_vz = obj.add_text ("",prescaler*(width/8.0 + padding*(1.0 - whitemargin)), prescaler*(-verticalshift + padding*(1.0 - whitemargin)),prescaler*(width*(3/4.0)+padding*2*whitemargin),prescaler*(height + padding*2*whitemargin))
+			local bd_vz = obj.add_text ("",selectorscale*(width/8.0 + padding*(1.0 - whitemargin)), selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width*(3/4.0)+padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
 			bd_vz.set_bg_rgb (255,255,255)
 			bd_vz.bg_alpha = 240
 			bd_vz.visible = false
 
 			if (CROPSNAPS) {
-				bd_hz.set_pos (prescaler*padding*(1.0-whitemargin),prescaler*(-verticalshift + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height + padding*2*whitemargin))
-				bd_vz.set_pos (prescaler*padding*(1.0-whitemargin),prescaler*(-verticalshift + padding*(1.0 - whitemargin)),prescaler*(width + padding*2*whitemargin),prescaler*(height + padding*2*whitemargin))
+				bd_hz.set_pos (selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
+				bd_vz.set_pos (selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
+			}
+			else{
+				bd_hz.set_pos (selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + height/8.0 + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height*(3.0/4.0)+padding*2.0*whitemargin))
+				bd_vz.set_pos (selectorscale*(width/8.0 + padding*(1.0 - whitemargin)), selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width*(3.0/4.0)+padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
 			}
 
 
-
-			local snapz = obj.add_artwork("snap",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width,prescaler*height)
+			local snapz = obj.add_artwork("snap",selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width,selectorscale*height)
 			
 			snapz.preserve_aspect_ratio = false
 			snapz.video_flags = Vid.ImagesOnly
 			//snapz.mipmap = 1
+			snapz.set_pos (selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width,selectorscale*height)
 
 			local snap_avg = null
 
@@ -531,27 +571,27 @@ class Carrier {
 			glohz.visible = false
 			glovz.visible = false
 
-			local vidsz = obj.add_image("transparent.png",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width,prescaler*height)
+			local vidsz = obj.add_image("transparent.png",selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width,selectorscale*height)
 
 			vidsz.preserve_aspect_ratio = true
 			//vidsz.visible = false
 			if (!AUDIOVIDSNAPS) vidsz.video_flags = Vid.NoAudio
 
-			local nw_hz = obj.add_image ("nw_1.png",prescaler*padding,prescaler*(padding-verticalshift+height*6.0/8.0),width*prescaler/8.0,height*prescaler/8.0)
-			local nw_vz = obj.add_image ("nw_1.png",prescaler*(padding+width/8.0),prescaler*(padding-verticalshift+height*7.0/8.0),width*prescaler/8.0,height*prescaler/8.0)
+			local nw_hz = obj.add_image ("nw_1.png",selectorscale*padding,selectorscale*(padding-verticalshift+height*6.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
+			local nw_vz = obj.add_image ("nw_1.png",selectorscale*(padding+width/8.0),selectorscale*(padding-verticalshift+height*7.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
 			nw_hz.visible = nw_vz.visible = false
 			nw_hz.alpha = nw_vz.alpha = ((NEWGAME == true)? 220 : 0)
 
 			if (CROPSNAPS) {
-            nw_hz.set_pos(prescaler*padding,prescaler*(padding-verticalshift+height*7.0/8.0),width*prescaler/8.0,height*prescaler/8.0)
-            nw_vz.set_pos(prescaler*padding,prescaler*(padding-verticalshift+height*7.0/8.0),width*prescaler/8.0,height*prescaler/8.0)
+            nw_hz.set_pos(selectorscale*padding,selectorscale*(padding-verticalshift+height*7.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
+            nw_vz.set_pos(selectorscale*padding,selectorscale*(padding-verticalshift+height*7.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
          }
 
-			local donez = obj.add_image("completed.png",prescaler*padding,prescaler*(padding-verticalshift),prescaler*width*0.8,prescaler*height*0.8)
+			local donez = obj.add_image("completed.png",selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width*0.8,selectorscale*height*0.8)
 			donez.visible = false
 			donez.preserve_aspect_ratio = false
 
-			local favez = obj.add_image("starred.png",prescaler*(padding+width/2),prescaler*(padding+height/2-verticalshift),prescaler*width/2,prescaler*height/2)
+			local favez = obj.add_image("starred.png",selectorscale*(padding+width/2),selectorscale*(padding+height/2-verticalshift),selectorscale*width/2,selectorscale*height/2)
 			favez.visible = false
 			favez.preserve_aspect_ratio = false
 
@@ -567,10 +607,10 @@ class Carrier {
 			logoz.preserve_aspect_ratio = true
 
 			if (!CROPSNAPS){
-				logoz.set_pos (prescaler*padding,prescaler*(padding*0.6-verticalshift),prescaler*width,prescaler*height*0.5)
+				logoz.set_pos (selectorscale*padding,selectorscale*(padding*0.6-verticalshift),selectorscale*width,selectorscale*height*0.5)
 			}
 			else {
-				logoz.set_pos (prescaler*(padding+width*logomargin/logosh_w),prescaler*(padding+width*(15/20.0)*logomargin/logosh_w),prescaler*width*logo_w/logosh_w,prescaler*height*logo_h/logosh_w)
+				logoz.set_pos (selectorscale*(padding+width*logomargin/logosh_w),selectorscale*(padding+width*(15/20.0)*logomargin/logosh_w),selectorscale*width*logo_w/logosh_w,selectorscale*height*logo_h/logosh_w)
 			}
 			
 			loshz.alpha = 150
@@ -634,6 +674,13 @@ class Carrier {
 		if (DEBUG) print ("Tr:" + transdata[ttype] +" var:" + var0 + "\n")
 
 		//var = 0
+
+		// cleanup frosted glass grabs
+		if ((ttype == Transition.EndLayout) && (var0 == FromTo.Frontend)){
+			for (local ig = 0; ig < numgrabs ; ig++){
+				remove(createdgrabs[ig])
+			}
+		}
 
 		if (ttype == Transition.ShowOverlay){
 			if (var0 == Overlay.Tags) tagsmenu = true
@@ -757,19 +804,19 @@ class Carrier {
 				if (CROPSNAPS){
 					if (snapzTable[indexTemp].texture_width >= snapzTable[indexTemp].texture_height){
 						snapzTable[indexTemp].subimg_x = snapzTable[indexTemp].texture_width/8.0
-						snapzTable[indexTemp].subimg_width = snapzTable[indexTemp].texture_width*3/4.0
+						snapzTable[indexTemp].subimg_width = snapzTable[indexTemp].texture_width*3.0/4.0
 					}
 					else{
 						snapzTable[indexTemp].subimg_y = snapzTable[indexTemp].texture_height/8.0
-						snapzTable[indexTemp].subimg_height = snapzTable[indexTemp].texture_height*3/4.0
+						snapzTable[indexTemp].subimg_height = snapzTable[indexTemp].texture_height*3.0/4.0
 					}
 				}
             else{
                if (snapzTable[indexTemp].texture_width >= snapzTable[indexTemp].texture_height){
-                  snapzTable[indexTemp].set_pos (selectorscale*padding,selectorscale*(padding-verticalshift + height/8.0 ),selectorscale*width,selectorscale*height*3/4.0)
-               }
+                  snapzTable[indexTemp].set_pos (selectorscale*padding,selectorscale*(padding-verticalshift + height/8.0 ),selectorscale*width,selectorscale*height*3.0/4.0)
+				   }
                else{
-                  snapzTable[indexTemp].set_pos (selectorscale*(padding+width/8.0),selectorscale*(padding-verticalshift  ),selectorscale*width*3/4.0,selectorscale*height)
+                  snapzTable[indexTemp].set_pos (selectorscale*(padding+width/8.0),selectorscale*(padding-verticalshift  ),selectorscale*width*3.0/4.0,selectorscale*height)
   
                }                  
             }
@@ -1031,23 +1078,102 @@ class Carrier {
 		while ( i >= N ) { i -= N }
 		return i
 	}
-	
 
+   function updatescreen(){
+  		local path = FeConfigDirectory
+  		local dir = DirectoryListing( path )
+  		local picname = ""
+  		local fpos1 = null
+  		local fpos2 = null
+  		local picnum = 0
+  		local picout = 0
+
+  		foreach ( f in dir.results )
+		{
+    		fpos1 = f.find(".png")
+    		fpos2 = f.find("screen")
+    		if ((fpos1 != null) && (fpos2 != null)){
+      		picnum = f.slice(fpos2+6,fpos1)
+      		// print (picnum+"\n")
+      		if (picnum == "") picnum = "0"
+      		picnum = picnum.tointeger()
+      		if (picout < picnum ) picout = picnum
+    		}
+  		}
+    	picname = FeConfigDirectory + "screen" + picout +".png"
+  		return picout
+	}
+
+	function getsnap(signalin){
+		frostshaders(true)
+
+		oldgrabnum = updatescreen()
+		fe.signal("screenshot")
+		oldgrabnum ++
+		grabpath0 = FeConfigDirectory + "screen" + oldgrabnum +".png"
+		numgrabs ++
+		grabpath = FeConfigDirectory + "grab" + numgrabs +".png"
+		createdgrabs.push (grabpath)
+		grabticker = 1
+		grabsignal = signalin
+
+	}
 
 	/// On Signal  
 	function on_signal( sig )
 	{
 
+
 		if (DEBUG) print ("\n Si:" + sig )
 
-			/*if (sig == "filters_menu"){
-				fe.list.index += corrector
-				return false
-			}*/
+		if (sig == "exit") wooshsound.playing = true
 
+		if (FROSTEDGLASS){
 
+			if (sig == "exit"){
+				if (immediatesignal){
+					immediatesignal = false
+					return false
+				}
+				else{
+					getsnap("exit")
+					return true
+				}
+			}
 
+			if (sig == "filters_menu"){
+				if (immediatesignal){
+					immediatesignal = false
+					return false
+				}
+				else{
+					getsnap("filters_menu")
+					return true
+				}
+			}
 
+			if (sig == "add_favourite"){
+				if (immediatesignal){
+					immediatesignal = false
+					return false
+				}
+				else{
+					getsnap("add_favourite")
+					return true
+				}
+			}
+
+			if (sig == "add_tags"){
+				if (immediatesignal){
+					immediatesignal = false
+					return false
+				}
+				else{
+					getsnap("add_tags")
+					return true
+				}
+			}
+		}
 		// Rotation controls
 		if(sig == "toggle_rotate_right"){
 			if (fe.layout.toggle_rotation == RotateScreen.None)
@@ -1089,8 +1215,20 @@ class Carrier {
 
 
 			if (sig == "up"){
+				
+				if (FROSTEDGLASS){
+					if (immediatesignal){
+						wooshsound.playing=true
+						immediatesignal = false
+					}
+					else{
+						getsnap("up")
+						return true
+					}
+				}
+
 				overmenu_hide(true)
-				wooshsound.playing=true
+				//wooshsound.playing=true
 				local searchtext =""
 				local switcharray = array(5)
 				switcharray[0]="Year"
@@ -1154,6 +1292,7 @@ class Carrier {
 			else if (sig == "left") {
 				// add tags
 				overmenu_hide(true)
+				wooshsound.playing = true
 				fe.signal ("add_tags")
 				return true
 			}
@@ -1162,6 +1301,7 @@ class Carrier {
 				// add current game to favorites
 				overmenu_hide(true)
 				//changedfav = true
+				wooshsound.playing = true
 				fe.signal("add_favourite")
 				return true
 			}
@@ -1303,7 +1443,19 @@ class Carrier {
 					scroller2.visible = scrollineglow.visible = false
 				}
 				else {
-					wooshsound.playing=true	
+
+					if (FROSTEDGLASS){
+						if (immediatesignal){
+						//wooshsound.playing=true	
+						immediatesignal = false
+						}
+						else{
+						getsnap("up")
+						return true
+						}
+					}
+					else wooshsound.playing = true
+
 					local switcharray1 = array(3)
 					switcharray1[0]="Filters"
 					switcharray1[1]="Search for..."
@@ -1312,6 +1464,7 @@ class Carrier {
 
 					if (result1 == 0){
 						//	wooshsound.playing=true
+						immediatesignal = true
 						fe.signal("filters_menu")
 						wooshsound.playing=true
 					}
@@ -1402,13 +1555,13 @@ class Carrier {
 				}
 
 				return true
-				
+				/*
 				// add favorites 
 				case "add_favourite":
 				//changedfav = true
 				wooshsound.playing=true
 				break
-								
+				*/				
 				// All other cases
 				default:
 				wooshsound.playing=true
@@ -1513,6 +1666,8 @@ function maincategory( offset ) {
 	}
 	return ""
 }
+
+
 
 /// Display construction (BACKGROUND)  
 
@@ -1810,16 +1965,94 @@ filternumbers.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 data_surface.zorder = zordertop + 3
 //name_surf.zorder = subname_x.zorder = year_x.zorder = year2_x.zorder = filterdata.zorder = filternumbers.zorder = zordertop + 1
 
+/// Frosted glass surface  
+
+local psize = 64.0
+local pw = null
+local ph = null
+
+if (flw>flh){
+	pw = psize
+	ph = psize * flh/flw
+}
+else {
+	pw = psize * flw/flh
+	ph = psize
+}
+
+local psurf1 = null
+local flipshader = null
+local psurf2 = null
+local frost_pic = null
+local pshader1 = null
+local pshader2 = null
+local frost_surface = null
+
+local noshader = fe.add_shader( Shader.Empty )
+
+if (FROSTEDGLASS){
+	 psurf1 = fe.add_surface(pw,ph)
+	frost_pic = psurf1.add_image("transparent.png",0,0,pw,ph)
+
+	flipshader = fe.add_shader( Shader.Fragment, "flipper.glsl" )
+	flipshader.set_texture_param( "texture")
+	flipshader.set_param("rotation",realrotation)
+//	frost_pic.shader = flipshader
+
+	psurf2 = fe.add_surface(pw,ph)
+
+	frost_surface = fe.add_surface(flw,flh-header_h-footer_h)
+
+	pshader1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+	pshader1.set_texture_param( "texture")
+	pshader1.set_param("kernelData", 13.0, 2.5)
+	pshader1.set_param("offsetFactor", 0.0000, 1.0/ph)
+//	psurf1.shader = pshader1
+
+	pshader2 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl"  )
+	pshader2.set_texture_param( "texture")
+	pshader2.set_param("kernelData", 13.0, 2.5)
+	pshader2.set_param("offsetFactor", 1.0/pw, 0.000)
+//	psurf2.shader = pshader2
+
+
+
+	psurf2.visible = false
+	psurf2 = frost_surface.add_clone(psurf2)
+	psurf2.visible = true
+
+	psurf1.visible = false
+	psurf1 = psurf2.add_clone(psurf1)
+	psurf1.visible = true
+
+	psurf2.set_pos(0,-header_h,flw,flh)
+
+	frost_surface.set_pos(0,header_h,flw,flh-header_h-footer_h)
+
+	frost_surface.alpha = 0
+
+	//frost_pic.smooth = psurf1.smooth = psurf2.smooth = frost_surface.smooth = false
+	
+
+	//frost_surface = fe.add_clone(psurf1)
+	frost_surface.zorder = zordertop + 4
+
+	//frost_surface.alpha = 120
+	//frost_surface.set_pos(bgx,bgy,bgw,bgw)
+}
+
 /// Controls Overlays (Listbox)  
 
 local overlay_charsize = floor( 50*scalerate )
 local overlay_rows = floor((flh-header_h-footer_h)/(overlay_charsize*3))
 local overlay_labelsize = floor ((flh-header_h-footer_h)/overlay_rows)
 
+
+
 // sfondo dell'area con le scritte
 local overlay_background = fe.add_text ("", 0 , header_h, flw, flh-header_h-footer_h)
 overlay_background.set_bg_rgb(200,200,200)
-overlay_background.bg_alpha = 64
+overlay_background.bg_alpha = 15
 
 local overlay_listbox = fe.add_listbox( 0, header_h+overlay_labelsize, flw, flh-header_h-footer_h-overlay_labelsize )
 overlay_listbox.rows = overlay_rows - 1
@@ -1852,18 +2085,29 @@ shader3.set_rgb(0,0,0)
 
 overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false
 
-overlay_listbox.zorder = overlay_label.zorder = overlay_background.zorder = shader1.zorder = shader2.zorder = shader3.zorder = zordertop + 4
+overlay_listbox.zorder = overlay_label.zorder = overlay_background.zorder = shader1.zorder = shader2.zorder = shader3.zorder = zordertop + 5
 
 fe.overlay.set_custom_controls( overlay_label, overlay_listbox )
 
 function overlay_show(){
-	fg_surface.alpha = 255 * (satinrate)
+	if (FROSTEDGLASS) 
+		frost_surface.alpha = 255 
+	else
+		fg_surface.alpha = 255*satinrate
+
+	if (logoshow != 0 ) cutlogo()
 
 	overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = true
 }
 
 function overlay_hide(){
-	fg_surface.alpha = 0
+	if (FROSTEDGLASS) {
+		frost_surface.alpha = 0
+		frostshaders(false) 
+	}
+	else
+		fg_surface.alpha = 0
+	if (FROSTEDGLASS) grabdither = 2
 	overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false		
 }
 
@@ -2222,7 +2466,7 @@ shader_cgwg.set_param("overscan", 1.0, 1.0);   // overscan (e.g. 1.02 for 2% ove
 shader_cgwg.set_param("aspect", 1.0, 1.0);      // aspect ratio
 shader_cgwg.set_param("d", 1.3);                 // distance from viewer
 shader_cgwg.set_param("R", 2.5);                 // radius of curvature - 2.0 to 3.0?
-shader_cgwg.set_param("cornersize", 0.025);       // size of curved corners
+shader_cgwg.set_param("cornersize", 0.05);       // size of curved corners
 shader_cgwg.set_param("cornersmooth", 60);       // border smoothness parameter
 shader_cgwg.set_param("brightmult", 1.25);                                                 
 shader_cgwg.set_texture_param("texture");
@@ -2394,6 +2638,26 @@ function monitortick(tick_time){
 }
 */
 
+function cutlogo() {
+	logoshow = 0
+	fg_surface.alpha = 0
+	data_surface.alpha = 255
+	aflogo_surface.alpha = 0
+}
+
+function frostshaders (turnon){
+		if (turnon){
+			frost_pic.shader = flipshader
+			psurf1.shader = pshader1
+			psurf2.shader = pshader2
+		}
+		else{
+			frost_pic.shader = noshader
+			psurf1.shader = noshader
+			psurf2.shader = noshader			
+		}
+}
+
 fe.add_ticks_callback( this, "tick2" )
 
 local timerscan = 10.0
@@ -2405,6 +2669,27 @@ local flowspeed = 25
 
 /// On Tick (2)  
 function tick2( tick_time ) {
+
+
+	if (grabdither != 0) {
+		grabdither --
+		frost_surface.x = grabdither
+	}
+
+  if (grabticker != 0)
+  {
+    grabticker --
+    if (grabticker == 0){
+	 	rename (grabpath0,grabpath)
+      frost_pic.file_name = grabpath
+		if (rotate90){
+			   
+		}
+		immediatesignal = true
+		fe.signal(grabsignal)
+    }
+
+  }
 
 	if ((overmenu.visible) && (overmenuflow >= 0) && (surfacePos != 0)) {
 		overmenu.x = globalposnew + selectorwidth * 0.5 - overmenuwidth*0.5 
@@ -2490,7 +2775,6 @@ function tick2( tick_time ) {
 		}
 	}
 
-//print(name_x2.x +"\n")
 
 	if (overmenuflow > 0) {
 		if (overmenu.alpha < 255-flowspeed) overmenu.alpha = overmenu.alpha + flowspeed

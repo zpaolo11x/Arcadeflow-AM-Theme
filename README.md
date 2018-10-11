@@ -1,13 +1,14 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.5**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.6**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
 
-*What's new in v 2.5*
+*What's new in v 2.6*
 
-- Added a new option to toggle screen rotation permanently
+- New "frosted glass" effect when you enter overlay menus
+- Updated Readme.md with current options
 
 *Custom controls*
 
@@ -31,45 +32,47 @@ When your list is sorted by name a large preview letter will appear while scroll
 If your list is sorted by year the year will appear instead of the letter.
 You can go "DOWN" from the altest row to enter a "large jumps" scrolling mode.
 
-*Snaps aspect ratio*
-
-Arcadeflow requires that the aspect ratio of the snapshots is 4:3 or 3:4 depending on the game orientation, it will not correct the snapshot aspect ratio and won't look good otherwise. You can resize your snapshots using batch processing software like xnview, don't use bilinear or lanzcos scaling but just "nearest neighbor" if you want to keep the file size small.
-
-*Blurred background (replaced by sahders)*
-
-The blurred background is not calculated from the snaps: you need to batch process your snapshots and create a custom art category in attract mode called  "blur". What I do is:
-
-- resize the snaps to 640x480
-- crop a 480x480 central portion
-- resize to 32x32
-- apply 1 gaussian blurs 9x9 pixels wide
-
-This results in a very smooth yet fast to load blurred background. I prepared some xnview scripts you can use for the conversion.
-
-*Blurred title shadows (replaced by shaders)*
-
-You can add a attract mode art category called "logoblur" and use the provided xnview script to generate new artworks for blurred shadows to be placed under the title
-
 * Game options*
 
-- "Snaps aspect ratio" : Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation
+GENERAL 
 - "Context Menu Button" : Setup the button to use to recall game info and actions context menu
-- "Theme Color" : Setup theme color
-- "Blurred Logo Shadow" : Use blurred logo artwork shadow (works only in layout_noshader.nut)
-- "Smooth gradient snap" : Fades the artwork behind the game logo to its average color
-- "Enable New Game Indicator" : Games not played are marked with a glyph
-- "Custom Background Image" : Insert custom background art path
-- "Search string entry method" : Use keyboard or on-screen keys to enter search string
-- "Immediate search" : Live update results while searching
-- "Enable AF splash logo" : Enable or disable the AF start logo
-- "Custom AF splash logo" : Chose a custom picture as splash logo
 - "Rows in horizontal layout" : Number of rows to use in 'horizontal' mode
 - "Rows in vertical layout" : Number of rows to use in 'vertical' mode
+- "Screen rotation" : Select a persistent screen rotation option
+- "Frosted glass" : Add a frosted glass effect for menu backgrounds
+
+THUMBNAILS
+- "Aspect ratio" : Chose wether you want cropped, square snaps or horizontal and vertical snaps
+- "Glow effect" : Add a glowing halo around the selected game thumbnail
+- "Video thumbs" : Enable video overlay on snapshot thumbnails
+- "Color gradient" : Fades the artwork behind the game logo to its average color
+- "New Game Indicator" : Games not played are marked with a glyph
+
+BACKDROP
+- "Overlay Color" : Setup theme luminosity overlay
+- "Custom Background Image" : Insert custom background art path
+- "Background snap" : Add a faded game snapshot to the background
+- "Animate background snap" : Animate video on background
+
+LOGO
+- "Enable splash logo" : Enable or disable the AF start logo
+- "Custom splash logo" : Chose a custom picture as splash logo
+
+SEARCH
+- "Search string entry method" : Use keyboard or on-screen keys to enter search string
+- "Immediate search" : Live update results while searching
+
+HISTORY
 - "History.dat" : History.dat location
 - "Index Clones" : Set whether entries for clones should be included in the index.
 - "Generate Index" : Generate the history.dat index now (this can take some time)
 
+
 ** Previous versions history **
+
+*v 2.5*
+
+- Added a new option to toggle screen rotation permanently
 
 *v 2.4*
 
