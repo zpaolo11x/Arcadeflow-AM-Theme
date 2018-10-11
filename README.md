@@ -1,14 +1,14 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.6**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.7**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
 
-*What's new in v 2.6*
+*What's new in v 2.7*
 
-- New "frosted glass" effect when you enter overlay menus
-- Updated Readme.md with current options
+- Fixed some bugs in screen rotation
+- Added the possibility to define a layout resolution independent from screen resolution
 
 *Custom controls*
 
@@ -69,6 +69,11 @@ HISTORY
 
 
 ** Previous versions history **
+
+*v 2.6*
+
+- New "frosted glass" effect when you enter overlay menus
+- Updated Readme.md with current options
 
 *v 2.5*
 

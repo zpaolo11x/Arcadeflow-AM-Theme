@@ -1,4 +1,4 @@
-// Arcadeflow - v 2.6
+// Arcadeflow - v 2.7
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
@@ -15,8 +15,8 @@ function file_exist(fullpathfilename)
 
 local orderx = 0
 local liner = " "
-local preliner = "    ○ "
-local prelinerh = "● "
+local preliner = "     ○  "
+local prelinerh = " ●  "
 local postliner = "                                                                                                  "
 local postlinerh = "                                                                                                 "
 
@@ -27,6 +27,7 @@ class UserConfig </ help="" />{
 		</ label=preliner + "Rows in vertical layout" + postliner, help = "Number of rows to use in 'vertical' mode", options="2, 3", order = orderx++ /> verticalrows = "3"
 		</ label=preliner + "Screen rotation" + postliner, help = "Rotate screen", options="None, Left, Right, Flip", order = orderx++ /> baserotation = "None"
 		</ label=preliner + "Frosted glass" + postliner, help = "Enable a frosted glass effect for overlay menus", options="Yes, No", order = orderx++ /> frostedglass = "Yes"
+		</ label=preliner + "Custom resolution" + postliner, help = "Define a custom resolution for your layout independent of screen resolution. Format is WIDTHxHEIGHT, leave blank for default resolution", order = orderx++ /> customsize = ""
 		
 	</ label=prelinerh + "THUMBNAILS" + postlinerh, help=" ", options =liner, order=orderx++ /> paramx2 = liner
 		</ label=preliner+"Aspect ratio" + postliner, help="Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation", options ="Horizontal-Vertical, Square", order = orderx++ /> cropsnaps = "Horizontal-Vertical"
@@ -62,16 +63,10 @@ class UserConfig </ help="" />{
 
 /// Layout start  
 
-local carrier_surface = null
-
 // for debug purposes
 local DEBUG = false
-local DEBUGAR = false
-local DEBUG_SLOWDOWN = false
-local DEBUG_FPS = false
-
-local redstrober = 0
 local transdata = ["StartLayout", "EndLayout", "ToNewSelection","FromOldSelection","ToGame","FromGame","ToNewList","EndNavigation","ShowOverlay","HideOverlay","NewSelOverlay"]
+
 local	snapbg1 = null
 local	snapbg2 = null
 local bgvid1 = null
@@ -103,6 +98,7 @@ local LAYERSNAP = ( (my_config["layersnap"] == "Yes") ? true : false)
 local SNAPGLOW = ( (my_config["snapglow"] == "Yes") ? true : false)
 local BASEROTATION =  my_config["baserotation"]
 local FROSTEDGLASS = ( (my_config["frostedglass"] == "Yes") ? true : false)
+local CUSTOMSIZE = my_config["customsize"]
 
 if (BASEROTATION == "None")
 		fe.layout.base_rotation = RotateScreen.None
@@ -171,7 +167,7 @@ local themeshadow = 50
 local shadeval = 255
 local satinrate = 0.9
 
-local vidsatin = 40
+local vidsatin = 50
 
 if (COLORTHEME == "Basic"){
 	themeoverlaycolor = 255
@@ -227,9 +223,16 @@ local guifont ="Roboto-Allcaps.ttf"
 local scrw = ScreenWidth
 local scrh = ScreenHeight
 
-// DEBUG  overlay screen width and height
-//scrw = 768
-//scrh = 1024
+if (CUSTOMSIZE != ""){
+	try {
+	scrw = split(CUSTOMSIZE,"x")[0]
+	scrh = split(CUSTOMSIZE,"x")[1]
+	scrw = scrw.tointeger()
+	scrh = scrh.tointeger()
+	//print ("\n\n\n"+xxx + " x " + yyy + "\n\n\n")
+	}
+	catch ( err ) { fe.overlay.splash_message("Wrong syntax in screen resolution");CUSTOMSIZE = "";scrw = ScreenWidth; scrh = ScreenHeight }
+}
 
 local flw = scrw
 local flh = scrh
@@ -237,12 +240,16 @@ local flh = scrh
 local realrotation = ( fe.layout.base_rotation + fe.layout.toggle_rotation ) % 4
 local rotate90 = ((realrotation % 2) != 0)
 
-if ((flw < flh) && (!rotate90)) vertical = true
-if ((flw > flh) && ( rotate90 )) {
-	vertical = true
+//print("scrw:"+scrw+" scrh:"+scrh+"rotate90:"+rotate90+" flw:"+flw+" flh:"+flh+"\n")
+
+if (rotate90){
 	flw = scrh
 	flh = scrw
 }
+
+if (flh>flw) vertical = true
+
+//print("scrw:"+scrw+" scrh:"+scrh+"rotate90:"+rotate90+" flw:"+flw+" flh:"+flh+" vertical:"+vertical+"\n")
 
 if (vertical) rows = VERTICALROWS
 
@@ -278,7 +285,7 @@ cols +=2
 // carrier sizing in general layout
 local carrier_w = cols*(height+padding)+padding
 local carrier_h = rows*height+(rows)*padding+padding
-local carrier_x = -(carrier_w-flw)/2
+local carrier_x = -(carrier_w-flw)*0.5
 local carrier_y = header_h
 
 // selector and zooming data
@@ -309,7 +316,7 @@ local scrollersize = 30*scalerate
 
 // Blurred backdrop definition
 local bgx = 0
-local bgy = (flh-flw)/2
+local bgy = (flh-flw)/2.0
 local bgw = flw
 
 // Picture background definition
@@ -402,13 +409,9 @@ class Carrier {
 	searchtext = ""
 	
 	
-	debugarea = null
-
 	/// Carrier constructor  
 	constructor() {
 		
-		//carrier_surface = fe.add_surface(flw,flh)
-
 		tilesCount = cols * rows
 		tilesOffscreen = (vertical ? 3 * rows : 4 * rows)
 		
@@ -533,7 +536,6 @@ class Carrier {
 			
 			snapz.preserve_aspect_ratio = false
 			snapz.video_flags = Vid.ImagesOnly
-			//snapz.mipmap = 1
 			snapz.set_pos (selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width,selectorscale*height)
 
 			local snap_avg = null
@@ -649,16 +651,7 @@ class Carrier {
 
 		// define initial carrier "surface" position
 		surfacePos = 0.5
-		
-		//DEBUG create debugarea
-		if (DEBUGAR) {
-		debugarea = fe.add_text("DEBUG AREA",flw-700*scalerate,0,700*scalerate,flh)
-		debugarea.bg_alpha = 200
-		debugarea.alpha = 255
-		debugarea.word_wrap = true
-		debugarea.charsize = 60*scalerate
-		}
-		
+				
 		::fe.add_signal_handler( this, "on_signal" )
 		::fe.add_transition_callback( this, "on_transition" )
 		::fe.add_ticks_callback( this, "tick" )
@@ -943,20 +936,11 @@ class Carrier {
 	/// On Tick  
 	function tick( tick_time ) {
 
-		if (DEBUG_SLOWDOWN) {
-			for ( local i = 0; i < 2000000; i++ )
-			{
-
-			}
-		}
 
       if (squarizer){
          squarizer = false
          squarebg()
       }
-
-		//DEBUG debugarea update
-		if (DEBUGAR) debugarea.msg = "\n rows \n" + rows + "\n list.index \n" + fe.list.index + "\n titlesw \n" + titleswitch + "\n time \n" + fe.layout.time 
 
 		if ((rightcount != 0) && (fe.get_input_state("right")==false)){
 			rightcount = 0
@@ -1285,7 +1269,10 @@ class Carrier {
 
 			else if (sig == "down") {
 				overmenu_hide(false)
-				history_show()
+				//try {
+					history_show()
+				//} catch ( err ) { print( "History Error\n" ); }
+
 				return true
 			}
 
@@ -1967,17 +1954,41 @@ data_surface.zorder = zordertop + 3
 
 /// Frosted glass surface  
 
-local psize = 64.0
+local psize = 96.0
 local pw = null
 local ph = null
 
-if (flw>flh){
+if (!vertical){
 	pw = psize
 	ph = psize * flh/flw
 }
 else {
 	pw = psize * flw/flh
 	ph = psize
+}
+
+local displayAR = ScreenWidth*1.0/ScreenHeight
+local screenAR = scrw*1.0/scrh
+local layoutAR = flw*1.0/flh
+if (rotate90) displayAR = 1.0/displayAR
+
+local ppw = null
+local pph = null
+local ppx = null
+local ppy = null
+
+if (displayAR > layoutAR){
+	pph = ph
+	ppw = ph*displayAR
+	ppx = (pw - ppw)*0.5
+	ppy = 0
+}
+else{
+	ppw = pw
+	pph = pw/displayAR
+	ppx = 0
+	ppy = (ph - pph)*0.5
+
 }
 
 local psurf1 = null
@@ -1992,12 +2003,12 @@ local noshader = fe.add_shader( Shader.Empty )
 
 if (FROSTEDGLASS){
 	 psurf1 = fe.add_surface(pw,ph)
-	frost_pic = psurf1.add_image("transparent.png",0,0,pw,ph)
+
+	frost_pic = psurf1.add_image("transparent.png",ppx,ppy,ppw,pph)
 
 	flipshader = fe.add_shader( Shader.Fragment, "flipper.glsl" )
 	flipshader.set_texture_param( "texture")
 	flipshader.set_param("rotation",realrotation)
-//	frost_pic.shader = flipshader
 
 	psurf2 = fe.add_surface(pw,ph)
 
@@ -2007,13 +2018,11 @@ if (FROSTEDGLASS){
 	pshader1.set_texture_param( "texture")
 	pshader1.set_param("kernelData", 13.0, 2.5)
 	pshader1.set_param("offsetFactor", 0.0000, 1.0/ph)
-//	psurf1.shader = pshader1
 
 	pshader2 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl"  )
 	pshader2.set_texture_param( "texture")
 	pshader2.set_param("kernelData", 13.0, 2.5)
 	pshader2.set_param("offsetFactor", 1.0/pw, 0.000)
-//	psurf2.shader = pshader2
 
 
 
@@ -2041,12 +2050,33 @@ if (FROSTEDGLASS){
 	//frost_surface.set_pos(bgx,bgy,bgw,bgw)
 }
 
+/// Side/top blanker for custom resolution  
+
+local blank_1 = null
+local blank_2 = null
+
+if (CUSTOMSIZE != ""){
+
+	if (displayAR > layoutAR){
+		blank_1 = fe.add_image("black.png",(flh/ph)*ppx,0,-(flh/ph)*ppx,flh)
+		blank_2 = fe.add_image("black.png",flw,0,-(flh/ph)*ppx,flh)
+	}
+	else{
+		blank_1 = fe.add_image("black.png",0,(flw/pw)*ppy,flw,-(flw/pw)*ppy)
+		blank_2 = fe.add_image("black.png",0,flh,flw,-(flw/pw)*ppy)
+	}
+
+	//blank_1.set_rgb(128,128,128)
+	//blank_2.set_rgb(128,128,128)
+
+	blank_1.zorder=blank_2.zorder = 500
+}
+
 /// Controls Overlays (Listbox)  
 
 local overlay_charsize = floor( 50*scalerate )
 local overlay_rows = floor((flh-header_h-footer_h)/(overlay_charsize*3))
 local overlay_labelsize = floor ((flh-header_h-footer_h)/overlay_rows)
-
 
 
 // sfondo dell'area con le scritte
@@ -2370,12 +2400,6 @@ search_select (key_selected[0],key_selected[1])
 
 search_surface.zorder = zordertop + 300
 
-// DEBUG redstrobe function 
-
-function redstrobe(){
-	redstrober = 10
-}
-
 /// History Page  
 
 local hist_split_h = 0.55
@@ -2443,10 +2467,7 @@ if (!vertical){
 }
 else{
 	hist_black = history_surface.add_image("black.png",0,hist_screen_y+historypadding,flw,hist_screen_h-2.0*historypadding)
-
    hist_g1 = history_surface.add_image("wgradient3.png",0,hist_screen_y+historypadding,flw*0.5,hist_screen_h-2.0*historypadding)
-
-
    hist_g2 = history_surface.add_image("wgradient4.png",flw*0.5,hist_screen_y+historypadding,flw*0.5,hist_screen_h-2.0*historypadding)
 
 }
@@ -2459,7 +2480,7 @@ hist_g1.alpha = hist_g2.alpha = 200*0+150
 hist_black.alpha = 80*0+50
 
 local shader_cgwg = null;
-shader_cgwg=fe.add_shader(Shader.VertexAndFragment,"CRT-geom.vsh","CRT-geom.fsh");
+shader_cgwg=fe.add_shader(Shader.VertexAndFragment,"CRT-geom_vsh.glsl","CRT-geom_fsh.glsl");
 shader_cgwg.set_param("CRTgamma", 2.4);          // gamma of simulated CRT
 shader_cgwg.set_param("monitorgamma", 2.2);      // gamma of display monitor (typically 2.2 is correct)
 shader_cgwg.set_param("overscan", 1.0, 1.0);   // overscan (e.g. 1.02 for 2% overscan)
@@ -2524,11 +2545,14 @@ function history_show()
 		local cloneof = fe.game_info( Info.CloneOf )
 
 		local lookup = get_history_offset( sys, rom, alt, cloneof )
+		
 		if ( lookup >= 0 )
 		{
 			//fe.overlay.splash_message(lookup + " " + my_config)
 			hist_text.first_line_hint = 0
-			hist_text.msg = get_history_entry( lookup, my_config )
+			try {
+				hist_text.msg = get_history_entry( lookup, my_config )
+				} catch ( err ) { hist_text.msg = "There was an error loading game data, please check history.dat preferences in the layout options"; }
 		}
 		else
 		{
@@ -2572,71 +2596,6 @@ function history_exit (){
 	history_hide()
 }
 
-local monitor = null
-local monitor2 = null
-local tick000 = 0
-local x0 = 0
-local tickspeed = 5
-
-// DEBUG FPS
-if (DEBUG_FPS){
-	monitor = fe.add_text ("",0,0,fe.layout.width,100)
-	monitor.align = Align.Centre
-	monitor.set_bg_rgb (255,0,0)
-	monitor.charsize = 50
-	monitor2 = fe.add_text ("",0,0,1,1)
-}
-
-if(DEBUG_FPS) fe.add_ticks_callback(this,"monitortick")
-
-function monitortick(tick_time){
-
-	monitor2.x ++
-	if (monitor2.x - x0 == tickspeed) {
-		monitor.msg = tickspeed*1000/(tick_time - tick000)
-		tick000 = tick_time
-		x0 = monitor2.x
-	}
-   if (monitor2.x >= flw) {
-      monitor2.x = 0
-      x0 = 0
-      tick000=0
-   }
-
-}
-
-
-
-
-// FPS counter
-/*
-local monitor = fe.add_text ("",0,0,fe.layout.width,100)
-monitor.set_bg_rgb (255,0,0)
-monitor.charsize = 50
-
-local monitor2 = fe.add_text ("",0,0,100,100)
-monitor2.set_bg_rgb (255,0,0)
-
-local tick000 = 0
-local x0 = 0
-
-fe.add_ticks_callback(this,"monitortick")
-
-function monitortick(tick_time){
-
-	monitor2.x ++
-	if (monitor2.x - x0 == 10) {
-		monitor.msg = 10000/(tick_time - tick000)
-		tick000 = tick_time
-		x0 = monitor2.x
-	}
-   if (monitor2.x >= fe.layout.width) {
-      monitor2.x = 0
-      x0 = 0
-      tick000=0
-   }
-}
-*/
 
 function cutlogo() {
 	logoshow = 0
@@ -2662,8 +2621,6 @@ fe.add_ticks_callback( this, "tick2" )
 
 local timerscan = 10.0
 local timerstep = 3
-
-
 
 local flowspeed = 25
 
@@ -2824,19 +2781,6 @@ function tick2( tick_time ) {
 	}
 
 
-	// DEBUG redstrobe
-	/*
-	if (redstrober <= 1) 
-		redstrober =0
-	else 
-		redstrober = redstrober -1
-
-	if (redstrober != 0) 
-		carrier.debugarea.set_bg_rgb (255,0,0) 
-	else 
-		carrier.debugarea.set_bg_rgb (0,0,0)
-
-	*/
 
 	if (logoshow !=0){
 		logoshow = logoshow - 0.018	
