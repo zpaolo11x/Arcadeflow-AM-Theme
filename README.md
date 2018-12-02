@@ -1,14 +1,19 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.8**
+**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.9**
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
 
-*What's new in v 2.8*
+*What's new in v 2.9*
 
-- Implemented a new, smoother system for background image crossfade
-- Added a "look for the same..." + "Decade" search menu entry
+- Redesigned the game data ribbon on top of the thumbnail grid
+- Added category icons for game category
+- Added manufacturer icons for game manufacturer
+- Added a smooth drop shadow under game title, data and icons
+- Streamlined the AF logo so it's just white 
+- The technique used for background crossfade is used for game data crossfade too
+- Frosted glass effect applied to the screen behind the logo
 
 *Custom controls*
 
@@ -38,8 +43,10 @@ GENERAL
 - "Context Menu Button" : Setup the button to use to recall game info and actions context menu
 - "Rows in horizontal layout" : Number of rows to use in 'horizontal' mode
 - "Rows in vertical layout" : Number of rows to use in 'vertical' mode
+- "Smooth shadow" : Enable smooth shadow under game title and data in the GUI
 - "Screen rotation" : Select a persistent screen rotation option
 - "Frosted glass" : Add a frosted glass effect for menu backgrounds
+- "Custom resolution WIDTHxHEIGHT" : Define a custom resolution for your layout independent of screen resolution
 
 THUMBNAILS
 - "Aspect ratio" : Chose wether you want cropped, square snaps or horizontal and vertical snaps
@@ -67,8 +74,16 @@ HISTORY
 - "Index Clones" : Set whether entries for clones should be included in the index.
 - "Generate Index" : Generate the history.dat index now (this can take some time)
 
+AUDIO
+- "Audio in videos (thumbs) : Select wether you want to play audio in videos on thumbs
+- "Audio in videos (history) : Select wether you want to play audio in videos on history detail page
 
 ** Previous versions history **
+
+*v 2.8*
+
+- Implemented a new, smoother system for background image crossfade
+- Added a "look for the same..." + "Decade" search menu entry
 
 *v 2.7*
 

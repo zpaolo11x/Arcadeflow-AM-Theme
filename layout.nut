@@ -1,4 +1,4 @@
-// Arcadeflow - v 2.8
+// Arcadeflow - v 2.9
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
@@ -6,10 +6,7 @@
 
 
 fe.load_module("file")
-
-function file_exist(fullpathfilename){
-	try {file(fullpathfilename, "r" );return true;}catch(e){return false;}
-}
+fe.do_nut("pic_functions.nut")
 
 local orderx = 0
 local preliner = "     ○  "
@@ -21,6 +18,7 @@ class UserConfig </ help="" />{
 		</ label=preliner + "Context menu button" + postliner, help="Chose the button to open the game context menu", options="custom1, custom2, custom3, custom4, custom5, custom6", order=orderx++ /> overmenubutton="custom1"
 		</ label=preliner + "Rows in horizontal layout" + postliner, help = "Number of rows to use in 'horizontal' mode", options="2, 3", order = orderx++ /> horizontalrows = "2"
 		</ label=preliner + "Rows in vertical layout" + postliner, help = "Number of rows to use in 'vertical' mode", options="2, 3", order = orderx++ /> verticalrows = "3"
+		</ label=preliner + "Smooth shadow" + postliner, help = "Enable smooth shadow under game title and data in the GUI", options="Yes, No", order = orderx++ /> datashadowsmooth = "Yes"
 		</ label=preliner + "Screen rotation" + postliner, help = "Rotate screen", options="None, Left, Right, Flip", order = orderx++ /> baserotation = "None"
 		</ label=preliner + "Frosted glass" + postliner, help = "Enable a frosted glass effect for overlay menus", options="Yes, No", order = orderx++ /> frostedglass = "Yes"
 		</ label=preliner + "Custom resolution WIDTHxHEIGHT" + postliner, help = "Define a custom resolution for your layout independent of screen resolution. Format is WIDTHxHEIGHT, leave blank for default resolution", order = orderx++ /> customsize = ""
@@ -70,6 +68,14 @@ local bgpicarray = []
 local bgvidarray = []
 local alphapos = []
 
+local brandstack = 2
+
+local cat_array = []
+local maincat_array = []
+local manufacturer_array = []
+local gamename_array = []
+local gamesubname_array = []
+local gameyear_array = []
 
 local my_dir = fe.script_dir
 dofile( my_dir + "file_util.nut" )
@@ -80,12 +86,13 @@ local prf = {
 	CROPSNAPS = ( (my_config["cropsnaps"] == "Square") ? true : false),
 	COLORTHEME = my_config["colortheme"],
 	SNAPGRADIENT = ( (my_config["snapgradient"] == "Yes") ? true : false),
+	DATASHADOWSMOOTH = ( (my_config["datashadowsmooth"] == "Yes") ? true : false),
 	NEWGAME = ( (my_config["newgame"] == "Yes") ? true : false),
 	BGBLURRED = my_config["bgblurred"],
 	KEYBOARD = ( (my_config["searchmeth"] == "Keyboard") ? true : false),
 	LIVESEARCH = ( (my_config["livesearch"] == "Yes") ? true : false ),
 	SPLASHON = ( (my_config["splashlogo"] == "Yes") ? true : false ),
-	SPLASHLOGOFILE = ( my_config["splashlogofile"] == "" ? "AFLOGO.png" : my_config["splashlogofile"]),
+	SPLASHLOGOFILE = ( my_config["splashlogofile"] == "" ? "aflogow3.png" : my_config["splashlogofile"]),
 	VERTICALROWS = ( (my_config["verticalrows"] == "2") ? 2 : 3 ),
 	HORIZONTALROWS = ( (my_config["horizontalrows"] == "2") ? 2 : 3 ),
 	OVERMENUBUTTON = my_config["overmenubutton"],
@@ -99,7 +106,6 @@ local prf = {
 	FROSTEDGLASS = ( (my_config["frostedglass"] == "Yes") ? true : false),
 	CUSTOMSIZE = my_config["customsize"]
 }
-
 
 
 if (prf.BASEROTATION == "None")
@@ -182,13 +188,13 @@ if (prf.COLORTHEME == "Dark"){
 	themeoverlaycolor = 0
 	themeoverlayalpha = 110*0 + 140
 	themetextcolor = 230
-	themeshadow = 50
+	themeshadow = 60
 }
 if (prf.COLORTHEME == "Light"){
 	themeoverlaycolor = 255
 	themeoverlayalpha = 190
-	themetextcolor = 100
-	themeshadow = 0
+	themetextcolor = 90
+	themeshadow = 30
 }
 if (prf.COLORTHEME == "Pop"){
 	themeoverlaycolor = 255
@@ -308,8 +314,10 @@ local zordertop = 0
 // transitions speeds
 local scrollspeed = 0.92
 local zoomspeed = 0.87
-local fadespeed = 0.88
+local bgfadespeed = 0.88
 local letterspeed = 0.85
+local dataspeedin = 0.92
+local dataspeedout = 0.88
 
 // Video delay parameters to skip fade-in
 local delayvid = 0.4
@@ -406,8 +414,15 @@ class Carrier {
 	changedfav = false
 
 	alphapos = 0
+	
 	zoompos = 0
 	zoomunpos = 0
+	zoomposold = 0
+
+	datapos = 0
+	dataunpos = 0
+	dataposold = 0
+
 	vidpos = 0
 	fadeletter = 0
 	sh_h = null
@@ -688,6 +703,7 @@ class Carrier {
 			if (tagsmenu) {
 				tagsmenu = false
 				zoompos = 1
+				datapos = 1
 			}
 		}
 
@@ -706,7 +722,12 @@ class Carrier {
 		// since the EndNavigation transition is fired many times I don't want the zoom/unzoom to take place in that case
 		if ((ttype != Transition.FromOldSelection) && (ttype != Transition.EndNavigation) && (ttype != Transition.HideOverlay) && (ttype != Transition.ShowOverlay) && (ttype != Transition.NewSelOverlay) ) {
 			if (DEBUG) print ("TRANSBLOCK 1 \n")
+			zoomposold =  1 - zoompos
 			zoompos = 1
+
+			dataposold = 1 - datapos
+			datapos = 1
+			
 
 			// If we are not transitioning to a new list, starting the layout or hiding the overlay old tile is faded out
 			if ((ttype!=Transition.ToNewList) && (ttype!=Transition.StartLayout) && (ttype!=Transition.HideOverlay)) {
@@ -718,7 +739,8 @@ class Carrier {
 				//vidszTable[oldfocusindex].visible = false
 				//vidszTable[oldfocusindex].file_name = "transparent.png"
 				
-				zoomunpos = 1
+				zoomunpos = zoomposold
+				dataunpos = dataposold
 			}
 		}
 
@@ -937,6 +959,13 @@ class Carrier {
 				alphapos[i] = alphapos[i+1]
 			}
 
+			manufacturer_array[0].rawset_index_offset(-var)
+			cat_array[0].rawset_index_offset(-var)
+			maincat_array[0].index_offset = -var
+			gamename_array[0].index_offset = -var
+			gamesubname_array[0].index_offset = -var
+			gameyear_array[0].index_offset = -var
+
 			alphapos [stacksize - 1]= 255
 			
 			surfacePos += (columnoffset * (width + padding) ) - centercorrectionshift
@@ -972,7 +1001,7 @@ class Carrier {
 	
 			if (alphapos[i] !=0){
 				if (alphapos[i] < 1 && alphapos[i] > -1 ) alphapos[i] = 0
-				alphapos[i] = alphapos[i] * fadespeed
+				alphapos[i] = alphapos[i] * bgfadespeed
 				bgpicarray[i].alpha = 255-alphapos[i]
 				if (prf.LAYERSNAP) bgvidarray[i].alpha = 255-alphapos[i] 
 			}
@@ -985,9 +1014,25 @@ class Carrier {
 			letterobj.alpha = 255*(1-4.0*pow((0.5-fadeletter),2))
 		}
 		
+		if ((datapos != 0) || (dataunpos != 0)){
+			if ((datapos < 0.01) && (datapos > -0.01 )) {
+				datapos = 0
+			}
+			if ((dataunpos < 0.01) && (dataunpos > -0.01 )) {
+				dataunpos = 0
+			}
+
+			datapos = datapos * dataspeedin
+			dataunpos = dataunpos * dataspeedout
+			
+			cat_array[0].alpha = maincat_array[0].alpha = manufacturer_array[0].alpha = gamename_array[0].alpha = gamesubname_array[0].alpha = gameyear_array[0].alpha = 255 * (dataunpos)*1.0
+			cat_array[1].alpha = maincat_array[1].alpha = manufacturer_array[1].alpha = gamename_array[1].alpha = gamesubname_array[1].alpha = gameyear_array[1].alpha= 255 * (1.0-datapos)
 		
+		}
+
+
 		// contemporary scrolling of tiles and zooming of selected tile
-		if ((surfacePos != 0)||(zoompos !=0)||(zoomunpos!=0)) {
+		if ((surfacePos != 0)||(zoompos !=0)||(zoomunpos!=0)) {	
 			if (zoompos == 1){
 				newfocusindex = wrap( floor(tilesTotal/2)-1 - corrector + tilesTableOffset, tilesTotal )
 				oldfocusindex = wrap( floor(tilesTotal/2)-1 - corrector - var + tilesTableOffset, tilesTotal )
@@ -1013,6 +1058,9 @@ class Carrier {
 			zoompos = zoompos * zoomspeed
 			zoomunpos = zoomunpos * zoomspeed*zoomspeed
 			
+			//		brandarray[0].alpha = yeararray[0].alpha = namearray[0].alpha = 255 * (zoomunpos)*1.0
+			//		brandarray[1].alpha = yeararray[1].alpha = namearray[1].alpha = 255 * (1.0-zoompos)
+
 			if (surfacePos > surfacePosOffset) surfacePos = surfacePosOffset
 			if (surfacePos < -surfacePosOffset) surfacePos = -surfacePosOffset
 			
@@ -1616,7 +1664,7 @@ function gameletter( offset ) {
 }
 
 // gets the first part of the game name
-function gamename( offset ) {
+function gamename1( offset ) {
 	local s = split( fe.game_info( Info.Title, offset ), "(" )	
 	if ( s.len() > 0 ) {
 		return s[0]
@@ -1624,29 +1672,17 @@ function gamename( offset ) {
 	return ""
 }
 
-function gamenames(offset){
-	local s1 = split( fe.game_info( Info.Title, offset ), "(" )
-	local s2 = split (s1[0], "/")
-	local s2len = s2.len()
-	if ( s2len > 0 ){
-		return s2len
+function gamename2( offset ) {
+	local s0 = split(fe.game_info( Info.Title, offset ),"(")
+	s0 = s0[0]
+
+	local s1 = split( s0, "/" )
+	if ( s1.len() > 1 )  {
+		return strip(s1[0])+"\n"+strip(s1[1])
 	}
-
-	return 0
-
-}
-
-function gamenamex(offset , index){
-	local s1 = split( fe.game_info( Info.Title, offset ), "(" )
-	local s2 = split (s1[0], "/")
-	local s2len = s2.len()
-	if (index == -1) index = s2len-1
-	local s2index = index % s2len
-	if ( s2len > 0 ){
-		local s2string = rstrip(lstrip(s2[s2index]))
-		return s2string.toupper() + (s2len > 1 ? " ···" : "")
+	else {
+		return s0
 	}
-	return ""
 }
 
 function gameplaycount( offset ) {
@@ -1660,18 +1696,22 @@ function gameplaycount( offset ) {
 // gets the second part of the game name, after the "("
 function gamesubname( offset ) {
 	local s = split( fe.game_info( Info.Title, offset ), "(" )
+	local s2 = ""
 	if ( s.len() > 1 ) {
-		return "("+s[1]
+		s2 = split(s[1],")")
+		return s2[0]
 	}
 	return ""
 }
 
 function maincategory( offset ) {
-	local s = split( fe.game_info( Info.Category, offset ), "/" )
+	local s0 = fe.game_info( Info.Category, offset )
+	if (s0 == "") return "" 
+	local s = split( s0, "/" )
 	if ( s.len() > 1 ) {
-		return " "+s[0]+"\n"+s[1]+" "
+		return strip(s[0])
 	}
-	return ""
+	else return strip(s0)
 }
 
 
@@ -1838,96 +1878,9 @@ fg_surface.zorder = zordertop + 2
 
 /// Display construction (DATA)  
 
-local rightdata = 400*scalerate
-//local namesurf = fe.add_surface (flw-rightdata,header_h)
-
-local name_surf = fe.add_surface (flw - rightdata, header_h*2/3)
-
-// game name shadow
-local namesh_x = name_surf.add_text( "[!gamename]", 3, 3, flw*2, header_h*2/3 )
-namesh_x.align = Align.Left
-namesh_x.word_wrap = false
-namesh_x.set_rgb( 0, 0, 0)
-namesh_x.charsize = 60*scalerate
-namesh_x.alpha=themeshadow
-//namesh_x.bg_alpha = 128
-//namesh_x.bg_red = 255
-namesh_x.font = guifont
-namesh_x.alpha = 0
-
-// game name
-local name_x = name_surf.add_text( "[!gamename]", 0, 0, flw*2, header_h*2/3 )
-name_x.align = Align.Left
-name_x.word_wrap = false
-name_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-name_x.charsize = 60*scalerate
-//name_x.bg_alpha = 128
-//name_x.bg_red = 255
-name_x.font = guifont
-name_x.alpha = 0
-
-// game name shadow
-local namesh_x2 = name_surf.add_text( "[!gamename]", 3, 3, flw*2, header_h*2/3 )
-namesh_x2.align = Align.Left
-namesh_x2.word_wrap = false
-namesh_x2.set_rgb( 0, 0, 0)
-namesh_x2.charsize = 60*scalerate
-namesh_x2.alpha=themeshadow
-//namesh_x.bg_alpha = 128
-//namesh_x.bg_red = 255
-namesh_x2.font = guifont
-
-// game name
-local name_x2 = name_surf.add_text( "[!gamename]", 0, 0, flw*2, header_h*2/3 )
-name_x2.align = Align.Left
-name_x2.word_wrap = false
-name_x2.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-name_x2.charsize = 60*scalerate
-//name_x.bg_alpha = 128
-//name_x.bg_red = 255
-name_x2.font = guifont
 
 local data_surface = fe.add_surface (flw,flh)
 
-name_surf.visible = false
-name_surf = data_surface.add_clone (name_surf)
-name_surf.visible = true
-
-// game name second part (revision, details etc)
-local subname_x = data_surface.add_text( " [!gamesubname]", 0, header_h*1/3+60*scalerate/2, flw - rightdata, header_h*1/3 )
-subname_x.align = Align.Left
-subname_x.word_wrap = true
-subname_x.set_rgb( 255, 255, 255)
-subname_x.charsize = 40*scalerate
-//subname_x.bg_alpha = 128
-//subname_x.bg_green = 255
-subname_x.font = guifont
-subname_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-// game year and some data
-local year_x = data_surface.add_text( "© [Year] [Manufacturer]", flw-rightdata, 10*scalerate, rightdata, header_h/2)
-//local year_x = fe.add_text( "© [Year] [Manufacturer]", flw-rightdata*2, header_h/2-10*scalerate, rightdata, header_h/2)
-year_x.align = Align.Centre
-year_x.set_rgb( 255, 255, 255)
-year_x.word_wrap = true
-year_x.charsize = 30*scalerate
-year_x.visible = true
-//year_x.bg_alpha = 128
-//year_x.bg_green = 155
-year_x.font = guifont
-year_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-// game category and some data
-local year2_x = data_surface.add_text( "[!maincategory]", flw-rightdata, header_h/2-10*scalerate, rightdata, header_h/2)
-year2_x.align = Align.Centre
-year2_x.set_rgb( 255, 255, 255)
-year2_x.word_wrap = true
-year2_x.charsize = 30*scalerate
-year2_x.visible = true
-//year2_x.bg_alpha = 128
-//year2_x.bg_red = 155
-year2_x.font = guifont
-year2_x.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
 local filterdata = data_surface.add_text ("[FilterName]",0,flh-footer_h,footermargin,footer_h)
 filterdata.align = Align.Centre
@@ -1947,8 +1900,141 @@ filternumbers.visible = true
 filternumbers.font = guifont
 filternumbers.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
-data_surface.zorder = zordertop + 3
+
+
+local game_catpicT = {
+	x = 30 * scalerate,
+	y = 20 * scalerate,
+	w = 110 * scalerate,
+	h = 110 * scalerate
+}
+local game_maincatT = {
+	x = 30 * scalerate,
+	y = 145 * scalerate,
+	w = 110 * scalerate,
+	h = 35 * scalerate
+}
+local game_mainnameT = {
+	x = 170 * scalerate,
+	y = 20 * scalerate,
+	w = flw - (170 + 320) * scalerate,
+	h = 110 * scalerate
+}
+local game_subnameT = {
+	x = 170 * scalerate,
+	y = 145 * scalerate,
+	w = flw - (170 + 320) * scalerate,
+	h = 35 * scalerate
+}
+local game_manufacturerpicT = {
+	x = flw - 320 * scalerate,
+	y = 10 * scalerate,
+	w = 290 * scalerate,
+	h = 145 * scalerate
+}
+local game_yearT = {
+	x = flw - 320 * scalerate,
+	y = 155 * scalerate,
+	w = 290 * scalerate,
+	h = 25 * scalerate
+}
+
+local alphashader = fe.add_shader( Shader.Fragment, "alphacorrect.glsl" )
+alphashader.set_texture_param( "texture")
+alphashader.set_param("maincolor",themetextcolor/255.0)
+for (local i = 0; i < brandstack; i++){
+
+	local game_catpic = data_surface.add_image("[!category_pic]",game_catpicT.x, game_catpicT.y, game_catpicT.w, game_catpicT.h)
+	game_catpic.smooth = false
+	game_catpic.preserve_aspect_ratio = true
+	game_catpic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	//game_catpic.fix_masked_image()
+
+
+	local game_maincat = data_surface.add_text("[!maincategory]",game_maincatT.x,game_maincatT.y,game_maincatT.w,game_maincatT.h)
+//	local game_maincat = data_surface.add_text("[!maincategory]",20*scalerate,150*scalerate,120*scalerate,35*scalerate)
+	game_maincat.align = Align.MiddleCentre
+	game_maincat.word_wrap = true
+	game_maincat.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_maincat.charsize = 15*scalerate/0.711
+	game_maincat.font = guifont
+	game_maincat.alpha = 255
+	game_maincat.margin = 0
+	game_maincat.line_spacing = 0.8
+	
+
+	local game_mainname = data_surface.add_text( "[!gamename2]", game_mainnameT.x, game_mainnameT.y, game_mainnameT.w, game_mainnameT.h )
+	game_mainname.align = Align.MiddleLeft
+	game_mainname.word_wrap = true
+	game_mainname.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_mainname.charsize = 50*scalerate/0.711
+	game_mainname.line_spacing = 0.68
+	game_mainname.margin = 0
+	game_mainname.font = guifont
+	game_mainname.alpha = 255
+//	game_mainname.set_bg_rgb(200,0,0)
+	game_mainname.visible = true
+
+	local game_subname = data_surface.add_text( "[!gamesubname]", game_subnameT.x, game_subnameT.y, game_subnameT.w, game_subnameT.h )
+//	local game_subname = data_surface.add_text( "[!gamesubname]", 170*scalerate, 150*scalerate, flw-170*scalerate-300*scalerate, header_h )
+	game_subname.align = Align.TopLeft
+	game_subname.word_wrap = false
+	game_subname.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_subname.charsize = 35*scalerate/0.711
+	game_subname.font = guifont
+	game_subname.alpha = 255
+	game_subname.margin = 0
+
+
+
+	local game_manufacturerpic = data_surface.add_image("[!manufacturer_pic]",game_manufacturerpicT.x, game_manufacturerpicT.y, game_manufacturerpicT.w, game_manufacturerpicT.h)
+//	game_manufacturerpic.mipmap = 1
+	game_manufacturerpic.smooth = true
+	game_manufacturerpic.preserve_aspect_ratio = false
+	game_manufacturerpic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+//	game_manufacturerpic.shader = alphashader
+
+	local game_year = data_surface.add_text( "© [Year]  ", game_yearT.x, game_yearT.y, game_yearT.w, game_yearT.h)
+//	local game_year = data_surface.add_text( "© [Year]  ", flw-300*scalerate, 160*scalerate, 290*scalerate, 25*scalerate)
+	game_year.align = Align.TopCentre
+	game_year.set_rgb( 255, 255, 255)
+	game_year.word_wrap = false
+	game_year.charsize = 25*scalerate/0.711
+	game_year.visible = true
+	game_year.font = guifont
+	game_year.margin = 0
+	game_year.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	
+
+
+	cat_array.push(game_catpic)
+	maincat_array.push(game_maincat)
+	manufacturer_array.push(game_manufacturerpic)
+	gamename_array.push(game_mainname)
+	gamesubname_array.push(game_subname)
+	gameyear_array.push(game_year)
+}
+
+
+
 //name_surf.zorder = subname_x.zorder = year_x.zorder = year2_x.zorder = filterdata.zorder = filternumbers.zorder = zordertop + 1
+
+local data_surface_sh = fe.add_clone(data_surface)
+data_surface_sh.alpha = themeshadow
+
+
+
+local shadowshader = fe.add_shader( Shader.Fragment, "gauss_kernsigma_2D.glsl" )
+shadowshader.set_texture_param( "texture")
+shadowshader.set_param("kernelData",3,3)
+shadowshader.set_param("offsetFactor",1.5/flw,1.5/flh)
+if (prf.DATASHADOWSMOOTH) data_surface_sh.shader = shadowshader
+data_surface_sh.set_rgb(0,0,0)
+data_surface_sh.set_pos(3,5)
+
+
+data_surface_sh.zorder = zordertop + 3
+data_surface.zorder = zordertop + 4
 
 /// Frosted glass surface  
 
@@ -2043,7 +2129,7 @@ if (prf.FROSTEDGLASS){
 	
 
 	//frost_surface = fe.add_clone(frost_surf1)
-	frost_surface.zorder = zordertop + 4
+	frost_surface.zorder = zordertop + 5
 
 	//frost_surface.alpha = 120
 	//frost_surface.set_pos(bgT.x,bgT.y,bgT.w,bgT.w)
@@ -2116,7 +2202,7 @@ shader3.set_rgb(0,0,0)
 
 overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false
 
-overlay_listbox.zorder = overlay_label.zorder = overlay_background.zorder = shader1.zorder = shader2.zorder = shader3.zorder = zordertop + 5
+overlay_listbox.zorder = overlay_label.zorder = overlay_background.zorder = shader1.zorder = shader2.zorder = shader3.zorder = zordertop + 6
 
 fe.overlay.set_custom_controls( overlay_label, overlay_listbox )
 
@@ -2636,6 +2722,7 @@ function history_exit (){
 function cutlogo() {
 	logoshow = 0
 	fg_surface.alpha = 0
+	data_surface_sh.alpha = themeshadow
 	data_surface.alpha = 255
 	aflogo_surface.alpha = 0
 }
@@ -2687,8 +2774,6 @@ function monitortick(tick_time){
 */
 fe.add_ticks_callback( this, "tick2" )
 
-local timerscan = 10.0
-local timerstep = 3
 
 local flowspeed = 25
 
@@ -2720,84 +2805,8 @@ function tick2( tick_time ) {
 		overmenu.x = globalposnew + selectorwidth * 0.5 - overmenuwidth*0.5 
 	}
 
-	if (titlestart){
-		name_x.msg = gamenamex ( name_x.index_offset,titleswitch - 1)
-		namesh_x.msg = gamenamex ( name_x.index_offset,titleswitch - 1)
-		name_x2.msg = gamenamex ( name_x.index_offset,titleswitch)
-		namesh_x2.msg = gamenamex ( name_x.index_offset,titleswitch)
-		
-		name_x2.x = 0
-		namesh_x2.x = 3
-		scrollincrement = 0
 
-		titlecrossfade = 0
-		name_x.alpha = 0
-		namesh_x.alpha = 0
-		name_x2.alpha = 255
-		namesh_x2.alpha = themeshadow
-		titlestart = false
-
-		if (gamenames (name_x.index_offset) > 1) 
-			titleroll = true
-		else
-			titleroll = false
-
-		if (name_x2.msg_width > flw - rightdata) 
-			titlescroll = true
-		else
-			titlescroll = false
-	}
-
-	if ((titleroll) && (tick_time - titlezero >= titlewait)) {
-		//print("tick time:" + tick_time + " title zero:" + titlezero + " \n")	
-		titleswitch ++
-		name_x.msg = gamenamex ( name_x.index_offset,titleswitch - 1)
-		namesh_x.msg = gamenamex ( name_x.index_offset,titleswitch - 1)
-		name_x2.msg = gamenamex ( name_x.index_offset,titleswitch)
-		namesh_x2.msg = gamenamex ( name_x.index_offset,titleswitch)
-		
-		name_x2.x =0
-		namesh_x2.x =3
-
-		if (name_x2.msg_width > flw - rightdata) 
-			titlescroll = true
-		else
-			titlescroll = false
-
-		scrollincrement = 0
-		titlezero = tick_time
-		titlezero2 = tick_time
-		titlecrossfade = 1
-	}
-
-
-	if (titlecrossfade >= 0){
-		name_x.alpha = titlecrossfade * 255
-		namesh_x.alpha = titlecrossfade * themeshadow
-		name_x2.alpha = (1 - titlecrossfade) * 255
-		namesh_x2.alpha = (1 - titlecrossfade)*themeshadow
-		titlecrossfade -= 0.05
-	}
-
-	local deltastep = floor((name_x2.msg_width - flw + rightdata + 50*scalerate)*1.1)
-
-	if (titlescroll){
-		
-		scrollincrement = tick_time - titlezero2
-
-		if (scrollincrement > (scrollwait*2+scrollmove*2)) titlezero2 = tick_time
-
-		if ((scrollincrement >= scrollwait) && (scrollincrement <= (scrollwait + scrollmove)))
-		{
-			name_x2.x = - deltastep * (scrollincrement - scrollwait)/scrollmove
-			namesh_x2.x = 3 + name_x2.x
-		}
-		if ((scrollincrement >= (scrollwait+scrollmove+scrollwait)) && (scrollincrement <= (scrollwait+scrollmove+scrollwait+scrollmove)))
-		{
-			name_x2.x = - deltastep * ((scrollwait+scrollmove+scrollwait+scrollmove) - scrollincrement)/scrollmove
-			namesh_x2.x = 3 + name_x2.x
-		}
-	}
+	
 
 
 	if (overmenuflow > 0) {
@@ -2822,11 +2831,13 @@ function tick2( tick_time ) {
 			history_surface.alpha = history_surface.alpha + flowspeed
 			fg_surface.alpha = history_surface.alpha
 			data_surface.alpha = 255-fg_surface.alpha
+			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
 		}
 		else {
 			history_surface.alpha = 255
 			fg_surface.alpha = 255
 			data_surface.alpha = 255-fg_surface.alpha
+			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
 			historyflow = 0
 			}
 	}
@@ -2835,6 +2846,7 @@ function tick2( tick_time ) {
 			history_surface.alpha = history_surface.alpha - flowspeed
 			if(!overlay_listbox.visible) fg_surface.alpha = history_surface.alpha
 			data_surface.alpha = 255-history_surface.alpha
+			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
 		}
 		else {
 			historyflow = 0
@@ -2844,6 +2856,7 @@ function tick2( tick_time ) {
 			history_surface.alpha = 0
 			if(!overlay_listbox.visible) fg_surface.alpha = 0
 			data_surface.alpha = 255-history_surface.alpha
+			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
 			history_surface.visible = false
 		}
 	}
@@ -2862,12 +2875,14 @@ function tick2( tick_time ) {
 			aflogo_surface.alpha = 255*(1-pow((1-logoshow),3))
 			if((!overlay_listbox.visible) && (!history_visible())) fg_surface.alpha = aflogo_surface.alpha
 			data_surface.alpha = 255-aflogo_surface.alpha
+			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
 		}
 		else
 		{
 			aflogo_surface.alpha = 0
 			if((!overlay_listbox.visible) && (!history_visible())) fg_surface.alpha = aflogo_surface.alpha
-			data_surface.alpha = 255-aflogo_surface.alpha			
+			data_surface.alpha = 255-aflogo_surface.alpha
+			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
 		}
 	}
 	

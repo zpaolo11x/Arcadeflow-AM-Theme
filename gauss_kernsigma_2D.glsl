@@ -25,6 +25,6 @@ void main() {
       }
    }
     
-    gl_FragColor = color/weightSum;
+    gl_FragColor = gl_Color*(color/weightSum);
 
 }
