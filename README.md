@@ -22,7 +22,7 @@ You can define a custom control to call the game context menu, from which you ca
 - "LEFT" to enter the Tags menu
 - "RIGHT" to add/remove favorites
 
-## Filters, Search and Layout options #
+## Filters, Search and Layout options #
 
 You can access the "Filters" menu and the "Search" function by going "UP" from the first row of icons. In the same menu you'll get the "Layout options" access (in AM 2.4)
 
