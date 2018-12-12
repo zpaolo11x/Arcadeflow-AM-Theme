@@ -1,4 +1,4 @@
-// Arcadeflow - v 2.9
+// Arcadeflow - v 3.0
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
@@ -9,73 +9,85 @@ fe.load_module("file")
 fe.do_nut("pic_functions.nut")
 
 local orderx = 0
-local preliner = "     ○  "
-local prelinerh = " ●  "
+local preliner = "  ○ "
+local prelinerh = "● "
 local postliner = "                                                                                                  "
 
 class UserConfig </ help="" />{
+   	</ label= postliner, help=" ", options = " ", order=orderx++ /> paramxx0 = " "
+
 	</ label=prelinerh + "GENERAL" + postliner, help=" ", options = " ", order=orderx++ /> paramx1 = " "
 		</ label=preliner + "Context menu button" + postliner, help="Chose the button to open the game context menu", options="custom1, custom2, custom3, custom4, custom5, custom6", order=orderx++ /> overmenubutton="custom1"
-		</ label=preliner + "Rows in horizontal layout" + postliner, help = "Number of rows to use in 'horizontal' mode", options="2, 3", order = orderx++ /> horizontalrows = "2"
-		</ label=preliner + "Rows in vertical layout" + postliner, help = "Number of rows to use in 'vertical' mode", options="2, 3", order = orderx++ /> verticalrows = "3"
+		</ label=preliner + "Rows in horizontal" + postliner, help = "Number of rows to use in 'horizontal' mode", options="2, 3", order = orderx++ /> horizontalrows = "2"
+		</ label=preliner + "Rows in vertical" + postliner, help = "Number of rows to use in 'vertical' mode", options="2, 3", order = orderx++ /> verticalrows = "3"
 		</ label=preliner + "Smooth shadow" + postliner, help = "Enable smooth shadow under game title and data in the GUI", options="Yes, No", order = orderx++ /> datashadowsmooth = "Yes"
 		</ label=preliner + "Screen rotation" + postliner, help = "Rotate screen", options="None, Left, Right, Flip", order = orderx++ /> baserotation = "None"
 		</ label=preliner + "Frosted glass" + postliner, help = "Enable a frosted glass effect for overlay menus", options="Yes, No", order = orderx++ /> frostedglass = "Yes"
-		</ label=preliner + "Custom resolution WIDTHxHEIGHT" + postliner, help = "Define a custom resolution for your layout independent of screen resolution. Format is WIDTHxHEIGHT, leave blank for default resolution", order = orderx++ /> customsize = ""
-		
+		</ label=preliner + "Resolution W x H" + postliner, help = "Define a custom resolution for your layout independent of screen resolution. Format is WIDTHxHEIGHT, leave blank for default resolution", order = orderx++ /> customsize = ""
+	</ label= postliner, help=" ", options = " ", order=orderx++ /> paramxx1 = " "
+
 	</ label=prelinerh + "THUMBNAILS" + postliner, help=" ", options =" ", order=orderx++ /> paramx2 = " "
 		</ label=preliner+"Aspect ratio" + postliner, help="Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation", options ="Horizontal-Vertical, Square", order = orderx++ /> cropsnaps = "Horizontal-Vertical"
-		</ label=preliner+"Glow effect" + postliner, help="Add a glowing halo around the selected game thumbnail", options="Yes, No", order=orderx++ /> snapglow ="No"
+		</ label=preliner+"Glow effect" + postliner, help="Add a glowing halo around the selected game thumbnail", options="Yes, No", order=orderx++ /> snapglow ="Yes"
 		</ label=preliner+"Video thumbs" + postliner, help="Enable video overlay on snapshot thumbnails", options="Yes, No", order=orderx++ /> thumbvideo ="Yes"
 		</ label=preliner+"Color gradient" + postliner, help="Fades the artwork behind the game logo to its average color", options="Yes, No", order=orderx++ /> snapgradient="Yes"
 		</ label=preliner+"New game indicator" + postliner, help="Games not played are marked with a glyph", options="Yes, No", order=orderx++ /> newgame = "Yes"
+	</ label= postliner, help=" ", options = " ", order=orderx++ /> paramxx2 = " "
 
-	</ label=prelinerh + "BACKDROP" + postliner, help=" ", options =" ", order=orderx++ /> paramx3 = " "
-		</ label=preliner+"Overlay color" + postliner, help="Setup theme luminosity overlay, Basic is slightly muted, Dark is darker, Light has a white overlay and dark text, Pop keeps the colors unaltered", options="Basic, Dark, Light, Pop", order=orderx++ /> colortheme="Basic"
-		</ label=preliner+"Custom background image" + postliner, help="Insert custom background art path", order=orderx++ /> bgblurred=""
+	</ label=prelinerh + "BACKGROUND" + postliner, help=" ", options =" ", order=orderx++ /> paramx3 = " "
+		</ label=preliner+"Overlay color" + postliner, help="Setup theme luminosity overlay, Basic is slightly muted, Dark is darker, Light has a white overlay and dark text, Pop keeps the colors unaltered", options="Basic, Dark, Light, Pop", order=orderx++ /> colortheme="Pop"
+		</ label=preliner+"Custom bg image" + postliner, help="Insert custom background art path", order=orderx++ /> bgblurred=""
 		</ label=preliner+"Background snap" + postliner, help="Add a faded game snapshot to the background", options="Yes, No", order=orderx++ /> layersnap ="No"
-		</ label=preliner+"Animate background snap" + postliner, help="Animate video on background", options="Yes, No", order=orderx++ /> layervideo ="No"
+		</ label=preliner+"Animate bg snap" + postliner, help="Animate video on background", options="Yes, No", order=orderx++ /> layervideo ="No"
+	</ label= postliner, help=" ", options = " ", order=orderx++ /> paramxx3 = " "
 
 	</ label=prelinerh + "LOGO" + postliner, help=" ", options =" ", order=orderx++ /> paramx4 = " "
 		</ label=preliner+"Enable splash logo" + postliner, help="Enable or disable the AF start logo", options="Yes, No",order = orderx++/> splashlogo = "Yes"
 		</ label=preliner+"Custom splash logo" + postliner, help="Insert the path to a custom AF splash logo (or keep blank for default logo)", order = orderx++/> splashlogofile = ""
+	</ label= postliner, help=" ", options = " ", order=orderx++ /> paramxx4 = " "
 
 	</ label=prelinerh + "SEARCH" + postliner, help=" ", options =" ", order=orderx++ /> paramx5 = " "
-		</ label=preliner+"Search string entry method" + postliner, help="Use keyboard or on-screen keys to enter search string", options="Keyboard, Screen keys", order=orderx++ /> searchmeth = "Screen keys"
+		</ label=preliner+"Search entry method" + postliner, help="Use keyboard or on-screen keys to enter search string", options="Keyboard, Screen keys", order=orderx++ /> searchmeth = "Screen keys"
 		</ label=preliner+"Immediate search" + postliner, help="Live update results while searching", options="Yes, No", order=orderx++ /> livesearch = "Yes"
+	</ label= postliner, help=" ", options = " ", order=orderx++ /> paramxx5 = " "
 
 	</ label=prelinerh + "HISTORY" + postliner, help=" ", options =" ", order=orderx++ /> paramx6 = " "
 		</ label=preliner+"History.dat" + postliner, help="History.dat location.", order=orderx++ /> dat_path="$HOME/mame/dats/history.dat"
 		</ label=preliner+"Index clones" + postliner, help="Set whether entries for clones should be included in the index. Enabling this will make the index significantly larger", order=orderx++, options="Yes, No" /> index_clones="Yes"
 		</ label=preliner+"Generate index" + postliner, help="Generate the history.dat index now (this can take some time)", is_function=true, order=orderx++ />generate="generate_index"
+	</ label= postliner, help=" ", options = " ", order=orderx++ /> paramxx6 = " "
 
 	</ label=prelinerh + "AUDIO" + postliner, help=" ", options =" ", order=orderx++ /> paramx7 = " "
-		</ label=preliner+"Audio in videos (thumbs)" + postliner, help="Select wether you want to play audio in videos on thumbs", options="Yes, No", order=orderx++ /> audiovidsnaps="No"
+		</ label = preliner + "Theme sound" + postliner, help = "Enable audio sounds when browsing and moving around the theme", options = "Yes, No", order = orderx++ /> themeaudio = "Yes"
+      </ label=preliner+"Audio in videos (thumbs)" + postliner, help="Select wether you want to play audio in videos on thumbs", options="Yes, No", order=orderx++ /> audiovidsnaps="No"
 		</ label=preliner+"Audio in videos (history)" + postliner, help="Select wether you want to play audio in videos on history detail page", options="Yes, No", order=orderx++ /> audiovidhistory="No"
+	</ label= postliner, help=" ", options = " ", order=orderx++ /> paramxx7 = " "
 }
 
 /// Layout start  
 
 // for debug purposes
-local DEBUG = false
+local DEBUG = true
 local transdata = ["StartLayout", "EndLayout", "ToNewSelection","FromOldSelection","ToGame","FromGame","ToNewList","EndNavigation","ShowOverlay","HideOverlay","NewSelOverlay"]
 
 local bgvidsurf = null
 
-local stacksize = 3
-local varray = []
+local stacksize = 5
 local bgpicarray = []
 local bgvidarray = []
 local alphapos = []
 
-local brandstack = 2
+local brandstack = 5
 
+local var_array = []
 local cat_array = []
 local maincat_array = []
 local manufacturer_array = []
 local gamename_array = []
 local gamesubname_array = []
 local gameyear_array = []
+
+local data_alphapos = []
 
 local my_dir = fe.script_dir
 dofile( my_dir + "file_util.nut" )
@@ -104,6 +116,7 @@ local prf = {
 	SNAPGLOW = ( (my_config["snapglow"] == "Yes") ? true : false),
 	BASEROTATION = my_config["baserotation"],
 	FROSTEDGLASS = ( (my_config["frostedglass"] == "Yes") ? true : false),
+	THEMEAUDIO = ( (my_config["themeaudio"] == "Yes") ? true : false),
 	CUSTOMSIZE = my_config["customsize"]
 }
 
@@ -138,19 +151,6 @@ local overmenuflow = 0
 local historyflow = 0
 
 local noshader = fe.add_shader( Shader.Empty )
-
-local titleswitch = -1
-local titlezero = 0
-local titlezero2 = 0
-local titlecrossfade = 0
-local titlestart = true
-local titleroll = false
-local titlescroll = false
-local scrollincrement = 0
-
-local scrollwait = 2000
-local scrollmove = 1000
-local titlewait = scrollwait*2+scrollmove*2
 
 local frost_surface = null
 local frost_pic = null
@@ -188,19 +188,19 @@ if (prf.COLORTHEME == "Dark"){
 	themeoverlaycolor = 0
 	themeoverlayalpha = 110*0 + 140
 	themetextcolor = 230
-	themeshadow = 60
+	themeshadow = 80
 }
 if (prf.COLORTHEME == "Light"){
 	themeoverlaycolor = 255
 	themeoverlayalpha = 190
 	themetextcolor = 90
-	themeshadow = 30
+	themeshadow = 50
 }
 if (prf.COLORTHEME == "Pop"){
 	themeoverlaycolor = 255
 	themeoverlayalpha = 0
 	themetextcolor = 255
-	themeshadow = 50
+	themeshadow = 70
 }
 
 function round(x, y) {
@@ -444,11 +444,13 @@ class Carrier {
 		zorderscanner = 0
 
 		// fading letter
-		letterobj = fe.add_text("[!gameletter]",0,carrierT.y+carrierT.h*0.5-lettersize*0.5,flw,lettersize)
+		letterobj = fe.add_text("[!gameletter]",0,carrierT.y,flw,carrierT.h)
 		letterobj.alpha = 0
 		letterobj.charsize = lettersize
 		letterobj.font = guifont
 		letterobj.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+		letterobj.margin = 0
+		letterobj.align = Align.MiddleCentre
 
 		// scroller definition
 		local scrolline = fe.add_image ("white.png",footermargin,flh-footer_h*0.5 - 1,flw-2*footermargin,2)
@@ -671,6 +673,7 @@ class Carrier {
 		// define initial carrier "surface" position
 		surfacePos = 0.5
 
+
 		::fe.add_signal_handler( this, "on_signal" )
 		::fe.add_transition_callback( this, "on_transition" )
 		::fe.add_ticks_callback( this, "tick" )
@@ -685,6 +688,11 @@ class Carrier {
 		if (DEBUG) print ("Tr:" + transdata[ttype] +" var:" + var0 + "\n")
 
 		//var = 0
+
+		if ((ttype == Transition.StartLayout) || (ttype == Transition.ToNewList)){
+			manufacturer_array[brandstack - 1].file_name = manufacturer_pic (0)
+			cat_array[brandstack - 1].file_name = category_pic (0)
+		}
 
 		// cleanup frosted glass grabs
 		if ((ttype == Transition.EndLayout) && (var0 == FromTo.Frontend)){
@@ -747,10 +755,6 @@ class Carrier {
 		// cases when the tiles will be updated
 		if ( ( ttype == Transition.ToNewList ) || ( ttype == Transition.ToNewSelection ) || (ttype == Transition.StartLayout)) {
 			
-			titlezero = fe.layout.time
-			titleswitch = 0
-			titlestart = true
-			titlezero2 = titlezero
 
 			if (DEBUG) print ("TRANSBLOCK 2 \n")
 			//zoompos = 1
@@ -948,23 +952,41 @@ class Carrier {
 				fadeletter = 1
 			}
 			
-			for (local i = 0; i < stacksize - 2;i++){
-				varray[i] = - var + varray[i+1]
-			}
-			varray [stacksize - 1] = 0
-			varray [stacksize - 2] = - var
 
 			for (local i = 0; i < stacksize-1;i++){
-				bgpicarray[i].rawset_index_offset(varray[i])
+				bgpicarray[i].swap(bgpicarray[i+1])
 				alphapos[i] = alphapos[i+1]
 			}
 
-			manufacturer_array[0].rawset_index_offset(-var)
-			cat_array[0].rawset_index_offset(-var)
-			maincat_array[0].index_offset = -var
-			gamename_array[0].index_offset = -var
-			gamesubname_array[0].index_offset = -var
-			gameyear_array[0].index_offset = -var
+
+			for (local i = 0; i < brandstack - 2;i++){
+				var_array[i] = - var + var_array[i+1]
+			}
+			var_array [brandstack - 1] = 0
+			var_array [brandstack - 2] = - var 
+
+
+			for (local i=0 ; i< brandstack -1 ; i++){
+//			manufacturer_array[i].rawset_index_offset(var_array[i])
+//			cat_array[i].rawset_index_offset(var_array[i])
+
+			manufacturer_array[i].swap (manufacturer_array[i+1])
+			cat_array[i].swap (cat_array[i+1])
+
+			maincat_array[i].index_offset = var_array[i]
+			gamename_array[i].index_offset = var_array[i]
+			gamesubname_array[i].index_offset = var_array[i]
+			gameyear_array[i].index_offset = var_array[i]
+			if (i != brandstack -2 )
+				data_alphapos[i] = data_alphapos[i+1]
+			else
+				data_alphapos[i] = 1.0 - data_alphapos[i+1]
+			}
+
+			manufacturer_array[brandstack - 1].file_name = manufacturer_pic (var)
+			cat_array[brandstack - 1].file_name = category_pic (var)
+
+			data_alphapos [brandstack - 1] = 1
 
 			alphapos [stacksize - 1]= 255
 			
@@ -981,7 +1003,6 @@ class Carrier {
 	
 	/// On Tick  
 	function tick( tick_time ) {
-
 
 		if (squarizer){
 			squarizer = false
@@ -1000,7 +1021,7 @@ class Carrier {
 		for (local i = 0 ; i < stacksize ; i++){
 	
 			if (alphapos[i] !=0){
-				if (alphapos[i] < 1 && alphapos[i] > -1 ) alphapos[i] = 0
+				if ((alphapos[i] < 1) && (alphapos[i] > -1) ) alphapos[i] = 0
 				alphapos[i] = alphapos[i] * bgfadespeed
 				bgpicarray[i].alpha = 255-alphapos[i]
 				if (prf.LAYERSNAP) bgvidarray[i].alpha = 255-alphapos[i] 
@@ -1014,6 +1035,26 @@ class Carrier {
 			letterobj.alpha = 255*(1-4.0*pow((0.5-fadeletter),2))
 		}
 		
+		for (local i = 0 ; i < brandstack ; i++){
+			if (data_alphapos[i] != 0 ){
+				if ((data_alphapos[i] <0.01) && (data_alphapos[i] > -0.01)) data_alphapos[i] = 0
+
+				if (i != brandstack -1){
+					data_alphapos[i] = data_alphapos[i] * dataspeedout
+					cat_array[i].alpha = maincat_array[i].alpha = manufacturer_array[i].alpha = gamename_array[i].alpha = gamesubname_array[i].alpha = gameyear_array[i].alpha = 255 * (data_alphapos[i])*1.0
+				}
+				else {
+					data_alphapos[brandstack -1] = data_alphapos[brandstack - 1] * dataspeedin
+					cat_array[brandstack - 1].alpha = maincat_array[brandstack - 1].alpha = manufacturer_array[brandstack - 1].alpha = gamename_array[brandstack - 1].alpha = gamesubname_array[brandstack - 1].alpha = gameyear_array[brandstack - 1].alpha = 255 * (1.0 - data_alphapos[brandstack - 1])*1.0
+				}
+			}
+		}
+
+	
+
+
+
+/*
 		if ((datapos != 0) || (dataunpos != 0)){
 			if ((datapos < 0.01) && (datapos > -0.01 )) {
 				datapos = 0
@@ -1029,7 +1070,7 @@ class Carrier {
 			cat_array[1].alpha = maincat_array[1].alpha = manufacturer_array[1].alpha = gamename_array[1].alpha = gamesubname_array[1].alpha = gameyear_array[1].alpha= 255 * (1.0-datapos)
 		
 		}
-
+*/
 
 		// contemporary scrolling of tiles and zooming of selected tile
 		if ((surfacePos != 0)||(zoompos !=0)||(zoomunpos!=0)) {	
@@ -1267,7 +1308,7 @@ class Carrier {
 				
 				if (prf.FROSTEDGLASS){
 					if (immediatesignal){
-						wooshsound.playing=true
+					if(prf.THEMEAUDIO) wooshsound.playing=true
 						immediatesignal = false
 					}
 					else{
@@ -1349,7 +1390,7 @@ class Carrier {
 			else if (sig == "left") {
 				// add tags
 				overmenu_hide(true)
-				wooshsound.playing = true
+					if(prf.THEMEAUDIO) wooshsound.playing=true
 				fe.signal ("add_tags")
 				return true
 			}
@@ -1358,7 +1399,7 @@ class Carrier {
 				// add current game to favorites
 				overmenu_hide(true)
 				//changedfav = true
-				wooshsound.playing = true
+					if(prf.THEMEAUDIO) wooshsound.playing=true
 				fe.signal("add_favourite")
 				return true
 			}
@@ -1459,7 +1500,7 @@ class Carrier {
 				if (fe.list.index > scrollstep - 1) {
 					if (leftcount == 0) {
 						fe.list.index -= scrollstep
-						ticksound.playing=true
+						if(prf.THEMEAUDIO) ticksound.playing=true
 						leftcount ++
 					}
 					else {
@@ -1474,7 +1515,7 @@ class Carrier {
 				if ((fe.list.index < fe.list.size - scrollstep)){
 					if (rightcount == 0) {
 						fe.list.index += scrollstep
-						ticksound.playing=true
+						if(prf.THEMEAUDIO) ticksound.playing=true
 						rightcount ++
 					}
 					else {
@@ -1488,10 +1529,10 @@ class Carrier {
 				case "up":
 				if ((fe.list.index % rows > 0) && (scrolljump == false)) {
 					fe.list.index --
-					ticksound.playing = true
+					if(prf.THEMEAUDIO) ticksound.playing=true
 				}
 				else if (scrolljump == true){
-					wooshsound.playing=true
+					if(prf.THEMEAUDIO) wooshsound.playing=true
 					scrolljump = false
 					scrollstep = rows
 					scroller2.visible = scrollineglow.visible = false
@@ -1507,8 +1548,9 @@ class Carrier {
 						return true
 						}
 					}
-					else wooshsound.playing = true
-
+					else {
+                  					if(prf.THEMEAUDIO) wooshsound.playing=true
+                     }
 					local switcharray1 = [
 						"Filters",
 						"Search for...",
@@ -1521,17 +1563,17 @@ class Carrier {
 						//	wooshsound.playing=true
 						immediatesignal = true
 						fe.signal("filters_menu")
-						wooshsound.playing=true
+					if(prf.THEMEAUDIO) wooshsound.playing=true
 					}
 
 					if (result1 == 2){
 						//	wooshsound.playing=true
 						fe.signal("layout_options")
-						wooshsound.playing=true
+					if(prf.THEMEAUDIO) wooshsound.playing=true
 					}	
 
 					if (result1 == 1){
-						wooshsound.playing=true
+					if(prf.THEMEAUDIO) wooshsound.playing=true
 
 					local searchtext =""
 					local switcharray = [
@@ -1599,11 +1641,11 @@ class Carrier {
 				if ((fe.list.index % rows < rows -1) && ( ! ( (fe.list.index / rows == fe.list.size / rows)&&(fe.list.index%rows + 1 > (fe.list.size -1)%rows) ))) {
 					if ((corrector == 0) && (fe.list.index == fe.list.size-1)) return true
 					fe.list.index ++
-					ticksound.playing=true
+					if(prf.THEMEAUDIO) ticksound.playing=true
 				}
 
 				else if (scrolljump == false){
-					wooshsound.playing=true
+					if(prf.THEMEAUDIO) wooshsound.playing=true
 					scrolljump = true
 					scrollstep = rows*(cols-2)
 					scroller2.visible = scrollineglow.visible = true		
@@ -1619,7 +1661,7 @@ class Carrier {
 				*/				
 				// All other cases
 				default:
-				wooshsound.playing=true
+					if(prf.THEMEAUDIO) wooshsound.playing=true
 				
 			}// END OF SWITCH SIGNAL LOOP 
 		}// CLOSE ELSE GROUP
@@ -1652,6 +1694,16 @@ function gameletter( offset ) {
 	if (fe.filters[fe.list.filter_index].sort_by == Info.Year){
 		local s = fe.game_info( Info.Year, offset )
 		return s
+	}
+	else if (fe.filters[fe.list.filter_index].sort_by == Info.Manufacturer){
+		local s = fe.game_info( Info.Manufacturer, offset )
+		return s.slice(0,1)
+	}
+	else if (fe.filters[fe.list.filter_index].sort_by == Info.Category){
+		local s = fe.game_info( Info.Category, offset )
+		s = split( s, "/" )
+		if ( s.len() > 1 ) return strip(s[0])	
+		else return strip(s)
 	}
 	else {
 		local s = fe.game_info( Info.Title, offset )
@@ -1730,11 +1782,16 @@ local blursize = 1/26.0
 
 xsurf1 = fe.add_surface(smallsize,smallsize)
 
+local bgpic = null
+
 for (local i = 0; i < stacksize; i++){
-	varray.push (0)
 	alphapos.push (0)
-	local bgpic = xsurf1.add_artwork("snap",0,0,smallsize,smallsize)
-	bgpic.set_rgb (shadeval,shadeval,shadeval)
+	if (i < stacksize -1) 
+      bgpic = xsurf1.add_image("black.png",0,0,smallsize,smallsize)
+	else
+      bgpic = xsurf1.add_artwork("snap",0,0,smallsize,smallsize)
+
+   bgpic.set_rgb (shadeval,shadeval,shadeval)
 	bgpic.alpha = 255
 	bgpic.trigger = Transition.EndNavigation
 	bgpic.video_flags = Vid.ImagesOnly
@@ -1909,9 +1966,9 @@ local game_catpicT = {
 	h = 110 * scalerate
 }
 local game_maincatT = {
-	x = 30 * scalerate,
+	x = 25 * scalerate,
 	y = 145 * scalerate,
-	w = 110 * scalerate,
+	w = 120 * scalerate,
 	h = 35 * scalerate
 }
 local game_mainnameT = {
@@ -1939,12 +1996,14 @@ local game_yearT = {
 	h = 25 * scalerate
 }
 
+
 local alphashader = fe.add_shader( Shader.Fragment, "alphacorrect.glsl" )
 alphashader.set_texture_param( "texture")
-alphashader.set_param("maincolor",themetextcolor/255.0)
+
+
 for (local i = 0; i < brandstack; i++){
 
-	local game_catpic = data_surface.add_image("[!category_pic]",game_catpicT.x, game_catpicT.y, game_catpicT.w, game_catpicT.h)
+	local game_catpic = data_surface.add_image("transparent.png",game_catpicT.x, game_catpicT.y, game_catpicT.w, game_catpicT.h)
 	game_catpic.smooth = false
 	game_catpic.preserve_aspect_ratio = true
 	game_catpic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
@@ -1986,13 +2045,13 @@ for (local i = 0; i < brandstack; i++){
 	game_subname.margin = 0
 
 
-
-	local game_manufacturerpic = data_surface.add_image("[!manufacturer_pic]",game_manufacturerpicT.x, game_manufacturerpicT.y, game_manufacturerpicT.w, game_manufacturerpicT.h)
-//	game_manufacturerpic.mipmap = 1
+	local game_manufacturerpic = data_surface.add_image("transparent.png",game_manufacturerpicT.x - i*200*0, game_manufacturerpicT.y, game_manufacturerpicT.w, game_manufacturerpicT.h)
+	//game_manufacturerpic.mipmap = 1
 	game_manufacturerpic.smooth = true
 	game_manufacturerpic.preserve_aspect_ratio = false
 	game_manufacturerpic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-//	game_manufacturerpic.shader = alphashader
+	game_manufacturerpic.shader = alphashader
+	
 
 	local game_year = data_surface.add_text( "© [Year]  ", game_yearT.x, game_yearT.y, game_yearT.w, game_yearT.h)
 //	local game_year = data_surface.add_text( "© [Year]  ", flw-300*scalerate, 160*scalerate, 290*scalerate, 25*scalerate)
@@ -2005,8 +2064,8 @@ for (local i = 0; i < brandstack; i++){
 	game_year.margin = 0
 	game_year.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 	
-
-
+	var_array.push(0)
+	data_alphapos.push (1)
 	cat_array.push(game_catpic)
 	maincat_array.push(game_maincat)
 	manufacturer_array.push(game_manufacturerpic)
@@ -2016,25 +2075,46 @@ for (local i = 0; i < brandstack; i++){
 }
 
 
-
 //name_surf.zorder = subname_x.zorder = year_x.zorder = year2_x.zorder = filterdata.zorder = filternumbers.zorder = zordertop + 1
 
-local data_surface_sh = fe.add_clone(data_surface)
-data_surface_sh.alpha = themeshadow
 
+local shadowshader1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+shadowshader1.set_texture_param( "texture")
+shadowshader1.set_param("kernelData",9,4.0)
+shadowshader1.set_param("offsetFactor",0.000,1.5/flh)
 
+local shadowshader2 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+shadowshader2.set_texture_param( "texture")
+shadowshader2.set_param("kernelData",9,4.0)
+shadowshader2.set_param("offsetFactor",1.5/flw,0.000)
 
-local shadowshader = fe.add_shader( Shader.Fragment, "gauss_kernsigma_2D.glsl" )
-shadowshader.set_texture_param( "texture")
-shadowshader.set_param("kernelData",3,3)
-shadowshader.set_param("offsetFactor",1.5/flw,1.5/flh)
-if (prf.DATASHADOWSMOOTH) data_surface_sh.shader = shadowshader
+//local data_surface_sh1 = fe.add_clone(data_surface)
+
+local data_surface_sh = fe.add_surface(data_surface.width,data_surface.height)
+local data_surface_sh1 = data_surface_sh.add_clone(data_surface)
+
 data_surface_sh.set_rgb(0,0,0)
-data_surface_sh.set_pos(3,5)
+data_surface_sh1.set_rgb(0,0,0)
 
+/*
+data_surface_sh1.visible = false
+data_surface_sh1 = data_surface_sh.add_clone(data_surface_sh1)
+data_surface_sh1.visible = true
+*/
+
+//if (prf.DATASHADOWSMOOTH) data_surface_sh.shader = shadowshader
+if (prf.DATASHADOWSMOOTH){
+   data_surface_sh.shader = shadowshader1
+   data_surface_sh1.shader = shadowshader2
+}
+
+data_surface_sh.alpha = themeshadow
 
 data_surface_sh.zorder = zordertop + 3
 data_surface.zorder = zordertop + 4
+
+
+data_surface_sh.set_pos(4*scalerate,7*scalerate)
 
 /// Frosted glass surface  
 
@@ -2207,8 +2287,10 @@ overlay_listbox.zorder = overlay_label.zorder = overlay_background.zorder = shad
 fe.overlay.set_custom_controls( overlay_label, overlay_listbox )
 
 function overlay_show(){
-	if (prf.FROSTEDGLASS) 
+	if (prf.FROSTEDGLASS) {
 		frost_surface.alpha = 255 
+      frostshaders(true)
+   }
 	else
 		fg_surface.alpha = 255*satinrate
 
@@ -2290,13 +2372,13 @@ function overmenu_visible(){
 function overmenu_show(){
 	overmenu.y = flh*0.5*0 + header_h + heightpadded*0.5 -overmenuwidth*0.5 - corrector * (heightpadded - padding)
 	overmenu.x = flw*0.5 - overmenuwidth*0.5 + centercorrection
-	wooshsound.playing=true
+					if(prf.THEMEAUDIO) wooshsound.playing=true
 	overmenu.visible = true
 	overmenuflow = 1
 }
 
 function overmenu_hide(strict){
-	wooshsound.playing=true
+					if(prf.THEMEAUDIO) wooshsound.playing=true
 	if(strict) overmenu.visible = false
 	overmenuflow = -1
 }

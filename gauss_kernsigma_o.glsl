@@ -25,5 +25,7 @@ void main() {
         incrementalGaussian.xy *= incrementalGaussian.yz;
     }
     
-    gl_FragColor = color/kersum;
+    vec4 colorout = color/kersum;
+
+    gl_FragColor = vec4(gl_Color.rgb*colorout.rgb,gl_Color.a*colorout.a);
 }

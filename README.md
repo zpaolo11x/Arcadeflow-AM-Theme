@@ -1,45 +1,45 @@
-**Arcadeflow - Attract Mode theme by zpaolo11x - v 2.9**
+# Arcadeflow - Attract Mode theme by zpaolo11x - v 3.0 #
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
+## What's new in v 3.0 ##
 
-*What's new in v 2.9*
+- Changed the way blurred fading backgrounds are layered
+- Tweaked some graphics aspects
+- Pop up letter now responds to the sort order of the game list
+- Cleaned up some code
+- Added an option to mute the theme "click" and "woosh" sounds
+- Improved transparent PNGs for shadows and glows
 
-- Redesigned the game data ribbon on top of the thumbnail grid
-- Added category icons for game category
-- Added manufacturer icons for game manufacturer
-- Added a smooth drop shadow under game title, data and icons
-- Streamlined the AF logo so it's just white 
-- The technique used for background crossfade is used for game data crossfade too
-- Frosted glass effect applied to the screen behind the logo
-
-*Custom controls*
+## Custom controls ##
 
 You can define a custom control to call the game context menu, from which you can activate the following functions:
+
 - "UP" enters the "More of the same..." search function, filtering games with the same year, manufacturer, main category or sub-category of the current game
 - "DOWN" enters the "History" page where you can see and scroll the game history and see a larger game preview
 - "LEFT" to enter the Tags menu
 - "RIGHT" to add/remove favorites
 
-*Filters, Search and Layout options*
+## Filters, Search and Layout options ##
 
 You can access the "Filters" menu and the "Search" function by going "UP" from the first row of icons. In the same menu you'll get the "Layout options" access (in AM 2.4)
 
-*Tags*
+## Tags ##
 
 You can add a "Completed" tag to games, that will ad a "Completed" stamp on them
 
-*Sorting and scrolling*
+## Sorting and scrolling ##
 
 When your list is sorted by name a large preview letter will appear while scrolling through the list. 
 If your list is sorted by year the year will appear instead of the letter.
 You can go "DOWN" from the altest row to enter a "large jumps" scrolling mode.
 
-* Game options*
+## Game options ##
 
-GENERAL 
+GENERAL
+
 - "Context Menu Button" : Setup the button to use to recall game info and actions context menu
 - "Rows in horizontal layout" : Number of rows to use in 'horizontal' mode
 - "Rows in vertical layout" : Number of rows to use in 'vertical' mode
@@ -49,6 +49,7 @@ GENERAL
 - "Custom resolution WIDTHxHEIGHT" : Define a custom resolution for your layout independent of screen resolution
 
 THUMBNAILS
+
 - "Aspect ratio" : Chose wether you want cropped, square snaps or horizontal and vertical snaps
 - "Glow effect" : Add a glowing halo around the selected game thumbnail
 - "Video thumbs" : Enable video overlay on snapshot thumbnails
@@ -56,29 +57,45 @@ THUMBNAILS
 - "New Game Indicator" : Games not played are marked with a glyph
 
 BACKDROP
+
 - "Overlay Color" : Setup theme luminosity overlay
 - "Custom Background Image" : Insert custom background art path
 - "Background snap" : Add a faded game snapshot to the background
 - "Animate background snap" : Animate video on background
 
 LOGO
+
 - "Enable splash logo" : Enable or disable the AF start logo
 - "Custom splash logo" : Chose a custom picture as splash logo
 
 SEARCH
+
 - "Search string entry method" : Use keyboard or on-screen keys to enter search string
 - "Immediate search" : Live update results while searching
 
 HISTORY
+
 - "History.dat" : History.dat location
 - "Index Clones" : Set whether entries for clones should be included in the index.
 - "Generate Index" : Generate the history.dat index now (this can take some time)
 
 AUDIO
-- "Audio in videos (thumbs) : Select wether you want to play audio in videos on thumbs
-- "Audio in videos (history) : Select wether you want to play audio in videos on history detail page
 
-** Previous versions history **
+- "Theme audio" : Enables or disables the "click" and "woosh" theme sounds
+- "Audio in videos (thumbs)" : Select wether you want to play audio in videos on thumbs
+- "Audio in videos (history)" : Select wether you want to play audio in videos on history detail page
+
+## Previous versions history ##
+
+*v 2.9*
+
+- Redesigned the game data ribbon on top of the thumbnail grid
+- Added category icons for game category
+- Added manufacturer icons for game manufacturer
+- Added a smooth drop shadow under game title, data and icons
+- Streamlined the AF logo so it's just white 
+- The technique used for background crossfade is used for game data crossfade too
+- Frosted glass effect applied to the screen behind the logo
 
 *v 2.8*
 
