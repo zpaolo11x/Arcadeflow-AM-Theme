@@ -36,7 +36,7 @@ When your list is sorted by name a large preview letter will appear while scroll
 If your list is sorted by year the year will appear instead of the letter.
 You can go "DOWN" from the altest row to enter a "large jumps" scrolling mode.
 
-## Game options #
+## Game options #
 
 GENERAL
 
