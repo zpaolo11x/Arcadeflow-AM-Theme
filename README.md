@@ -4,7 +4,7 @@ Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't sup
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
-## What's new in v 3.0 ##
+## What's new in v 3.0 #
 
 - Changed the way blurred fading backgrounds are layered
 - Tweaked some graphics aspects
@@ -13,7 +13,7 @@ The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automati
 - Added an option to mute the theme "click" and "woosh" sounds
 - Improved transparent PNGs for shadows and glows
 
-## Custom controls ##
+## Custom controls #
 
 You can define a custom control to call the game context menu, from which you can activate the following functions:
 
@@ -22,21 +22,21 @@ You can define a custom control to call the game context menu, from which you ca
 - "LEFT" to enter the Tags menu
 - "RIGHT" to add/remove favorites
 
-## Filters, Search and Layout options ##
+## Filters, Search and Layout options #
 
 You can access the "Filters" menu and the "Search" function by going "UP" from the first row of icons. In the same menu you'll get the "Layout options" access (in AM 2.4)
 
-## Tags ##
+## Tags #
 
 You can add a "Completed" tag to games, that will ad a "Completed" stamp on them
 
-## Sorting and scrolling ##
+## Sorting and scrolling #
 
 When your list is sorted by name a large preview letter will appear while scrolling through the list. 
 If your list is sorted by year the year will appear instead of the letter.
 You can go "DOWN" from the altest row to enter a "large jumps" scrolling mode.
 
-## Game options ##
+## Game options #
 
 GENERAL
 
@@ -85,7 +85,7 @@ AUDIO
 - "Audio in videos (thumbs)" : Select wether you want to play audio in videos on thumbs
 - "Audio in videos (history)" : Select wether you want to play audio in videos on history detail page
 
-## Previous versions history ##
+## Previous versions history #
 
 *v 2.9*
 
