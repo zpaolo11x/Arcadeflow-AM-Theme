@@ -1,4 +1,4 @@
-// Arcadeflow - v 3.2
+// Arcadeflow - v 3.3
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
@@ -1322,12 +1322,26 @@ class Carrier {
 			return true
 		}
 
+		// remap standard controls for next and previous game or page
+
 		if(sig == "next_game"){
 			fe.list.index ++
+			return true
 		}
 
 		if(sig == "prev_game"){
 			fe.list.index --
+			return true
+		}
+
+		if(sig == "prev_page"){
+			fe.list.index = fe.list.index - rows*(cols - 2)
+			return true
+		}
+
+		if(sig == "next_page"){
+			fe.list.index = fe.list.index + rows*(cols -2)
+			return true
 		}
 
 		if (overmenu_visible())
@@ -2472,6 +2486,7 @@ function overmenu_visible(){
 
 function overmenu_show(){
 	overmenu.y = flh*0.5*0 + header_h + heightpadded*0.5 -overmenuwidth*0.5 - corrector * (heightpadded - padding)
+	if (rows == 1 ) overmenu.y = flh*0.5*0 + header_h + heightpadded*0.5 - overmenuwidth*0.5 
 	overmenu.x = flw*0.5 - overmenuwidth*0.5 + centercorrection
 					if(prf.THEMEAUDIO) wooshsound.playing=true
 	overmenu.visible = true
