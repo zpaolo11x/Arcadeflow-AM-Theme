@@ -1,4 +1,4 @@
-// Arcadeflow - v 3.1
+// Arcadeflow - v 3.2
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
@@ -7,6 +7,7 @@
 
 fe.load_module("file")
 fe.do_nut("pic_functions.nut")
+//fe.list.search_rule = "Category contains (Driving) || (chase view)"
 
 local orderx = 0
 local preliner = "  ○ "
@@ -18,8 +19,8 @@ class UserConfig </ help="" />{
 
 	</ label=prelinerh + "GENERAL" + postliner, help=" ", options = " ", order=orderx++ /> paramx1 = " "
 		</ label=preliner + "Context menu button" + postliner, help="Chose the button to open the game context menu", options="custom1, custom2, custom3, custom4, custom5, custom6", order=orderx++ /> overmenubutton="custom1"
-		</ label=preliner + "Rows in horizontal" + postliner, help = "Number of rows to use in 'horizontal' mode", options="2, 3", order = orderx++ /> horizontalrows = "2"
-		</ label=preliner + "Rows in vertical" + postliner, help = "Number of rows to use in 'vertical' mode", options="2, 3", order = orderx++ /> verticalrows = "3"
+		</ label=preliner + "Rows in horizontal" + postliner, help = "Number of rows to use in 'horizontal' mode", options="1, 2, 3", order = orderx++ /> horizontalrows = "2"
+		</ label=preliner + "Rows in vertical" + postliner, help = "Number of rows to use in 'vertical' mode", options="1, 2, 3", order = orderx++ /> verticalrows = "3"
 		</ label=preliner + "Smooth shadow" + postliner, help = "Enable smooth shadow under game title and data in the GUI", options="Yes, No", order = orderx++ /> datashadowsmooth = "Yes"
 		</ label=preliner + "Screen rotation" + postliner, help = "Rotate screen", options="None, Left, Right, Flip", order = orderx++ /> baserotation = "None"
 		</ label=preliner + "Frosted glass" + postliner, help = "Enable a frosted glass effect for overlay menus", options="Yes, No", order = orderx++ /> frostedglass = "Yes"
@@ -108,8 +109,8 @@ local prf = {
 	LIVESEARCH = ( (my_config["livesearch"] == "Yes") ? true : false ),
 	SPLASHON = ( (my_config["splashlogo"] == "Yes") ? true : false ),
 	SPLASHLOGOFILE = ( my_config["splashlogofile"] == "" ? "aflogow3.png" : my_config["splashlogofile"]),
-	VERTICALROWS = ( (my_config["verticalrows"] == "2") ? 2 : 3 ),
-	HORIZONTALROWS = ( (my_config["horizontalrows"] == "2") ? 2 : 3 ),
+	VERTICALROWS = ( (my_config["verticalrows"] ).tointeger()),
+	HORIZONTALROWS = ( (my_config["horizontalrows"] ).tointeger()),
 	OVERMENUBUTTON = my_config["overmenubutton"],
 	AUDIOVIDSNAPS = ( (my_config["audiovidsnaps"] == "Yes") ? true : false),
 	AUDIOVIDHISTORY = ( (my_config["audiovidhistory"] == "Yes") ? true : false),
@@ -150,6 +151,11 @@ for (local i = 0 ; i < fe.list.size ; i++ ){
 local dir0 = DirectoryListing( FeConfigDirectory )
 local fpos01 = null
 local fpos02 = null
+
+// workaround when no screenshots are present in the folder
+if (file_exist(FeConfigDirectory+"screen.png") == false){
+	fe.signal ("screenshot")
+}
 
 foreach ( f in dir0.results )
 {
@@ -242,6 +248,7 @@ local logoshow = 1
 // font definition
 local guifont ="Roboto-Allcaps.ttf"
 local generalfont = "Roboto-Bold.ttf"
+local guifontcondensed = "Roboto-Condensed-Bold.ttf"
 
 //screen layout definition
 
@@ -283,18 +290,19 @@ fe.layout.font = generalfont
 local scalerate = (vertical ? flw : flh)/1200.0
 local	tilesTotal = 0
 
-local header_h = 200*scalerate
+local header_h = (rows == 1 ? 250*scalerate : 200*scalerate)
 local footer_h = 100*scalerate
+local footer_h2 = (rows == 1 ? 150*scalerate : 100*scalerate)
 
 // multiplier of padding space (normally 1/6 of thumb area)
 local padding_scaler = (prf.CROPSNAPS ? 100/440.0 : 1/6.0)
 
-local height = (flh - header_h - footer_h)/(rows + rows*padding_scaler + padding_scaler)
+local height = (flh - header_h - footer_h2)/(rows + rows*padding_scaler + padding_scaler)
 local width = height
 
 local padding = height * padding_scaler
-local widthpadded = width + 2*padding
-local heightpadded = height + 2*padding
+local widthpadded = width + 2 * padding
+local heightpadded = height + 2 * padding
 
 local verticalshift = (prf.CROPSNAPS ? 0 : height*16.0/480.0)
 
@@ -312,13 +320,13 @@ local carrierT = {
 }
 
 // selector and zooming data
-local selectorscale = 1.5
+local selectorscale = (rows == 1 ? (vertical ? 1.15 : 1.45) : 1.5)
 local whitemargin = (prf.CROPSNAPS ? 0.12 : 0.15) 
 local selectorwidth = selectorscale * widthpadded
 local selectoroffseth = (selectorwidth - widthpadded)*0.5
 local selectoroffsetv = (selectorwidth - widthpadded - verticalshift)*0.5
 
-local deltacol = (cols -3)/2
+local deltacol = (cols - 3)/2
 local centercorrection0 = -deltacol*(width + padding) -(flw - (carrierT.w - 2*(width + padding))) / 2 - padding*(1 + selectorscale*0.5) - width/2 + selectorwidth/2
 local centercorrection = 0
 local centercorrectionshift = centercorrection0
@@ -416,7 +424,7 @@ class Carrier {
 
 	selector = null
 	tilesOffscreen = 0
-	corrector = 0	
+	corrector = 0
 
 	newfocusindex = 0
 	oldfocusindex = 0
@@ -452,7 +460,7 @@ class Carrier {
 		
 		tilesCount = cols * rows
 		tilesOffscreen = (vertical ? 3 * rows : 4 * rows)
-		
+
 		tilesTotal = tilesCount + 2*tilesOffscreen
 		surfacePosOffset = (tilesOffscreen/rows) * (width+padding)
 
@@ -791,7 +799,7 @@ class Carrier {
 
 			if (DEBUG) print ("flindex " + fe.list.index + "\n")
 
-			corrector = -((fe.list.index + var) % rows)
+			corrector = (rows == 1 ? -1 : -((fe.list.index + var) % rows) )
 
 			colstop = floor((fe.list.index + var)/rows)
 			colstart = floor((fe.list.index)/rows)
@@ -827,8 +835,7 @@ class Carrier {
 			}
 			
 			if (columnoffset == 0) centercorrectionshift = 0
-			
-			
+
 			// updates all the tiles, (NOT unless we are changing favourites)
 			//if (changedfav == false){
 			if (DEBUG) print ("TRANSBLOCK 3 \n")	
@@ -1396,7 +1403,7 @@ class Carrier {
 					fe.list.index ++
 					fe.list.search_rule = searchtext
 					//fe.list.index = 0
-					corrector = 0
+					corrector = (rows == 1 ? -1 : 0)
 					searchdata.msg = searchtext
 				}
 				return true
@@ -1637,7 +1644,7 @@ class Carrier {
 							fe.list.index ++
 							fe.list.search_rule = switcharray[result]+" contains "+ recalculate(searchtext)
 							fe.list.index = 0
-							corrector = 0
+							corrector = (rows == 1 ? -1 : 0)
 							if(fe.list.search_rule == ""){
 								searchdata.msg = ""
 								if (backindex != -1){
@@ -1781,13 +1788,30 @@ function gamesubname( offset ) {
 }
 
 function maincategory( offset ) {
+	local sout = ""
 	local s0 = fe.game_info( Info.Category, offset )
 	if (s0 == "") return "" 
 	local s = split( s0, "/" )
 	if ( s.len() > 1 ) {
-		return strip(s[0])
+		sout = strip(s[0]).toupper()
 	}
-	else return strip(s0)
+	else sout = strip(s0).toupper()
+
+	switch (sout){
+		case "PLATFORM": return "PLATFRM"
+		case "MULTIPLAY": return "MULTI"
+		case "BALL & PADDLE": return "PADDLE"
+		case "FIGHTER":	return "FIGHT"
+		case "DRIVING":	return "DRIVE"
+		case "MAZE":	return "MAZE"
+		case "MISC.": return "MISC"
+		case "CASINO": return "CASINO"
+		case "SHOOTER": return "SHOOT"
+		case "PUZZLE": return "PUZZLE"
+		case "SPORTS": return "SPORT"
+		case "WHAC-A-MOLE": return "WHAC-M"
+		default: return ""
+	}
 }
 
 
@@ -1967,21 +1991,21 @@ local filterdata = data_surface.add_text ("[FilterName]",0,flh-footer_h,footerma
 filterdata.align = Align.Centre
 filterdata.set_rgb( 255, 255, 255)
 filterdata.word_wrap = true
-filterdata.charsize = 25*scalerate
+filterdata.charsize = 25*scalerate/0.711
 filterdata.visible = true
 filterdata.font = guifont
 filterdata.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
-local filternumbers = data_surface.add_text ("[ListEntry]/[ListSize]",flw-footermargin,flh-footer_h,footermargin,footer_h)
+local filternumbers = data_surface.add_text ("[ListEntry]\n[ListSize]",flw-footermargin,flh-footer_h,footermargin,footer_h)
 filternumbers.align = Align.Centre
 filternumbers.set_rgb( 255, 255, 255)
 filternumbers.word_wrap = true
-filternumbers.charsize = 25*scalerate
+filternumbers.charsize = 25*scalerate/0.711
 filternumbers.visible = true
 filternumbers.font = guifont
 filternumbers.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 
-
+data_surface.add_image("white.png",flw-footermargin+footermargin*0.3, flh-footer_h + footer_h*0.5,footermargin*0.4,1)
 
 local game_catpicT = {
 	x = 30 * scalerate,
@@ -2012,9 +2036,9 @@ local game_butpicT = {
 }
 
 local game_maincatT = {
-	x = 25 * scalerate,
+	x = 20 * scalerate,
 	y = 145 * scalerate,
-	w = 120 * scalerate,
+	w = 130 * scalerate,
 	h = 35 * scalerate
 }
 
@@ -2084,11 +2108,12 @@ for (local i = 0; i < brandstack; i++){
 	game_maincat.align = Align.MiddleCentre
 	game_maincat.word_wrap = true
 	game_maincat.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-	game_maincat.charsize = 15*scalerate/0.711
-	game_maincat.font = guifont
+	game_maincat.charsize = 25*scalerate/0.711
+	game_maincat.font = guifontcondensed
 	game_maincat.alpha = 255
 	game_maincat.margin = 0
 	game_maincat.line_spacing = 0.8
+//	game_maincat.set_bg_rgb (255,0,0)
 	
 
 	local game_mainname = data_surface.add_text( "[!gamename2]", game_mainnameT.x, game_mainnameT.y, game_mainnameT.w, game_mainnameT.h )
@@ -2149,21 +2174,25 @@ for (local i = 0; i < brandstack; i++){
 
 //name_surf.zorder = subname_x.zorder = year_x.zorder = year2_x.zorder = filterdata.zorder = filternumbers.zorder = zordertop + 1
 
+//print ("\n"+ flh + " " + scalerate + " " + header_h +"\n")
+
+local sh_scaler = 400.0 / data_surface.height
 
 local shadowshader1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
 shadowshader1.set_texture_param( "texture")
-shadowshader1.set_param("kernelData",9,4.0)
-shadowshader1.set_param("offsetFactor",0.000,1.5/flh)
+shadowshader1.set_param("kernelData",9,3.0)
+shadowshader1.set_param("offsetFactor",0.000,1.0/(flh*sh_scaler))
 
 local shadowshader2 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
 shadowshader2.set_texture_param( "texture")
-shadowshader2.set_param("kernelData",9,4.0)
-shadowshader2.set_param("offsetFactor",1.5/flw,0.000)
+shadowshader2.set_param("kernelData",9,3.0)
+shadowshader2.set_param("offsetFactor",1.0/(flw*sh_scaler),0.000)
 
 //local data_surface_sh1 = fe.add_clone(data_surface)
 
-local data_surface_sh = fe.add_surface(data_surface.width,data_surface.height)
+local data_surface_sh = fe.add_surface(data_surface.width * sh_scaler , data_surface.height * sh_scaler)
 local data_surface_sh1 = data_surface_sh.add_clone(data_surface)
+data_surface_sh1.set_pos (0 , 0 , data_surface.width * sh_scaler , data_surface.height * sh_scaler)
 
 data_surface_sh.set_rgb(0,0,0)
 data_surface_sh1.set_rgb(0,0,0)
@@ -2186,7 +2215,7 @@ data_surface_sh.zorder = zordertop + 3
 data_surface.zorder = zordertop + 4
 
 
-data_surface_sh.set_pos(4*scalerate,7*scalerate)
+data_surface_sh.set_pos(4*scalerate,7*scalerate,data_surface.width,data_surface.height)
 
 /// Frosted glass surface  
 
@@ -2551,7 +2580,7 @@ function search_update_rule(){
 		fe.list.index ++
 		fe.list.search_rule = ( s_text.len() > 0 ) ? rule : ""
 		//fe.list.index = 0
-		corrector = 0
+		corrector = (rows == 1 ? -1 : 0)
 		if(fe.list.search_rule == ""){
 			searchdata.msg = ""
 			//if (backindex != -1){
@@ -2944,11 +2973,11 @@ function tick2( tick_time ) {
 	{
 		grabticker --
 		if (grabticker == 0){
-		rename (grabpath0,grabpath)
-		frost_pic.file_name = grabpath
-		if (rotate90){
+			rename (grabpath0,grabpath)
+			frost_pic.file_name = grabpath
+			if (rotate90){
 				
-		}
+			}
 		immediatesignal = true
 		fe.signal(grabsignal)
 		}
