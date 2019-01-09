@@ -2,6 +2,84 @@ function file_exist(fullpathfilename){
 	try {file(fullpathfilename, "r" );return true;}catch(e){return false;}
 }
 
+
+function controller_pic(offset){
+   local s = fe.game_info( Info.Control, offset )
+   
+   switch (s) {
+      case "joystick (8-way)": return ("controller_images/control_joystick_8way.png")
+      case "joystick (8-way),joystick (8-way)": return ("controller_images/control_joystick_8way.png")
+      case "joystick (8-way),joystick (8-way),joystick (8-way)": return ("controller_images/control_joystick_8way.png")
+      case "joystick (8-way),joystick (8-way),joystick (8-way),joystick (8-way)": return ("controller_images/control_joystick_8way.png")
+
+      case "joystick (8-way),dial": return ("controller_images/control_joystick_8way.png")
+      case "joystick (8-way),dial,joystick (8-way),dial": return ("controller_images/control_joystick_8way.png")
+      case "joystick (8-way),dial,joystick (8-way),dial,joystick (8-way),dial": return ("controller_images/control_joystick_8way.png")
+      case "joystick (8-way),dial,joystick (8-way),dial,joystick (8-way),joystick (8-way)": return ("controller_images/control_joystick_8way.png")
+
+      case "joystick (8-way),joystick (analog)": return ("controller_images/control_joystick_8analog.png")
+      case "joystick (8-way),joystick (analog),joystick (8-way),joystick (analog)": return ("controller_images/control_joystick_8analog.png")
+      case "joystick (2-way),joystick (analog)": return ("controller_images/control_joystick_2analog.png")
+
+
+      case "joystick (8-way),trackball": return ("controller_images/control_joystick_8trackball.png")
+      case "joystick (8-way),trackball,joystick (8-way),trackball": return ("controller_images/control_joystick_8trackball.png")
+
+      case "joystick (8-way),positional": return ("controller_images/control_joystick_8way.png")
+      case "joystick (8-way),positional,joystick (8-way),positional": return ("controller_images/control_joystick_8way.png")
+      case "joystick (8-way),positional,joystick (8-way),positional,joystick (8-way),positional": return ("controller_images/control_joystick_8way.png")
+      case "joystick (8-way),positional,joystick (8-way),positional,joystick (8-way)positional,joystick (8-way)positional": return ("controller_images/control_joystick_8way.png")
+      case "joystick (5 (half8)-way),joystick (5 (half8)-way)": return ("controller_images/control_joystick_8way.png")
+      case "joystick (5 (half8)-way)": return ("controller_images/control_joystick_8way.png")
+
+      case "joystick (4-way)": return ("controller_images/control_joystick_8way.png")
+      case "joystick (4-way),joystick (4-way)": return ("controller_images/control_joystick_8way.png")
+      case "joystick (4-way),joystick (4-way),joystick (4-way),joystick (4-way)": return ("controller_images/control_joystick_4way.png")
+      case "joystick (3 (half4)-way),joystick (3 (half4)-way)": return ("controller_images/control_joystick_4way.png")
+      case "joystick (3 (half4)-way)": return ("controller_images/control_joystick_4way.png")
+
+      case "joystick (2-way)": return ("controller_images/control_joystick_8way.png")
+      case "joystick (vertical2-way)": return ("controller_images/control_joystick_8way.png")
+      case "joystick (2-way),joystick (2-way)": return ("controller_images/control_joystick_8way.png")
+      case "joystick (2-way),joystick (2-way),joystick (2-way),joystick (2-way)": return ("controller_images/control_joystick_2way.png")
+
+      case "paddle,pedal": return ("controller_images/control_paddle_pedal.png")
+      case "paddle,pedal,paddle,pedal": return ("controller_images/control_paddle_pedal.png")
+
+      case "dial,pedal": return ("controller_images/control_paddle_pedal.png")
+      case "dial,pedal,dial,pedal": return ("controller_images/control_paddle_pedal.png")
+      case "dial,pedal,dial,pedal,dial,pedal": return ("controller_images/control_paddle_pedal.png")
+      case "dial,pedal,dial,pedal,dial,pedal,dial,pedal": return ("controller_images/control_paddle_pedal.png")
+
+      case "dial,paddle,pedal": return ("controller_images/control_paddle_pedal.png")
+ 
+      case "joystick (analog)": return ("controller_images/control_joystick_analog.png")
+      case "joystick (analog),joystick (analog)": return ("controller_images/control_joystick_analog.png")
+
+      case "trackball": return ("controller_images/control_trackball.png")
+      case "trackball,trackball": return ("controller_images/control_trackball.png")
+      case "trackball,trackball,trackball": return ("controller_images/control_trackball.png")
+
+      case "paddle": return ("controller_images/control_paddle.png")
+      case "paddle,paddle": return ("controller_images/control_paddle.png")
+
+      case "dial": return ("controller_images/control_paddle.png")
+      case "dial,dial": return ("controller_images/control_paddle.png")
+
+      case "only_buttons": return ("controller_images/control_buttons.png")
+      case "only_buttons,only_buttons": return ("controller_images/control_buttons.png")
+      case "only_buttons,only_buttons,only_buttons,only_buttons": return ("controller_images/control_buttons.png")
+
+      case "double joystick": return ("controller_images/control_double_joystick.png")
+      case "double joystick,double joystick": return ("controller_images/control_double_joystick.png")
+
+      case "lightgun": return ("controller_images/control_lightgun.png")
+      case "lightgun,lightgun": return ("controller_images/control_lightgun.png")
+   }
+   
+}
+
+
 function manufacturer_pic(offset){
    local s = fe.game_info( Info.Manufacturer, offset )
 	local t = fe.game_info( Info.Title, offset )	

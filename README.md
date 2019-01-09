@@ -1,17 +1,14 @@
-# Arcadeflow - Attract Mode theme by zpaolo11x - v 3.0 #
+# Arcadeflow - Attract Mode theme by zpaolo11x - v 3.1 #
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
-## What's new in v 3.0 #
+## What's new in v 3.1 #
 
-- Changed the way blurred fading backgrounds are layered
-- Tweaked some graphics aspects
-- Pop up letter now responds to the sort order of the game list
-- Cleaned up some code
-- Added an option to mute the theme "click" and "woosh" sounds
-- Improved transparent PNGs for shadows and glows
+- Added indicators of number of players, game controls and game buttons
+- Fixed some bugs in the category picture function
+- Fixed bugs in the pop up letter routine
 
 ## Custom controls #
 
@@ -86,6 +83,15 @@ AUDIO
 - "Audio in videos (history)" : Select wether you want to play audio in videos on history detail page
 
 ## Previous versions history #
+
+*v 3.0*
+
+- Changed the way blurred fading backgrounds are layered
+- Tweaked some graphics aspects
+- Pop up letter now responds to the sort order of the game list
+- Cleaned up some code
+- Added an option to mute the theme "click" and "woosh" sounds
+- Improved transparent PNGs for shadows and glows
 
 *v 2.9*
 

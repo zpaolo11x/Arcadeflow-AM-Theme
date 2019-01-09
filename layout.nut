@@ -1,4 +1,4 @@
-// Arcadeflow - v 3.0
+// Arcadeflow - v 3.1
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
@@ -67,7 +67,7 @@ class UserConfig </ help="" />{
 /// Layout start  
 
 // for debug purposes
-local DEBUG = true
+local DEBUG = false
 local transdata = ["StartLayout", "EndLayout", "ToNewSelection","FromOldSelection","ToGame","FromGame","ToNewList","EndNavigation","ShowOverlay","HideOverlay","NewSelOverlay"]
 
 local bgvidsurf = null
@@ -81,6 +81,9 @@ local brandstack = 5
 
 local var_array = []
 local cat_array = []
+local but_array = []
+local ctl_array = []
+local ply_array = []
 local maincat_array = []
 local manufacturer_array = []
 local gamename_array = []
@@ -130,6 +133,18 @@ else if (prf.BASEROTATION == "Right")
 else if (prf.BASEROTATION == "Flip")
 		fe.layout.base_rotation = RotateScreen.Flip
 
+/*
+local ixi = 0
+for (local i = 0 ; i < fe.list.size ; i++ ){
+//	print (fe.game_info(Info.Title, i) + " ||| " + fe.game_info(Info.Status, i) + " ||| " + fe.game_info(Info.Control, i) + "\n")
+	if ((controller_pic(i) == null)) {
+		ixi ++
+		//print ( ixi + " ||| " + ((controller_pic(i) == null) ? "XXXXXXXX" : "       ") + " ||| " + fe.game_info(Info.Control, i) + "\n")
+		print ( ixi + " ||| " + (fe.game_info(Info.Title,i) )+ " ||| " + fe.game_info(Info.Control, i) + "\n")
+
+	}
+}
+*/
 
 // cleanup grabbed files
 local dir0 = DirectoryListing( FeConfigDirectory )
@@ -692,6 +707,10 @@ class Carrier {
 		if ((ttype == Transition.StartLayout) || (ttype == Transition.ToNewList)){
 			manufacturer_array[brandstack - 1].file_name = manufacturer_pic (0)
 			cat_array[brandstack - 1].file_name = category_pic (0)
+			but_array[brandstack - 1].file_name = "button_images/" + fe.game_info(Info.Buttons, 0)+"button.png"
+			ply_array[brandstack - 1].file_name = "players_images/players_" + fe.game_info(Info.Players,0)+".png"
+			ctl_array[brandstack - 1].file_name = controller_pic (0)
+			//print (fe.game_info(Info.Buttons, 0)+"button.png\n")
 		}
 
 		// cleanup frosted glass grabs
@@ -972,6 +991,9 @@ class Carrier {
 
 			manufacturer_array[i].swap (manufacturer_array[i+1])
 			cat_array[i].swap (cat_array[i+1])
+			but_array[i].swap (but_array[i+1])
+			ply_array[i].swap (ply_array[i+1])
+			ctl_array[i].swap (ctl_array[i+1])
 
 			maincat_array[i].index_offset = var_array[i]
 			gamename_array[i].index_offset = var_array[i]
@@ -985,7 +1007,9 @@ class Carrier {
 
 			manufacturer_array[brandstack - 1].file_name = manufacturer_pic (var)
 			cat_array[brandstack - 1].file_name = category_pic (var)
-
+			but_array[brandstack - 1].file_name = "button_images/"+fe.game_info(Info.Buttons, var)+"button.png"
+			ply_array[brandstack - 1].file_name = "players_images/players_" + fe.game_info (Info.Players , var)+".png"
+			ctl_array[brandstack - 1].file_name = controller_pic (var)
 			data_alphapos [brandstack - 1] = 1
 
 			alphapos [stacksize - 1]= 255
@@ -1041,11 +1065,11 @@ class Carrier {
 
 				if (i != brandstack -1){
 					data_alphapos[i] = data_alphapos[i] * dataspeedout
-					cat_array[i].alpha = maincat_array[i].alpha = manufacturer_array[i].alpha = gamename_array[i].alpha = gamesubname_array[i].alpha = gameyear_array[i].alpha = 255 * (data_alphapos[i])*1.0
+					ply_array[i].alpha = ctl_array[i].alpha = but_array[i].alpha = cat_array[i].alpha = maincat_array[i].alpha = manufacturer_array[i].alpha = gamename_array[i].alpha = gamesubname_array[i].alpha = gameyear_array[i].alpha = 255 * (data_alphapos[i])*1.0
 				}
 				else {
 					data_alphapos[brandstack -1] = data_alphapos[brandstack - 1] * dataspeedin
-					cat_array[brandstack - 1].alpha = maincat_array[brandstack - 1].alpha = manufacturer_array[brandstack - 1].alpha = gamename_array[brandstack - 1].alpha = gamesubname_array[brandstack - 1].alpha = gameyear_array[brandstack - 1].alpha = 255 * (1.0 - data_alphapos[brandstack - 1])*1.0
+					ply_array[i].alpha = ctl_array[i].alpha = but_array[brandstack - 1].alpha = cat_array[brandstack - 1].alpha = maincat_array[brandstack - 1].alpha = manufacturer_array[brandstack - 1].alpha = gamename_array[brandstack - 1].alpha = gamesubname_array[brandstack - 1].alpha = gameyear_array[brandstack - 1].alpha = 255 * (1.0 - data_alphapos[brandstack - 1])*1.0
 				}
 			}
 		}
@@ -1697,14 +1721,14 @@ function gameletter( offset ) {
 	}
 	else if (fe.filters[fe.list.filter_index].sort_by == Info.Manufacturer){
 		local s = fe.game_info( Info.Manufacturer, offset )
-		return s.slice(0,1)
+		return s.slice(0,1)		
 	}
 	else if (fe.filters[fe.list.filter_index].sort_by == Info.Category){
 		local s = fe.game_info( Info.Category, offset )
+ 		if (s == "") return "?"
 		s = split( s, "/" )
-		if ( s.len() > 1 ) return strip(s[0])	
-		else return strip(s)
-	}
+		return strip(s[0])	
+		}
 	else {
 		local s = fe.game_info( Info.Title, offset )
 		local s2 = s.slice(0,1)
@@ -1965,22 +1989,45 @@ local game_catpicT = {
 	w = 110 * scalerate,
 	h = 110 * scalerate
 }
+
+local game_plypicT = {
+	x = 170 * scalerate,
+	y = 137 * scalerate,
+	w = 45 * scalerate,
+	h = 45 * scalerate
+}
+
+local game_ctlpicT = {
+	x = (170 + 55) * scalerate,
+	y = game_plypicT.y,
+	w = 45 * scalerate,
+	h = 45 * scalerate
+}
+
+local game_butpicT = {
+	x = (170 + 55 + 55) * scalerate,
+	y = game_plypicT.y,
+	w = 45*1.25 * scalerate,
+	h = 45 * scalerate
+}
+
 local game_maincatT = {
 	x = 25 * scalerate,
 	y = 145 * scalerate,
 	w = 120 * scalerate,
 	h = 35 * scalerate
 }
+
 local game_mainnameT = {
-	x = 170 * scalerate,
+	x = (170 ) * scalerate,
 	y = 20 * scalerate,
-	w = flw - (170 + 320) * scalerate,
+	w = flw - (170  + 320) * scalerate,
 	h = 110 * scalerate
 }
 local game_subnameT = {
-	x = 170 * scalerate,
+	x = (170 + 55 +55 + 45*1.25 + 15) * scalerate,
 	y = 145 * scalerate,
-	w = flw - (170 + 320) * scalerate,
+	w = flw - (170 + 55 + 45*1.25 + 15 + 320) * scalerate,
 	h = 35 * scalerate
 }
 local game_manufacturerpicT = {
@@ -2000,6 +2047,8 @@ local game_yearT = {
 local alphashader = fe.add_shader( Shader.Fragment, "alphacorrect.glsl" )
 alphashader.set_texture_param( "texture")
 
+local bwtoalpha = fe.add_shader( Shader.Fragment, "bwtoalpha.glsl" )
+bwtoalpha.set_texture_param( "texture")
 
 for (local i = 0; i < brandstack; i++){
 
@@ -2009,6 +2058,26 @@ for (local i = 0; i < brandstack; i++){
 	game_catpic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
 	//game_catpic.fix_masked_image()
 
+	local game_butpic = data_surface.add_image("transparent.png",game_butpicT.x, game_butpicT.y, game_butpicT.w, game_butpicT.h)
+	game_butpic.smooth = true
+	game_butpic.preserve_aspect_ratio = true
+	game_butpic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_butpic.shader = bwtoalpha
+	//game_catpic.fix_masked_image()
+	
+	local game_plypic = data_surface.add_image("transparent.png",game_plypicT.x, game_plypicT.y, game_plypicT.w, game_plypicT.h)
+	game_plypic.smooth = true
+	game_plypic.preserve_aspect_ratio = true
+	game_plypic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_plypic.shader = bwtoalpha
+	//game_catpic.fix_masked_image()
+
+	local game_ctlpic = data_surface.add_image("transparent.png",game_ctlpicT.x, game_ctlpicT.y, game_ctlpicT.w, game_ctlpicT.h)
+	game_ctlpic.smooth = true
+	game_ctlpic.preserve_aspect_ratio = true
+	game_ctlpic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_ctlpic.shader = bwtoalpha
+	//game_catpic.fix_masked_image()
 
 	local game_maincat = data_surface.add_text("[!maincategory]",game_maincatT.x,game_maincatT.y,game_maincatT.w,game_maincatT.h)
 //	local game_maincat = data_surface.add_text("[!maincategory]",20*scalerate,150*scalerate,120*scalerate,35*scalerate)
@@ -2067,6 +2136,9 @@ for (local i = 0; i < brandstack; i++){
 	var_array.push(0)
 	data_alphapos.push (1)
 	cat_array.push(game_catpic)
+	but_array.push (game_butpic)
+	ply_array.push (game_plypic)
+	ctl_array.push (game_ctlpic)
 	maincat_array.push(game_maincat)
 	manufacturer_array.push(game_manufacturerpic)
 	gamename_array.push(game_mainname)
