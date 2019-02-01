@@ -73,6 +73,6 @@ vec3 hsl1 = vec3(hsl.x,hsl.y,hsl0.z);
 vec3 tch = hsl2rgb (hsl1);
 
 
-gl_FragColor = vec4(mix(hsl.z*tch.xyz,t0.xyz,texmix) , gl_Color.a*t0.a);
+gl_FragColor = vec4(mix(hsl.z*tch.xyz,t0.xyz,texmix) , gl_Color.a*t0.a*t0.a);
 
 }

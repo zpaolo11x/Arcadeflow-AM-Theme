@@ -1,29 +1,35 @@
-# Arcadeflow - Attract Mode theme by zpaolo11x - v 3.3 #
+# Arcadeflow - Attract Mode theme by zpaolo11x - v 3.4 #
 
 Arcadeflow is an horizontal scrolling, grid based theme for MAME, it doesn't support multiple systems and is based on snapshots and game titles, not on flyers or cartridge boxes. If you have video snaps they will appear over the selected thumbnail without sound, and you can open a larger video preview with sound.
 
 The layout adapts to different aspect ratios (5:4, 4:3, 16:9 and 16:10) automatically and reasonably well (external snaps get partially cut but not completely obscured) and a different layout is enabled for vertical aspect ratio.
 
-## What's new in v 3.3 #
+## What's new in v 3.4 #
 
-- Bug fixes for 1-row mode and for response to signals like next_game, next_page etc
+- Custom control button not needed anymore, now when you hit "select" on a game you'll see the context menu, if you hit "select" again the game will play, otherwise you can use arrows as before for different functions
+- Revised the context menu graphics
+- Changed the way "color gradient" is calculated: instead of sampling some points on the image it uses an actual smoothed version of the image
+- Changed the way "glow color" is calculated, takes its color from actual thumbnail (static or video) isntead of the average as before
+- Added glowing effect in history page around the game display video
 
 ## Custom controls #
 
-You can define a custom control to call the game context menu, from which you can activate the following functions:
+When you hit the "select" control button an overlay context menu appears, here you can do different things to activate the following functions:
 
+- "SELECT" launches the current game
 - "UP" enters the "More of the same..." search function, filtering games with the same year, manufacturer, main category or sub-category of the current game
 - "DOWN" enters the "History" page where you can see and scroll the game history and see a larger game preview
 - "LEFT" to enter the Tags menu
 - "RIGHT" to add/remove favorites
+- "ESC" goes back to the thumbnail list
 
 ## Filters, Search and Layout options #
 
-You can access the "Filters" menu and the "Search" function by going "UP" from the first row of icons. In the same menu you'll get the "Layout options" access (in AM 2.4)
+You can access a general menu by going "UP" from the first row of thumbnails. You'll have access to the "Filters" menu and the "Search" function, you'll get the "Layout options" (in AM 2.4)
 
 ## Tags #
 
-You can add a "Completed" tag to games, that will ad a "Completed" stamp on them
+You can add a "Completed" tag to games, that will add a "Completed" stamp on the thumbnails
 
 ## Sorting and scrolling #
 
@@ -35,28 +41,27 @@ You can go "DOWN" from the altest row to enter a "large jumps" scrolling mode.
 
 GENERAL
 
-- "Context Menu Button" : Setup the button to use to recall game info and actions context menu
-- "Rows in horizontal layout" : Number of rows to use in 'horizontal' mode
-- "Rows in vertical layout" : Number of rows to use in 'vertical' mode
+- "Rows in horizontal" : Number of rows to use in 'horizontal' mode
+- "Rows in vertical" : Number of rows to use in 'vertical' mode
 - "Smooth shadow" : Enable smooth shadow under game title and data in the GUI
 - "Screen rotation" : Select a persistent screen rotation option
 - "Frosted glass" : Add a frosted glass effect for menu backgrounds
-- "Custom resolution WIDTHxHEIGHT" : Define a custom resolution for your layout independent of screen resolution
+- "Resolution W x H" : Define a custom resolution for your layout independent of screen resolution
 
 THUMBNAILS
 
 - "Aspect ratio" : Chose wether you want cropped, square snaps or horizontal and vertical snaps
 - "Glow effect" : Add a glowing halo around the selected game thumbnail
 - "Video thumbs" : Enable video overlay on snapshot thumbnails
-- "Color gradient" : Fades the artwork behind the game logo to its average color
+- "Thumb gradient" : Fades the artwork behind the game logo to its average color
 - "New Game Indicator" : Games not played are marked with a glyph
 
-BACKDROP
+BACKGROUND
 
 - "Overlay Color" : Setup theme luminosity overlay
-- "Custom Background Image" : Insert custom background art path
+- "Custom BG Image" : Insert custom background art path
 - "Background snap" : Add a faded game snapshot to the background
-- "Animate background snap" : Animate video on background
+- "Animate BG snap" : Animate video on background
 
 LOGO
 
@@ -65,7 +70,7 @@ LOGO
 
 SEARCH
 
-- "Search string entry method" : Use keyboard or on-screen keys to enter search string
+- "Search entry method" : Use keyboard or on-screen keys to enter search string
 - "Immediate search" : Live update results while searching
 
 HISTORY
@@ -76,11 +81,15 @@ HISTORY
 
 AUDIO
 
-- "Theme audio" : Enables or disables the "click" and "woosh" theme sounds
+- "Theme sound" : Enables or disables the "click" and "woosh" theme sounds
 - "Audio in videos (thumbs)" : Select wether you want to play audio in videos on thumbs
 - "Audio in videos (history)" : Select wether you want to play audio in videos on history detail page
 
 ## Previous versions history #
+
+*v 3.3*
+
+- Bug fixes for 1-row mode and for response to signals like next_game, next_page etc
 
 *v 3.2*
 

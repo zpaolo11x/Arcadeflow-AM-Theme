@@ -1,13 +1,11 @@
-// Arcadeflow - v 3.3
+// Arcadeflow - v 3.4
 // Attract Mode Theme by zpaolo11x
 //
 // Based on carrier.nut scrolling module by Radek Dutkiewicz (oomek)
 // Including code from the KeyboardSearch plugin by Andrew Mickelson (mickelson)
 
-
 fe.load_module("file")
 fe.do_nut("pic_functions.nut")
-//fe.list.search_rule = "Category contains (Driving) || (chase view)"
 
 local orderx = 0
 local preliner = "  ○ "
@@ -15,10 +13,9 @@ local prelinerh = "● "
 local postliner = "                                                                                                  "
 
 class UserConfig </ help="" />{
-   	</ label= postliner, help=" ", options = " ", order=orderx++ /> paramxx0 = " "
+   </ label= postliner, help=" ", options = " ", order=orderx++ /> paramxx0 = " "
 
 	</ label=prelinerh + "GENERAL" + postliner, help=" ", options = " ", order=orderx++ /> paramx1 = " "
-		</ label=preliner + "Context menu button" + postliner, help="Chose the button to open the game context menu", options="custom1, custom2, custom3, custom4, custom5, custom6", order=orderx++ /> overmenubutton="custom1"
 		</ label=preliner + "Rows in horizontal" + postliner, help = "Number of rows to use in 'horizontal' mode", options="1, 2, 3", order = orderx++ /> horizontalrows = "2"
 		</ label=preliner + "Rows in vertical" + postliner, help = "Number of rows to use in 'vertical' mode", options="1, 2, 3", order = orderx++ /> verticalrows = "3"
 		</ label=preliner + "Smooth shadow" + postliner, help = "Enable smooth shadow under game title and data in the GUI", options="Yes, No", order = orderx++ /> datashadowsmooth = "Yes"
@@ -31,7 +28,7 @@ class UserConfig </ help="" />{
 		</ label=preliner+"Aspect ratio" + postliner, help="Chose wether you want cropped, square snaps or horizontal and vertical snaps depending on game orientation", options ="Horizontal-Vertical, Square", order = orderx++ /> cropsnaps = "Horizontal-Vertical"
 		</ label=preliner+"Glow effect" + postliner, help="Add a glowing halo around the selected game thumbnail", options="Yes, No", order=orderx++ /> snapglow ="Yes"
 		</ label=preliner+"Video thumbs" + postliner, help="Enable video overlay on snapshot thumbnails", options="Yes, No", order=orderx++ /> thumbvideo ="Yes"
-		</ label=preliner+"Color gradient" + postliner, help="Fades the artwork behind the game logo to its average color", options="Yes, No", order=orderx++ /> snapgradient="Yes"
+		</ label=preliner+"Thumb gradient" + postliner, help="Blurs the artwork behind the game logo so it's more readable", options="Yes, No", order=orderx++ /> snapgradient="Yes"
 		</ label=preliner+"New game indicator" + postliner, help="Games not played are marked with a glyph", options="Yes, No", order=orderx++ /> newgame = "Yes"
 	</ label= postliner, help=" ", options = " ", order=orderx++ /> paramxx2 = " "
 
@@ -69,85 +66,83 @@ class UserConfig </ help="" />{
 
 // for debug purposes
 local DEBUG = false
+local FPSON = false
+
 local transdata = ["StartLayout", "EndLayout", "ToNewSelection","FromOldSelection","ToGame","FromGame","ToNewList","EndNavigation","ShowOverlay","HideOverlay","NewSelOverlay"]
 
 local bgvidsurf = null
 
-local stacksize = 5
+local bg_stacksize = 5
 local bgpicarray = []
 local bgvidarray = []
 local alphapos = []
 
-local brandstack = 5
+local data_stacksize = 5
 
-local var_array = []
-local cat_array = []
-local but_array = []
-local ctl_array = []
-local ply_array = []
-local maincat_array = []
-local manufacturer_array = []
-local gamename_array = []
-local gamesubname_array = []
-local gameyear_array = []
+local dat = {
+   var_array = []
+   cat_array = []
+   but_array = []
+   ctl_array = []
+   ply_array = []
+   mainctg_array = []
+   manufacturer_array = []
+   gamename_array = []
+   gamesubname_array = []
+   gameyear_array = []
+}
 
-local data_alphapos = []
+local data_alphapos = [] 
 
-local my_dir = fe.script_dir
-dofile( my_dir + "file_util.nut" )
+dofile( fe.script_dir + "file_util.nut" )
 
 local my_config = fe.get_config()
 
 local prf = {
-	CROPSNAPS = ( (my_config["cropsnaps"] == "Square") ? true : false),
-	COLORTHEME = my_config["colortheme"],
-	SNAPGRADIENT = ( (my_config["snapgradient"] == "Yes") ? true : false),
-	DATASHADOWSMOOTH = ( (my_config["datashadowsmooth"] == "Yes") ? true : false),
-	NEWGAME = ( (my_config["newgame"] == "Yes") ? true : false),
-	BGBLURRED = my_config["bgblurred"],
-	KEYBOARD = ( (my_config["searchmeth"] == "Keyboard") ? true : false),
-	LIVESEARCH = ( (my_config["livesearch"] == "Yes") ? true : false ),
-	SPLASHON = ( (my_config["splashlogo"] == "Yes") ? true : false ),
-	SPLASHLOGOFILE = ( my_config["splashlogofile"] == "" ? "aflogow3.png" : my_config["splashlogofile"]),
-	VERTICALROWS = ( (my_config["verticalrows"] ).tointeger()),
 	HORIZONTALROWS = ( (my_config["horizontalrows"] ).tointeger()),
-	OVERMENUBUTTON = my_config["overmenubutton"],
-	AUDIOVIDSNAPS = ( (my_config["audiovidsnaps"] == "Yes") ? true : false),
-	AUDIOVIDHISTORY = ( (my_config["audiovidhistory"] == "Yes") ? true : false),
-	LAYERVIDEO = ( (my_config["layervideo"] == "Yes") ? true : false),
-	THUMBVIDEO = ( (my_config["thumbvideo"] == "Yes") ? true : false),
-	LAYERSNAP = ( (my_config["layersnap"] == "Yes") ? true : false),
-	SNAPGLOW = ( (my_config["snapglow"] == "Yes") ? true : false),
+	VERTICALROWS = ( (my_config["verticalrows"] ).tointeger()),
+	DATASHADOWSMOOTH = ( (my_config["datashadowsmooth"] == "Yes") ? true : false),
 	BASEROTATION = my_config["baserotation"],
 	FROSTEDGLASS = ( (my_config["frostedglass"] == "Yes") ? true : false),
-	THEMEAUDIO = ( (my_config["themeaudio"] == "Yes") ? true : false),
 	CUSTOMSIZE = my_config["customsize"]
+
+	CROPSNAPS = ( (my_config["cropsnaps"] == "Square") ? true : false),
+	SNAPGLOW = ( (my_config["snapglow"] == "Yes") ? true : false),
+	THUMBVIDEO = ( (my_config["thumbvideo"] == "Yes") ? true : false),
+	SNAPGRADIENT = ( (my_config["snapgradient"] == "Yes") ? true : false),
+	NEWGAME = ( (my_config["newgame"] == "Yes") ? true : false),
+
+	COLORTHEME = my_config["colortheme"],
+	BGBLURRED = my_config["bgblurred"],
+	LAYERSNAP = ( (my_config["layersnap"] == "Yes") ? true : false),
+	LAYERVIDEO = ( (my_config["layervideo"] == "Yes") ? true : false),
+
+	SPLASHON = ( (my_config["splashlogo"] == "Yes") ? true : false ),
+	SPLASHLOGOFILE = ( my_config["splashlogofile"] == "" ? "aflogow3.png" : my_config["splashlogofile"]),
+
+	KEYBOARD = ( (my_config["searchmeth"] == "Keyboard") ? true : false),
+	LIVESEARCH = ( (my_config["livesearch"] == "Yes") ? true : false ),
+
+	THEMEAUDIO = ( (my_config["themeaudio"] == "Yes") ? true : false),
+	AUDIOVIDSNAPS = ( (my_config["audiovidsnaps"] == "Yes") ? true : false),
+	AUDIOVIDHISTORY = ( (my_config["audiovidhistory"] == "Yes") ? true : false),
 }
 
 
-if (prf.BASEROTATION == "None")
-		fe.layout.base_rotation = RotateScreen.None
-else if (prf.BASEROTATION == "Left")
-		fe.layout.base_rotation = RotateScreen.Left
-else if (prf.BASEROTATION == "Right")
-		fe.layout.base_rotation = RotateScreen.Right
-else if (prf.BASEROTATION == "Flip")
-		fe.layout.base_rotation = RotateScreen.Flip
-
-/*
-local ixi = 0
-for (local i = 0 ; i < fe.list.size ; i++ ){
-//	print (fe.game_info(Info.Title, i) + " ||| " + fe.game_info(Info.Status, i) + " ||| " + fe.game_info(Info.Control, i) + "\n")
-	if ((controller_pic(i) == null)) {
-		ixi ++
-		//print ( ixi + " ||| " + ((controller_pic(i) == null) ? "XXXXXXXX" : "       ") + " ||| " + fe.game_info(Info.Control, i) + "\n")
-		print ( ixi + " ||| " + (fe.game_info(Info.Title,i) )+ " ||| " + fe.game_info(Info.Control, i) + "\n")
-
-	}
+if (prf.BASEROTATION == "None") {
+	fe.layout.base_rotation = RotateScreen.None
 }
-*/
+else if (prf.BASEROTATION == "Left") {
+	fe.layout.base_rotation = RotateScreen.Left
+}
+else if (prf.BASEROTATION == "Right") {
+	fe.layout.base_rotation = RotateScreen.Right
+}
+else if (prf.BASEROTATION == "Flip") {
+	fe.layout.base_rotation = RotateScreen.Flip
+}
 
-// cleanup grabbed files
+// cleanup frosted glass screen grabs
 local dir0 = DirectoryListing( FeConfigDirectory )
 local fpos01 = null
 local fpos02 = null
@@ -160,7 +155,7 @@ if (file_exist(FeConfigDirectory+"screen.png") == false){
 foreach ( f in dir0.results )
 {
 	fpos01 = f.find(".png")
-	fpos02 = f.find("grab")
+	fpos02 = f.find("frostgrab")
 	if ((fpos01 != null) && (fpos02 != null)){
 		remove(f)
 	}
@@ -172,9 +167,6 @@ local overmenuflow = 0
 local historyflow = 0
 
 local noshader = fe.add_shader( Shader.Empty )
-
-local frost_surface = null
-local frost_pic = null
 
 // Search parameters
 local search_base_rule = "Title"
@@ -190,38 +182,39 @@ local columnoffset = 0
 local squarizer = true
 
 // Apply color theme
-local themeoverlaycolor = 255
-local themeoverlayalpha = 80
-local themetextcolor = 255
-local themeshadow = 50
-local shadeval = 255
-local satinrate = 0.9
+local themeT = {
+   themeoverlaycolor = 255
+   themeoverlayalpha = 80
+   themetextcolor = 255
+   themeshadow = 50
+}
 
+local satinrate = 0.9
 local vidsatin = 50
 
 if (prf.COLORTHEME == "Basic"){
-	themeoverlaycolor = 255
-	themeoverlayalpha = 80
-	themetextcolor = 255
-	themeshadow = 50
+	themeT.themeoverlaycolor = 255
+	themeT.themeoverlayalpha = 80
+	themeT.themetextcolor = 255
+	themeT.themeshadow = 50
 }
 if (prf.COLORTHEME == "Dark"){
-	themeoverlaycolor = 0
-	themeoverlayalpha = 110*0 + 140
-	themetextcolor = 230
-	themeshadow = 80
+	themeT.themeoverlaycolor = 0
+	themeT.themeoverlayalpha = 110*0 + 140
+	themeT.themetextcolor = 230
+	themeT.themeshadow = 80
 }
 if (prf.COLORTHEME == "Light"){
-	themeoverlaycolor = 255
-	themeoverlayalpha = 190
-	themetextcolor = 90
-	themeshadow = 50
+	themeT.themeoverlaycolor = 255
+	themeT.themeoverlayalpha = 190
+	themeT.themetextcolor = 90
+	themeT.themeshadow = 50
 }
 if (prf.COLORTHEME == "Pop"){
-	themeoverlaycolor = 255
-	themeoverlayalpha = 0
-	themetextcolor = 255
-	themeshadow = 70
+	themeT.themeoverlaycolor = 255
+	themeT.themeoverlayalpha = 0
+	themeT.themetextcolor = 255
+	themeT.themeshadow = 70
 }
 
 function round(x, y) {
@@ -251,7 +244,6 @@ local generalfont = "Roboto-Bold.ttf"
 local guifontcondensed = "Roboto-Condensed-Bold.ttf"
 
 //screen layout definition
-
 local scrw = ScreenWidth
 local scrh = ScreenHeight
 
@@ -288,7 +280,6 @@ fe.layout.page_size = rows
 fe.layout.font = generalfont
 
 local scalerate = (vertical ? flw : flh)/1200.0
-local	tilesTotal = 0
 
 local header_h = (rows == 1 ? 250*scalerate : 200*scalerate)
 local footer_h = 100*scalerate
@@ -326,21 +317,26 @@ local selectorwidth = selectorscale * widthpadded
 local selectoroffseth = (selectorwidth - widthpadded)*0.5
 local selectoroffsetv = (selectorwidth - widthpadded - verticalshift)*0.5
 
+// correction data for non-centered first tiles
 local deltacol = (cols - 3)/2
 local centercorrection0 = -deltacol*(width + padding) -(flw - (carrierT.w - 2*(width + padding))) / 2 - padding*(1 + selectorscale*0.5) - width/2 + selectorwidth/2
 local centercorrection = 0
 local centercorrectionshift = centercorrection0
 
-local zorderscanner = 0
 local zordertop = 0
 
 // transitions speeds
-local scrollspeed = 0.92
-local zoomspeed = 0.87
-local bgfadespeed = 0.88
-local letterspeed = 0.85
-local dataspeedin = 0.92
-local dataspeedout = 0.88
+local spdT = {
+   scrollspeed = 0.92
+   zoomspeed = 0.87
+   bgfadespeed = 0.88
+   letterspeed = 0.85
+   dataspeedin = 0.92
+   dataspeedout = 0.88
+}
+
+// Overlay menu fade speed
+local flowspeed = 25
 
 // Video delay parameters to skip fade-in
 local delayvid = 0.4
@@ -398,1323 +394,16 @@ local immediatesignal = false
 local numgrabs = 0
 local createdgrabs = []
 
-/// Carrier Class Definition  
-class Carrier {
-	
-	tilesTable = []
-	snapzTable = []
-	logozTable = []
-	loshzTable = []
-	favezTable = []
-	donezTable = []
-	nw_hzTable = []
-	nw_vzTable = []
-	sh_hzTable = []
-	sh_vzTable = []
-	bd_hzTable = []
-	bd_vzTable = []
-	vidszTable = []
-	glohzTable = []
-	glovzTable = []
 
-	tilesTablePosX = []
-	tilesTablePosY = []
-	tilesTableOffset = 0
-	surfacePosOffset = 0
-
-	selector = null
-	tilesOffscreen = 0
-	corrector = 0
-
-	newfocusindex = 0
-	oldfocusindex = 0
-	scroller = null
-	scroller2 = null
-	scrollineglow = null
-	searchdata = null
-	
-	tilesCount = 0
-	changedfav = false
-
-	alphapos = 0
-	
-	zoompos = 0
-	zoomunpos = 0
-	zoomposold = 0
-
-	datapos = 0
-	dataunpos = 0
-	dataposold = 0
-
-	vidpos = 0
-	fadeletter = 0
-	sh_h = null
-	sh_v = null
-	nw_h = null
-	nw_v = null
-	letterobj = null
-	searchtext = ""
-		
-	/// Carrier constructor  
-	constructor() {
-		
-		tilesCount = cols * rows
-		tilesOffscreen = (vertical ? 3 * rows : 4 * rows)
-
-		tilesTotal = tilesCount + 2*tilesOffscreen
-		surfacePosOffset = (tilesOffscreen/rows) * (width+padding)
-
-		zorderscanner = 0
-
-		// fading letter
-		letterobj = fe.add_text("[!gameletter]",0,carrierT.y,flw,carrierT.h)
-		letterobj.alpha = 0
-		letterobj.charsize = lettersize
-		letterobj.font = guifont
-		letterobj.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-		letterobj.margin = 0
-		letterobj.align = Align.MiddleCentre
-
-		// scroller definition
-		local scrolline = fe.add_image ("white.png",footermargin,flh-footer_h*0.5 - 1,flw-2*footermargin,2)
-		scrolline.alpha = 200
-		scrolline.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-		scrollineglow = fe.add_image ("whitedisc2.png",footermargin, flh-footer_h*0.5 - 5,flw-2*footermargin, 10)
-		scrollineglow.visible = false
-		scrollineglow.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-		scroller = fe.add_image ("whitedisc.png",footermargin - scrollersize*0.5,flh-footer_h*0.5-scrollersize*0.5,scrollersize,scrollersize)
-		scroller.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-		scroller2 = fe.add_image ("whitedisc2.png",scroller.x - scrollersize*0.5, scroller.y-scrollersize*0.5,scrollersize*2,scrollersize*2)
-		scroller2.visible = false
-		scroller2.alpha = 200
-		scroller2.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-		searchdata = fe.add_text (fe.list.search_rule,0,flh-footer_h*0.5,flw,footer_h*0.5)
-		searchdata.align = Align.Centre
-		searchdata.set_rgb( 255, 255, 255)
-		searchdata.word_wrap = true
-		searchdata.charsize = 25*scalerate
-		searchdata.visible = true
-		searchdata.font = guifont
-		searchdata.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-
-		/// Tile creation loop  
-		for ( local i = 0; i < tilesTotal; i++ ) {
-			local loshz = null
-			local logoz = null
-			local logosurf1 = null
-			local logosurf2 = null
-
-			local logo_w = 240.0
-			local logo_h = (prf.CROPSNAPS ? 105.0 : 120.0)
-			local logomargin = 20.0
-			local logosh_w = logo_w+2*logomargin
-			local logosh_h = logo_h+2*logomargin
-
-			local logoshscale = 0.5
-
-			logosurf2 = fe.add_surface (logosh_w*logoshscale,logosh_h*logoshscale)
-		
-			loshz = logosurf2.add_artwork ("wheel",logomargin*logoshscale,logomargin*logoshscale,logo_w*logoshscale,logo_h*logoshscale)
-
-			logosurf1 = fe.add_surface (logosh_w*logoshscale,logosh_h*logoshscale)
-			
-
-			local shaderV = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
-			shaderV.set_texture_param( "texture")
-			shaderV.set_param("kernelData", 7.0 , 2.5)
-			shaderV.set_param("offsetFactor", 0.0000, 1.0/(logosh_h*logoshscale))
-			logosurf2.shader = shaderV
-
-			local shaderH = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
-			shaderH.set_texture_param( "texture")
-			shaderH.set_param("kernelData", 7.0 , 2.5)
-			shaderH.set_param("offsetFactor", 1.0/(logosh_w*logoshscale), 0.0)
-			logosurf1.shader = shaderH
-
-
-			if (!prf.CROPSNAPS)
-			logosurf1.set_pos (selectorscale*padding*0.5,selectorscale*(padding*0.4*0.5-verticalshift),selectorscale*(width+padding),selectorscale*(height*0.5+padding))
-			else
-			logosurf1.set_pos (selectorscale*padding,selectorscale*padding,selectorscale*width,selectorscale*width*logosh_h/logosh_w)
-
-			local obj = fe.add_surface(widthpadded*selectorscale,heightpadded*selectorscale)
-			
-			if(i == 0) 
-				zorderscanner = obj.zorder
-			else
-				obj.zorder = zorderscanner
-
-			local sh_hz = obj.add_image ("sh_h_7.png",0,0,widthpadded*selectorscale,heightpadded*selectorscale)
-			local sh_vz = obj.add_image ("sh_v_7.png",0,0,widthpadded*selectorscale,heightpadded*selectorscale)
-			sh_hz.alpha = sh_vz.alpha = 230
-			
-			if (prf.CROPSNAPS) sh_hz.file_name = sh_vz.file_name = "sh_sq_7.png"
-
-			local glohz =	obj.add_image ("glowx4.png",0,-selectorscale*verticalshift,widthpadded*selectorscale,selectorscale*heightpadded)
-			local glovz =	obj.add_image ("glowx4.png",0,-selectorscale*verticalshift,widthpadded*selectorscale,selectorscale*heightpadded)
-			
-			if (prf.CROPSNAPS) glohz.file_name = glovz.file_name = "glow_sq.png"
-
-			local bd_hz = obj.add_text ("",selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + height/8.0 + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height*(3/4.0)+padding*2.0*whitemargin))
-			bd_hz.set_bg_rgb (255,255,255)
-			bd_hz.bg_alpha = 240
-			bd_hz.visible = false
-
-			local bd_vz = obj.add_text ("",selectorscale*(width/8.0 + padding*(1.0 - whitemargin)), selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width*(3/4.0)+padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
-			bd_vz.set_bg_rgb (255,255,255)
-			bd_vz.bg_alpha = 240
-			bd_vz.visible = false
-
-			if (prf.CROPSNAPS) {
-				bd_hz.set_pos (selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
-				bd_vz.set_pos (selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
-			}
-			else{
-				bd_hz.set_pos (selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + height/8.0 + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height*(3.0/4.0)+padding*2.0*whitemargin))
-				bd_vz.set_pos (selectorscale*(width/8.0 + padding*(1.0 - whitemargin)), selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width*(3.0/4.0)+padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
-			}
-
-
-			local snapz = obj.add_artwork("snap",selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width,selectorscale*height)
-			
-			snapz.preserve_aspect_ratio = false
-			snapz.video_flags = Vid.ImagesOnly
-			snapz.set_pos (selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width,selectorscale*height)
-
-			local snap_avg = null
-
-			if (prf.SNAPGRADIENT){
-				snap_avg = fe.add_shader( Shader.Fragment, "powersampler.glsl" )
-				snap_avg.set_texture_param( "texture",snapz)
-				snap_avg.set_param ("level",2.0)
-				if (prf.CROPSNAPS) 
-					snap_avg.set_param ("limits",0.2,0.7)
-				else
-					snap_avg.set_param ("limits",0.15,0.65)
-				snapz.shader = snap_avg
-			}
-		
-			local snap_glow_h = null
-			local snap_glow_v = null
-
-			if (prf.SNAPGLOW){
-				snap_glow_h = fe.add_shader( Shader.Fragment, "powerglow.glsl" )
-				snap_glow_h.set_texture_param( "texture",snapz)
-				snap_glow_h.set_texture_param( "textureglow",glohz)
-				snap_glow_h.set_param ("level",2.0)
-				snap_glow_h.set_param ("vertical",0.0)
-				glohz.shader = snap_glow_h
-
-				snap_glow_v = fe.add_shader( Shader.Fragment, "powerglow.glsl" )
-				snap_glow_v.set_texture_param( "texture",snapz)
-				snap_glow_v.set_texture_param( "textureglow",glovz)
-				snap_glow_v.set_param ("level",2.0)
-				snap_glow_v.set_param ("vertical",1.0)
-				glovz.shader = snap_glow_v
-			}
-
-			glohz.visible = false
-			glovz.visible = false
-
-			local vidsz = obj.add_image("transparent.png",selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width,selectorscale*height)
-
-			vidsz.preserve_aspect_ratio = true
-			//vidsz.visible = false
-			if (!prf.AUDIOVIDSNAPS) vidsz.video_flags = Vid.NoAudio
-
-			local nw_hz = obj.add_image ("nw_1.png",selectorscale*padding,selectorscale*(padding-verticalshift+height*6.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
-			local nw_vz = obj.add_image ("nw_1.png",selectorscale*(padding+width/8.0),selectorscale*(padding-verticalshift+height*7.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
-			nw_hz.visible = nw_vz.visible = false
-			nw_hz.alpha = nw_vz.alpha = ((prf.NEWGAME == true)? 220 : 0)
-
-			if (prf.CROPSNAPS) {
-				nw_hz.set_pos(selectorscale*padding,selectorscale*(padding-verticalshift+height*7.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
-				nw_vz.set_pos(selectorscale*padding,selectorscale*(padding-verticalshift+height*7.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
-			}
-
-			local donez = obj.add_image("completed.png",selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width*0.8,selectorscale*height*0.8)
-			donez.visible = false
-			donez.preserve_aspect_ratio = false
-
-			local favez = obj.add_image("starred.png",selectorscale*(padding+width/2),selectorscale*(padding+height/2-verticalshift),selectorscale*width/2,selectorscale*height/2)
-			favez.visible = false
-			favez.preserve_aspect_ratio = false
-
-			logosurf2.visible = false
-			logosurf2 = logosurf1.add_clone (logosurf2)
-			logosurf2.visible = true
-
-			logosurf1.visible = false
-			logosurf1 = obj.add_clone (logosurf1)
-			logosurf1.visible = true
-
-			logoz = obj.add_clone (loshz)
-			logoz.preserve_aspect_ratio = true
-
-			if (!prf.CROPSNAPS){
-				logoz.set_pos (selectorscale*padding,selectorscale*(padding*0.6-verticalshift),selectorscale*width,selectorscale*height*0.5)
-			}
-			else {
-				logoz.set_pos (selectorscale*(padding+width*logomargin/logosh_w),selectorscale*(padding+width*(15/20.0)*logomargin/logosh_w),selectorscale*width*logo_w/logosh_w,selectorscale*height*logo_h/logosh_w)
-			}
-			
-			loshz.alpha = 150
-			loshz.preserve_aspect_ratio = true
-			loshz.set_rgb(0,0,0)
-
-			tilesTablePosX.push((width+padding) * (i/rows) + padding)
-			tilesTablePosY.push((width+padding) * (i%rows) + padding + carrierT.y + verticalshift)
-			
-			obj.preserve_aspect_ratio = false
-			
-			tilesTable.push (obj)
-			snapzTable.push (snapz)
-			logozTable.push (logoz)
-			loshzTable.push (loshz)
-			favezTable.push (favez)
-			donezTable.push (donez)
-			bd_hzTable.push (bd_hz)
-			bd_vzTable.push (bd_vz)
-			sh_hzTable.push (sh_hz)
-			sh_vzTable.push (sh_vz)
-			nw_hzTable.push (nw_hz)
-			nw_vzTable.push (nw_vz)
-			vidszTable.push (vidsz)
-			glohzTable.push (glohz)
-			glovzTable.push (glovz)
-		}
-		
-		
-		zordertop = zorderscanner + tilesTotal + 2
-
-		//letterobj.zorder = scrolline.zorder = scrollineglow.zorder = scroller.zorder = scroller2.zorder = searchdata.zorder = zordertop
-
-		// define initial carrier "surface" position
-		surfacePos = 0.5
-
-
-		::fe.add_signal_handler( this, "on_signal" )
-		::fe.add_transition_callback( this, "on_transition" )
-		::fe.add_ticks_callback( this, "tick" )
-	}
-	
-	
-	
-	/// On Transition  
-	function on_transition( ttype, var0, ttime ) {
-		
-		//DEBUG print transition
-		if (DEBUG) print ("Tr:" + transdata[ttype] +" var:" + var0 + "\n")
-
-		//var = 0
-
-		if ((ttype == Transition.StartLayout) || (ttype == Transition.ToNewList)){
-			manufacturer_array[brandstack - 1].file_name = manufacturer_pic (0)
-			cat_array[brandstack - 1].file_name = category_pic (0)
-			but_array[brandstack - 1].file_name = "button_images/" + fe.game_info(Info.Buttons, 0)+"button.png"
-			ply_array[brandstack - 1].file_name = "players_images/players_" + fe.game_info(Info.Players,0)+".png"
-			ctl_array[brandstack - 1].file_name = controller_pic (0)
-			//print (fe.game_info(Info.Buttons, 0)+"button.png\n")
-		}
-
-		// cleanup frosted glass grabs
-		if ((ttype == Transition.EndLayout) && (var0 == FromTo.Frontend)){
-			for (local ig = 0; ig < numgrabs ; ig++){
-				remove(createdgrabs[ig])
-			}
-		}
-
-		if (ttype == Transition.ShowOverlay){
-			if (var0 == Overlay.Tags) tagsmenu = true
-			overlay_show() 
-		}
-
-		if (ttype == Transition.HideOverlay){
-			overlay_hide() 
-			if (tagsmenu) {
-				tagsmenu = false
-				zoompos = 1
-				datapos = 1
-			}
-		}
-
-		// var is updated only if we are going to a new selection
-		if (ttype == Transition.ToNewSelection) var = var0
-		
-		// scroller is always updated		
-		//	scroller.x = footermargin + (((fe.list.index + var)*1.0/rows)/((fe.list.size*1.0)/rows - 1))*(flw - 2.0*footermargin-scrollersize)
-		
-		scroller.x = footermargin + ((fe.list.index/rows)*rows*1.0/(fe.list.size - 1 ))*(flw - 2.0*footermargin-scrollersize)
-
-		scroller2.x = scroller.x-scrollersize*0.5
-		//		titlescroll = 2
-		//		scrollincrement = 0
-
-		// since the EndNavigation transition is fired many times I don't want the zoom/unzoom to take place in that case
-		if ((ttype != Transition.FromOldSelection) && (ttype != Transition.EndNavigation) && (ttype != Transition.HideOverlay) && (ttype != Transition.ShowOverlay) && (ttype != Transition.NewSelOverlay) ) {
-			if (DEBUG) print ("TRANSBLOCK 1 \n")
-			zoomposold =  1 - zoompos
-			zoompos = 1
-
-			dataposold = 1 - datapos
-			datapos = 1
-			
-
-			// If we are not transitioning to a new list, starting the layout or hiding the overlay old tile is faded out
-			if ((ttype!=Transition.ToNewList) && (ttype!=Transition.StartLayout) && (ttype!=Transition.HideOverlay)) {
-				if (DEBUG) print ("TRANSBLOCK 1.5 \n")
-				tilesTable[oldfocusindex].width = widthpadded
-				tilesTable[oldfocusindex].height = heightpadded
-				tilesTable[oldfocusindex].zorder = zorderscanner
-				glovzTable[oldfocusindex].visible = glohzTable[oldfocusindex].visible = bd_hzTable[oldfocusindex].visible = bd_vzTable[oldfocusindex].visible = false
-				//vidszTable[oldfocusindex].visible = false
-				//vidszTable[oldfocusindex].file_name = "transparent.png"
-				
-				zoomunpos = zoomposold
-				dataunpos = dataposold
-			}
-		}
-
-		// cases when the tiles will be updated
-		if ( ( ttype == Transition.ToNewList ) || ( ttype == Transition.ToNewSelection ) || (ttype == Transition.StartLayout)) {
-			
-
-			if (DEBUG) print ("TRANSBLOCK 2 \n")
-			//zoompos = 1
-			vidpos = 1
-						
-			if (ttype == Transition.ToNewList) {
-				var = 0
-				tilesTableOffset = 0
-				surfacePos = 0.5
-				columnoffset = 0
-				centercorrection = 0
-				centercorrectionshift = centercorrection0
-			}
-
-
-			if (DEBUG) print ("flindex " + fe.list.index + "\n")
-
-			corrector = (rows == 1 ? -1 : -((fe.list.index + var) % rows) )
-
-			colstop = floor((fe.list.index + var)/rows)
-			colstart = floor((fe.list.index)/rows)
-
-			local index = - (floor(tilesTotal/2) -1) + corrector 
-			//if (ttype == Transition.ToNewList) index = - (floor(tilesTotal/2) -1) - floor(fe.list.index % rows)
-		
-			columnoffset = (colstop - colstart)
-			tilesTableOffset += columnoffset*rows
-
-			// Determine center position correction when reaching beginning or end of list
-			if ((colstop < deltacol) && (var < 0) ) {
-				if (colstop == deltacol - 1 ) 
-					centercorrectionshift = centercorrection0 + (deltacol - 1)*(width+padding)
-				else 
-					centercorrectionshift = - (width+padding)
-			}
-			else if ((colstart < deltacol) && (var > 0)) {
-				if (colstart == deltacol - 1 ) 
-					centercorrectionshift = -centercorrection0 - (deltacol - 1)* (width+padding)
-				else 
-					centercorrectionshift = (width+padding)
-			}
-			else {
-				centercorrectionshift = 0	
-			}
-			
-			if (fe.list.index + var > deltacol*rows -1){
-				centercorrection = 0
-			}
-			else {
-				centercorrection = centercorrection0 + ((fe.list.index + var)/rows)*(width+padding)
-			}
-			
-			if (columnoffset == 0) centercorrectionshift = 0
-
-			// updates all the tiles, (NOT unless we are changing favourites)
-			//if (changedfav == false){
-			if (DEBUG) print ("TRANSBLOCK 3 \n")	
-
-			for ( local i = 0; i < tilesTotal ; i++ ) {
-											
-				local indexTemp = wrap( i + tilesTableOffset, tilesTotal )
-
-				if ((ttype == Transition.ToNewList) || (ttype == Transition.StartLayout)){
-					snapzTable[indexTemp].index_offset = index
-					loshzTable[indexTemp].index_offset = index
-				}
-				else{
-					snapzTable[indexTemp].rawset_index_offset(index )
-					loshzTable[indexTemp].rawset_index_offset(index )
-				}
-
-				if (prf.CROPSNAPS){
-					if (snapzTable[indexTemp].texture_width >= snapzTable[indexTemp].texture_height){
-						snapzTable[indexTemp].subimg_x = snapzTable[indexTemp].texture_width/8.0
-						snapzTable[indexTemp].subimg_width = snapzTable[indexTemp].texture_width*3.0/4.0
-					}
-					else{
-						snapzTable[indexTemp].subimg_y = snapzTable[indexTemp].texture_height/8.0
-						snapzTable[indexTemp].subimg_height = snapzTable[indexTemp].texture_height*3.0/4.0
-					}
-				}
-				else{
-					if (snapzTable[indexTemp].texture_width >= snapzTable[indexTemp].texture_height){
-						snapzTable[indexTemp].set_pos (selectorscale*padding,selectorscale*(padding-verticalshift + height/8.0 ),selectorscale*width,selectorscale*height*3.0/4.0)
-					}
-					else{
-						snapzTable[indexTemp].set_pos (selectorscale*(padding+width/8.0),selectorscale*(padding-verticalshift),selectorscale*width*3.0/4.0,selectorscale*height)
-					}
-				}
-
-				tilesTable[indexTemp].zorder = zorderscanner
-
-				favezTable[indexTemp].visible = (fe.game_info(Info.Favourite, snapzTable[indexTemp].index_offset + var) == "1")
-
-				donezTable[indexTemp].visible = ((fe.game_info(Info.Tags, snapzTable[indexTemp].index_offset + var)).find("Completed") != null)
-				
-				//local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
-				local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
-				if ((m == "0") || (m == "180") || (m == "horizontal") || (m == "Horizontal")){
-					sh_hzTable[indexTemp].visible = true
-					sh_vzTable[indexTemp].visible = false
-					
-					nw_hzTable[indexTemp].visible = (fe.game_info(Info.PlayedCount, snapzTable[indexTemp].index_offset+var) == "0") 
-					nw_vzTable[indexTemp].visible = false					
-					
-				}
-				else {
-					sh_hzTable[indexTemp].visible = false
-					sh_vzTable[indexTemp].visible = true
-
-					nw_hzTable[indexTemp].visible = false
-					nw_vzTable[indexTemp].visible = (fe.game_info(Info.PlayedCount, snapzTable[indexTemp].index_offset+var) == "0") 
-
-				}
-				
-				tilesTablePosX[indexTemp] = (i/rows) * (width+padding) + carrierT.x + centercorrection
-				tilesTablePosY[indexTemp] = (i%rows) * (height + padding) + carrierT.y + verticalshift
-
-				
-				tilesTable[indexTemp].visible = (( (fe.list.index + var + index < 0) || (fe.list.index + var + index > fe.list.size-1) ) == false)
-				
-				// if tranisioning to a new list, reset position and size of all thumbnails, not needed in normal scroll
-				if (ttype == Transition.ToNewList){
-					//vidszTable[indexTemp].visible = false
-					if (prf.THUMBVIDEO) vidszTable[indexTemp].file_name = "transparent.png"
-					tilesTable[indexTemp].width = widthpadded
-					tilesTable[indexTemp].height = heightpadded
-					tilesTable[indexTemp].zorder = zorderscanner
-					glovzTable[indexTemp].visible = glohzTable[indexTemp].visible = bd_hzTable[indexTemp].visible = bd_vzTable[indexTemp].visible = false
-				}
-				
-				index++
-			}
-			//} CHANGEDFAV
-			//else {
-			//	changedfav = false
-			//}
-			
-			// updates the size and features of the previously selected item and new selected item
-			newfocusindex = wrap( floor(tilesTotal/2)-1-corrector + tilesTableOffset, tilesTotal )
-			oldfocusindex = wrap( floor(tilesTotal/2)-1-corrector -var + tilesTableOffset, tilesTotal )
-			
-			tilesTable[oldfocusindex].width = widthpadded
-			tilesTable[oldfocusindex].height = heightpadded
-			tilesTable[oldfocusindex].zorder = zorderscanner
-			bd_hzTable[oldfocusindex].visible = bd_vzTable[oldfocusindex].visible = false
-
-			tilesTable[newfocusindex].zorder = zorderscanner + tilesTotal
-			letterobj.zorder = zorderscanner + tilesTotal + 1
-
-			//vidszTable[oldfocusindex].visible = false
-			if (prf.THUMBVIDEO) vidszTable[oldfocusindex].file_name = "transparent.png"
-			
-
-			favezTable[newfocusindex].visible = (fe.game_info(Info.Favourite, snapzTable[newfocusindex].index_offset+var) == "1")		
-			donezTable[newfocusindex].visible = ((fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset+var)).find("Completed") != null)
-			
-			//local m = fe.game_info(Info.Rotation, snapzTable[newfocusindex].index_offset+var)
-			local m = fe.game_info(Info.Rotation, snapzTable[newfocusindex].index_offset+var)
-			
-			if ((m == "0") || (m == "180") || (m == "horizontal") || (m == "Horizontal")){
-				glohzTable[newfocusindex].visible = prf.SNAPGLOW
-				bd_hzTable[newfocusindex].visible = true
-				glovzTable[newfocusindex].visible = bd_vzTable[newfocusindex].visible = false
-				nw_hzTable[newfocusindex].visible = (fe.game_info(Info.PlayedCount, snapzTable[newfocusindex].index_offset+var) == "0")
-				nw_vzTable[newfocusindex].visible = false
-
-			}
-			else {
-				glohzTable[newfocusindex].visible = bd_hzTable[newfocusindex].visible = false
-				glovzTable[newfocusindex].visible = prf.SNAPGLOW
-				bd_vzTable[newfocusindex].visible = true
-				nw_hzTable[newfocusindex].visible = false
-				nw_vzTable[newfocusindex].visible = (fe.game_info(Info.PlayedCount, snapzTable[newfocusindex].index_offset+var) == "0")
-
-			}
-
-		}
-		
-
-		
-		// if the transition is to a new selection initialize zooming, scrolling and surfacepos
-		if( (ttype == Transition.ToNewSelection) )
-		{
-			
-			if (DEBUG) print ("TRANSBLOCK 5 \n")
-			//snapbg1.rawset_index_offset (-var)
-			//if (prf.LAYERSNAP) bgvid1.rawset_index_offset (-var)
-
-			local l1 = gameletter (0)
-			local l2 = gameletter(var)
-			
-			if (l1 != l2){
-				fadeletter = 1
-			}
-			
-
-			for (local i = 0; i < stacksize-1;i++){
-				bgpicarray[i].swap(bgpicarray[i+1])
-				alphapos[i] = alphapos[i+1]
-			}
-
-
-			for (local i = 0; i < brandstack - 2;i++){
-				var_array[i] = - var + var_array[i+1]
-			}
-			var_array [brandstack - 1] = 0
-			var_array [brandstack - 2] = - var 
-
-
-			for (local i=0 ; i< brandstack -1 ; i++){
-//			manufacturer_array[i].rawset_index_offset(var_array[i])
-//			cat_array[i].rawset_index_offset(var_array[i])
-
-			manufacturer_array[i].swap (manufacturer_array[i+1])
-			cat_array[i].swap (cat_array[i+1])
-			but_array[i].swap (but_array[i+1])
-			ply_array[i].swap (ply_array[i+1])
-			ctl_array[i].swap (ctl_array[i+1])
-
-			maincat_array[i].index_offset = var_array[i]
-			gamename_array[i].index_offset = var_array[i]
-			gamesubname_array[i].index_offset = var_array[i]
-			gameyear_array[i].index_offset = var_array[i]
-			if (i != brandstack -2 )
-				data_alphapos[i] = data_alphapos[i+1]
-			else
-				data_alphapos[i] = 1.0 - data_alphapos[i+1]
-			}
-
-			manufacturer_array[brandstack - 1].file_name = manufacturer_pic (var)
-			cat_array[brandstack - 1].file_name = category_pic (var)
-			but_array[brandstack - 1].file_name = "button_images/"+fe.game_info(Info.Buttons, var)+"button.png"
-			ply_array[brandstack - 1].file_name = "players_images/players_" + fe.game_info (Info.Players , var)+".png"
-			ctl_array[brandstack - 1].file_name = controller_pic (var)
-			data_alphapos [brandstack - 1] = 1
-
-			alphapos [stacksize - 1]= 255
-			
-			surfacePos += (columnoffset * (width + padding) ) - centercorrectionshift
-			
-		}
-
-		if ((ttype == Transition.ToNewSelection) || (ttype == Transition.ToNewList)){
-			squarizer = true
-		}
-
-		return false
-	}
-	
-	/// On Tick  
-	function tick( tick_time ) {
-
-		if (squarizer){
-			squarizer = false
-			squarebg()
-		}
-
-		if ((rightcount != 0) && (fe.get_input_state("right")==false)){
-			rightcount = 0
-		}
-		
-		if ((leftcount != 0) && (fe.get_input_state("left")==false)){
-			leftcount = 0
-		}
-		
-		// crossfade of the blurred background
-		for (local i = 0 ; i < stacksize ; i++){
-	
-			if (alphapos[i] !=0){
-				if ((alphapos[i] < 1) && (alphapos[i] > -1) ) alphapos[i] = 0
-				alphapos[i] = alphapos[i] * bgfadespeed
-				bgpicarray[i].alpha = 255-alphapos[i]
-				if (prf.LAYERSNAP) bgvidarray[i].alpha = 255-alphapos[i] 
-			}
-		}
-
-		// fading of the initial letter of the name
-		if (fadeletter != 0){
-			if(fadeletter < 0.01) fadeletter = 0
-			fadeletter = fadeletter * letterspeed
-			letterobj.alpha = 255*(1-4.0*pow((0.5-fadeletter),2))
-		}
-		
-		for (local i = 0 ; i < brandstack ; i++){
-			if (data_alphapos[i] != 0 ){
-				if ((data_alphapos[i] <0.01) && (data_alphapos[i] > -0.01)) data_alphapos[i] = 0
-
-				if (i != brandstack -1){
-					data_alphapos[i] = data_alphapos[i] * dataspeedout
-					ply_array[i].alpha = ctl_array[i].alpha = but_array[i].alpha = cat_array[i].alpha = maincat_array[i].alpha = manufacturer_array[i].alpha = gamename_array[i].alpha = gamesubname_array[i].alpha = gameyear_array[i].alpha = 255 * (data_alphapos[i])*1.0
-				}
-				else {
-					data_alphapos[brandstack -1] = data_alphapos[brandstack - 1] * dataspeedin
-					ply_array[i].alpha = ctl_array[i].alpha = but_array[brandstack - 1].alpha = cat_array[brandstack - 1].alpha = maincat_array[brandstack - 1].alpha = manufacturer_array[brandstack - 1].alpha = gamename_array[brandstack - 1].alpha = gamesubname_array[brandstack - 1].alpha = gameyear_array[brandstack - 1].alpha = 255 * (1.0 - data_alphapos[brandstack - 1])*1.0
-				}
-			}
-		}
-
-	
-
-
-
-/*
-		if ((datapos != 0) || (dataunpos != 0)){
-			if ((datapos < 0.01) && (datapos > -0.01 )) {
-				datapos = 0
-			}
-			if ((dataunpos < 0.01) && (dataunpos > -0.01 )) {
-				dataunpos = 0
-			}
-
-			datapos = datapos * dataspeedin
-			dataunpos = dataunpos * dataspeedout
-			
-			cat_array[0].alpha = maincat_array[0].alpha = manufacturer_array[0].alpha = gamename_array[0].alpha = gamesubname_array[0].alpha = gameyear_array[0].alpha = 255 * (dataunpos)*1.0
-			cat_array[1].alpha = maincat_array[1].alpha = manufacturer_array[1].alpha = gamename_array[1].alpha = gamesubname_array[1].alpha = gameyear_array[1].alpha= 255 * (1.0-datapos)
-		
-		}
-*/
-
-		// contemporary scrolling of tiles and zooming of selected tile
-		if ((surfacePos != 0)||(zoompos !=0)||(zoomunpos!=0)) {	
-			if (zoompos == 1){
-				newfocusindex = wrap( floor(tilesTotal/2)-1 - corrector + tilesTableOffset, tilesTotal )
-				oldfocusindex = wrap( floor(tilesTotal/2)-1 - corrector - var + tilesTableOffset, tilesTotal )
-
-				// Useful check to update "Completed" tag when changing tags
-				local m = fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset)
-				if (m.find("Completed") != null)
-				donezTable[newfocusindex].visible = true
-				else
-				donezTable[newfocusindex].visible = false
-				
-			}
-			if ((surfacePos < 0.1) && (surfacePos > -0.1)) surfacePos = 0
-			if ((zoompos < 0.01) && (zoompos > -0.01 )) zoompos = 0
-			if ((zoomunpos < 0.01) && (zoomunpos > -0.01 )) {
-				zoomunpos = 0
-				if (oldfocusindex != newfocusindex){
-					glohzTable[oldfocusindex].visible = glovzTable[oldfocusindex].visible = false
-				}
-			}
-			
-			surfacePos = surfacePos * scrollspeed
-			zoompos = zoompos * zoomspeed
-			zoomunpos = zoomunpos * zoomspeed*zoomspeed
-			
-			//		brandarray[0].alpha = yeararray[0].alpha = namearray[0].alpha = 255 * (zoomunpos)*1.0
-			//		brandarray[1].alpha = yeararray[1].alpha = namearray[1].alpha = 255 * (1.0-zoompos)
-
-			if (surfacePos > surfacePosOffset) surfacePos = surfacePosOffset
-			if (surfacePos < -surfacePosOffset) surfacePos = -surfacePosOffset
-			
-			// repositioning of tiles		
-			for ( local i = 0; i < tilesTotal; i++ ) {
-				tilesTable[i].x = surfacePos - surfacePosOffset + tilesTablePosX[i]
-				tilesTable[i].y = tilesTablePosY[i]
-			}
-			
-			// scaling of current tile
-			tilesTable[newfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[newfocusindex] - (selectoroffseth*(1-zoompos))
-			tilesTable[newfocusindex].y = tilesTablePosY[newfocusindex] - ((selectoroffsetv)*(1-zoompos)) 
-			tilesTable[newfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(1.0-zoompos)
-			tilesTable[newfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(1.0-zoompos)
-			glohzTable[newfocusindex].alpha = 255*(1-zoompos)
-			glovzTable[newfocusindex].alpha = 255*(1-zoompos)
-			globalposnew = tilesTable[newfocusindex].x
-
-			if (oldfocusindex != newfocusindex){
-				tilesTable[oldfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[oldfocusindex] - (selectoroffseth*(zoomunpos))
-				tilesTable[oldfocusindex].y = tilesTablePosY[oldfocusindex] - ((selectoroffsetv)*(zoomunpos)) 
-				tilesTable[oldfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(zoomunpos)
-				tilesTable[oldfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(zoomunpos)
-				glohzTable[oldfocusindex].alpha = 255*(zoomunpos)
-				glovzTable[oldfocusindex].alpha = 255*(zoomunpos)
-			}
-		}
-		
-		// crossfade of video snaps, tailored to skip initial fade in
-		if (( vidpos != 0 )) {
-			
-			vidpos = vidpos - 0.01
-			if (vidpos < 0.01) vidpos = 0
-			// newfocusindex = wrap( tilesTotal/2-1-corrector + tilesTableOffset, tilesTotal )
-
-			if ((vidpos < delayvid) && (vidpos > delayvid - 0.01)){
-				//vidszTable[newfocusindex].visible = true
-				if (prf.THUMBVIDEO) vidszTable[newfocusindex].file_name = fe.get_art("snap")
-				vidszTable[newfocusindex].alpha = 0		
-				if (prf.CROPSNAPS){
-					if (snapzTable[newfocusindex].texture_width >= snapzTable[newfocusindex].texture_height){
-						vidszTable[newfocusindex].subimg_x = vidszTable[newfocusindex].texture_width/8.0
-						vidszTable[newfocusindex].subimg_width = vidszTable[newfocusindex].texture_width*3/4.0
-					}
-					else{
-						vidszTable[newfocusindex].subimg_y = vidszTable[newfocusindex].texture_height/8.0
-						vidszTable[newfocusindex].subimg_height = vidszTable[newfocusindex].texture_height*3/4.0	
-					}
-				}
-
-			}
-			
-			if (vidpos <= fadevid)
-			vidszTable[newfocusindex].alpha = 255.0*(1-vidpos*(1/fadevid))
-			else
-			vidszTable[newfocusindex].alpha = 0
-		}
-		
-	}
-	
-	
-	// wrap around value witin range 0 - N
-	function wrap( i, N ) {
-		while ( i < 0 ) { i += N }
-		while ( i >= N ) { i -= N }
-		return i
-	}
-
-	function updatescreen(){
-		local path = FeConfigDirectory
-		local dir = DirectoryListing( path )
-		local picname = ""
-		local fpos1 = null
-		local fpos2 = null
-		local picnum = 0
-		local picout = 0
-
-		foreach ( f in dir.results ){
-			fpos1 = f.find(".png")
-			fpos2 = f.find("screen")
-			if ((fpos1 != null) && (fpos2 != null)){
-				picnum = f.slice(fpos2+6,fpos1)
-				// print (picnum+"\n")
-				if (picnum == "") picnum = "0"
-				picnum = picnum.tointeger()
-				if (picout < picnum ) picout = picnum
-			}
-		}
-		picname = FeConfigDirectory + "screen" + picout +".png"
-		return picout
-	}
-
-	function getsnap(signalin){
-		frostshaders(true)
-
-		oldgrabnum = updatescreen()
-		fe.signal("screenshot")
-		oldgrabnum ++
-		grabpath0 = FeConfigDirectory + "screen" + oldgrabnum +".png"
-		numgrabs ++
-		grabpath = FeConfigDirectory + "grab" + numgrabs +".png"
-		createdgrabs.push (grabpath)
-		grabticker = 1
-		grabsignal = signalin
-
-	}
-
-	/// On Signal  
-	function on_signal( sig ){
-
-
-		if (DEBUG) print ("\n Si:" + sig )
-
-		//if (sig == "exit") wooshsound.playing = true
-
-		if (prf.FROSTEDGLASS){
-
-			if (sig == "exit"){
-				if (immediatesignal){
-					immediatesignal = false
-					return false
-				}
-				else{
-					getsnap("exit")
-					return true
-				}
-			}
-
-			if (sig == "filters_menu"){
-				if (immediatesignal){
-					immediatesignal = false
-					return false
-				}
-				else{
-					getsnap("filters_menu")
-					return true
-				}
-			}
-
-			if (sig == "add_favourite"){
-				if (immediatesignal){
-					immediatesignal = false
-					return false
-				}
-				else{
-					getsnap("add_favourite")
-					return true
-				}
-			}
-
-			if (sig == "add_tags"){
-				if (immediatesignal){
-					immediatesignal = false
-					return false
-				}
-				else{
-					getsnap("add_tags")
-					return true
-				}
-			}
-		}
-
-		// Rotation controls
-		if(sig == "toggle_rotate_right"){
-			if (fe.layout.toggle_rotation == RotateScreen.None)
-			{
-				fe.layout.toggle_rotation = RotateScreen.Right
-				fe.signal ("reload")
-			}
-			else{
-				fe.layout.toggle_rotation = RotateScreen.None
-				fe.signal ("reload")
-			}
-			return true
-		}
-
-		if(sig == "toggle_rotate_left"){
-			if (fe.layout.toggle_rotation == RotateScreen.None)
-			{
-				fe.layout.toggle_rotation = RotateScreen.Left
-				fe.signal ("reload")
-			}
-			else{
-				fe.layout.toggle_rotation = RotateScreen.None
-				fe.signal ("reload")
-			}
-			return true
-		}
-
-		// remap standard controls for next and previous game or page
-
-		if(sig == "next_game"){
-			fe.list.index ++
-			return true
-		}
-
-		if(sig == "prev_game"){
-			fe.list.index --
-			return true
-		}
-
-		if(sig == "prev_page"){
-			fe.list.index = fe.list.index - rows*(cols - 2)
-			return true
-		}
-
-		if(sig == "next_page"){
-			fe.list.index = fe.list.index + rows*(cols -2)
-			return true
-		}
-
-		if (overmenu_visible())
-		{
-			if (DEBUG) print (" OVERMENU \n")
-
-
-			if (sig == "up"){
-				
-				if (prf.FROSTEDGLASS){
-					if (immediatesignal){
-					if(prf.THEMEAUDIO) wooshsound.playing=true
-						immediatesignal = false
-					}
-					else{
-						getsnap("up")
-						return true
-					}
-				}
-
-				overmenu_hide(true)
-				//wooshsound.playing=true
-				local searchtext =""
-				local switcharray = [
-					"Year",
-					"Decade",
-					"Manufacturer",
-					"Main Category",
-					"Sub Category",
-					"RESET"
-				]
-				local result = fe.overlay.list_dialog(switcharray,"More of the same...")
-				
-				if(result==5){
-					//fe.list.index += corrector + rows 
-					fe.list.search_rule =""
-					searchdata.msg = ""
-					if (backindex != -1){
-						fe.list.index = backindex
-						//corrector = backcorrector
-						backindex = -1
-					}					 
-				}
-				
-				if (result == 0) {
-					searchtext = "Year contains "+ fe.game_info(Info.Year)
-				}
-
-				if (result == 1) {
-					searchtext = "Year contains "+ fe.game_info(Info.Year).slice(0,3)
-				}
-
-				if (result == 2) {
-					searchtext = "Manufacturer contains "+fe.game_info(Info.Manufacturer)
-				}
-
-				if (result == 3) {
-					searchtext = (fe.game_info(Info.Category))
-					local s = split( searchtext, "/" )
-					searchtext = "Category contains "+s[0]
-				}
-
-				if (result == 4) {	
-					searchtext = "Category contains "+fe.game_info(Info.Category)		
-				}
-				
-				if ((result !=5) && (result != -1)) {
-					if (backindex == -1) {
-						backindex = fe.list.index
-						//backcorrector = corrector
-					}
-					//fe.list.index += corrector + tilesTotal 
-					fe.list.index ++
-					fe.list.search_rule = searchtext
-					//fe.list.index = 0
-					corrector = (rows == 1 ? -1 : 0)
-					searchdata.msg = searchtext
-				}
-				return true
-			}
-
-			else if (sig == "down") {
-				overmenu_hide(false)
-				//try {
-					history_show()
-				//} catch ( err ) { print( "History Error\n" ); }
-
-				return true
-			}
-
-			else if (sig == "left") {
-				// add tags
-				overmenu_hide(true)
-					if(prf.THEMEAUDIO) wooshsound.playing=true
-				fe.signal ("add_tags")
-				return true
-			}
-
-			else if (sig == "right") {
-				// add current game to favorites
-				overmenu_hide(true)
-				//changedfav = true
-					if(prf.THEMEAUDIO) wooshsound.playing=true
-				fe.signal("add_favourite")
-				return true
-			}
-
-			else if (sig == "back") {
-				overmenu_hide(false)
-				return true
-			}
-
-			else if (sig == prf.OVERMENUBUTTON) {
-				overmenu_hide(false)
-				return true
-			}
-			
-			return false 
-		}
-		
-		else if (history_visible())
-		{
-			if (DEBUG) print (" HISTORY \n")
-
-			if (sig == "up") {
-				on_scroll_up()
-				return true
-			}
-
-			else if (sig == "down") {
-				on_scroll_down()
-				return true
-			}
-
-			else if (sig == "left") {
-				fe.list.index--
-				history_show()
-				return true
-			}
-
-			else if (sig == "right") {
-				fe.list.index++
-				history_show()
-				return true
-			}
-
-			else if (sig == "back") {
-				history_exit()
-				return true
-			}
-
-			return false 
-		}
-
-		else if (search_visible())
-		{
-			if (DEBUG) print (" SEARCH \n")
-
-			if ( sig == "up" ) {
-				search_select_relative( 0, -1 )
-				while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( 0, -1 )
-			}
-
-			else if ( sig == "down" ) {
-				search_select_relative( 0, 1 )
-				while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( 0, 1 )
-			}
-
-			else if ( sig == "left" ) {
-				search_select_relative( -1, 0 )
-				while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( -1, 0 )
-			}
-
-			else if ( sig == "right" ) {
-				search_select_relative( 1, 0 )
-				while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( 1, 0 )
-			}
-
-			else if ( sig == "select" ) search_type( key_rows[key_selected[1]][key_selected[0]].tochar() )
-			//else if ( sig == "back" ) search_type("<")
-			//else if ( sig == "exit" ) search_toggle()
-			else if ( sig == "back" ) search_toggle()
-		
-			else if (sig == "screenshot"){
-				return false
-			}
-
-			return true
-		}
-		
-		// normal signal response
-		else {
-			if (DEBUG) print (" NORMAL \n")
-			switch ( sig ){			
-
-				case prf.OVERMENUBUTTON:
-				overmenu_show()
-				return true
-
-				case "left":
-				if (fe.list.index > scrollstep - 1) {
-					if (leftcount == 0) {
-						fe.list.index -= scrollstep
-						if(prf.THEMEAUDIO) ticksound.playing=true
-						leftcount ++
-					}
-					else {
-						leftcount ++
-						if (leftcount == movecount)	leftcount = 0			
-					}
-				}
-				else zoompos = 1
-				return true
-				
-				case "right":
-				if ((fe.list.index < fe.list.size - scrollstep)){
-					if (rightcount == 0) {
-						fe.list.index += scrollstep
-						if(prf.THEMEAUDIO) ticksound.playing=true
-						rightcount ++
-					}
-					else {
-						rightcount ++
-						if (rightcount == movecount)	rightcount = 0			
-					}
-				}
-				else zoompos = 1
-				return true
-				
-				case "up":
-				if ((fe.list.index % rows > 0) && (scrolljump == false)) {
-					fe.list.index --
-					if(prf.THEMEAUDIO) ticksound.playing=true
-				}
-				else if (scrolljump == true){
-					if(prf.THEMEAUDIO) wooshsound.playing=true
-					scrolljump = false
-					scrollstep = rows
-					scroller2.visible = scrollineglow.visible = false
-				}
-				else {
-					if (prf.FROSTEDGLASS){
-						if (immediatesignal){
-						//wooshsound.playing=true	
-						immediatesignal = false
-						}
-						else{
-						getsnap("up")
-						return true
-						}
-					}
-					else {
-                  					if(prf.THEMEAUDIO) wooshsound.playing=true
-                     }
-					local switcharray1 = [
-						"Filters",
-						"Search for...",
-						"Layout options"
-					]
-
-					local result1 = fe.overlay.list_dialog(switcharray1,"Utility Menu")
-
-					if (result1 == 0){
-						//	wooshsound.playing=true
-						immediatesignal = true
-						fe.signal("filters_menu")
-					if(prf.THEMEAUDIO) wooshsound.playing=true
-					}
-
-					if (result1 == 2){
-						//	wooshsound.playing=true
-						fe.signal("layout_options")
-					if(prf.THEMEAUDIO) wooshsound.playing=true
-					}	
-
-					if (result1 == 1){
-					if(prf.THEMEAUDIO) wooshsound.playing=true
-
-					local searchtext =""
-					local switcharray = [
-						"Title",
-						"Manufacturer",
-						"Year",
-						"Category",
-						"RESET"
-					]
-					local result = fe.overlay.list_dialog(switcharray,"Search for...")
-					
-					if(result==4){
-						//fe.list.index += corrector + rows 
-						fe.list.search_rule =""
-						searchdata.msg = ""
-						if (backindex != -1){
-							fe.list.index = backindex
-							//corrector = backcorrector
-							backindex = -1
-						}
-						//return
-					}
-
-					if ((result != 4)&&(result !=-1)){
-						if (prf.KEYBOARD) 
-							searchtext = fe.overlay.edit_dialog("Search "+switcharray[result]+": ",searchtext)
-						else
-							search_base_rule = switcharray[result]
-						
-						if (backindex == -1){
-							backindex = fe.list.index
-							//backcorrector = corrector
-						}
-						
-						if (prf.KEYBOARD)
-						{
-							fe.list.index ++
-							fe.list.search_rule = switcharray[result]+" contains "+ recalculate(searchtext)
-							fe.list.index = 0
-							corrector = (rows == 1 ? -1 : 0)
-							if(fe.list.search_rule == ""){
-								searchdata.msg = ""
-								if (backindex != -1){
-									fe.list.index = backindex
-									//corrector = backcorrector
-									backindex = -1
-								}
-							}
-							else
-							searchdata.msg = fe.list.search_rule
-						}
-						else{
-							search_toggle()
-						}
-						
-						return true
-						
-					}
-					return true
-					}
-				}
-				return true
-				
-				case "down":
-				if ((fe.list.index % rows < rows -1) && ( ! ( (fe.list.index / rows == fe.list.size / rows)&&(fe.list.index%rows + 1 > (fe.list.size -1)%rows) ))) {
-					if ((corrector == 0) && (fe.list.index == fe.list.size-1)) return true
-					fe.list.index ++
-					if(prf.THEMEAUDIO) ticksound.playing=true
-				}
-
-				else if (scrolljump == false){
-					if(prf.THEMEAUDIO) wooshsound.playing=true
-					scrolljump = true
-					scrollstep = rows*(cols-2)
-					scroller2.visible = scrollineglow.visible = true		
-				}
-
-				return true
-				/*
-				// add favorites 
-				case "add_favourite":
-				//changedfav = true
-				wooshsound.playing=true
-				break
-				*/				
-				// All other cases
-				default:
-					if(prf.THEMEAUDIO) wooshsound.playing=true
-				
-			}// END OF SWITCH SIGNAL LOOP 
-		}// CLOSE ELSE GROUP
-		return false
-	}
-}
 
 /// Misc functions  
+
+// wrap around value witin range 0 - N
+function wrap( i, N ) {
+   while ( i < 0 ) { i += N }
+   while ( i >= N ) { i -= N }
+   return i
+}
 
 function recalculate( str ) {
 	if ( str.len() == 0 ) return ""
@@ -1828,32 +517,63 @@ function maincategory( offset ) {
 	}
 }
 
+function updatescreen(){
+   local path = FeConfigDirectory
+   local dir = DirectoryListing( path )
+   local picname = ""
+   local fpos1 = null
+   local fpos2 = null
+   local picnum = 0
+   local picout = 0
 
+   foreach ( f in dir.results ){
+      fpos1 = f.find(".png")
+      fpos2 = f.find("screen")
+      if ((fpos1 != null) && (fpos2 != null)){
+         picnum = f.slice(fpos2+6,fpos1)
+         // print (picnum+"\n")
+         if (picnum == "") picnum = "0"
+         picnum = picnum.tointeger()
+         if (picout < picnum ) picout = picnum
+      }
+   }
+   picname = FeConfigDirectory + "screen" + picout +".png"
+   return picout
+}
 
-/// Display construction (BACKGROUND)  
+function getsnap(signalin){
+   frostshaders(true)
 
+   oldgrabnum = updatescreen()
+   fe.signal("screenshot")
+   oldgrabnum ++
+   grabpath0 = FeConfigDirectory + "screen" + oldgrabnum +".png"
+   numgrabs ++
+   grabpath = FeConfigDirectory + "frostgrab" + numgrabs +".png"
+   createdgrabs.push (grabpath)
+   grabticker = 1
+   grabsignal = signalin
+
+}
+
+/// Background image creation  
 
 local commonground = fe.add_image("gridbg.png",0,0,flw,flh)
 
-local xsurf1 = null
-local xsurf2 = null
-local bg_surface = null
-local whitebg = null
 local smallsize = 26
 local blursize = 1/26.0
 
-xsurf1 = fe.add_surface(smallsize,smallsize)
+local xsurf1 = fe.add_surface(smallsize,smallsize)
 
 local bgpic = null
 
-for (local i = 0; i < stacksize; i++){
+for (local i = 0; i < bg_stacksize; i++){
 	alphapos.push (0)
-	if (i < stacksize -1) 
+	if (i < bg_stacksize -1) 
       bgpic = xsurf1.add_image("black.png",0,0,smallsize,smallsize)
 	else
       bgpic = xsurf1.add_artwork("snap",0,0,smallsize,smallsize)
 
-   bgpic.set_rgb (shadeval,shadeval,shadeval)
 	bgpic.alpha = 255
 	bgpic.trigger = Transition.EndNavigation
 	bgpic.video_flags = Vid.ImagesOnly
@@ -1862,22 +582,25 @@ for (local i = 0; i < stacksize; i++){
 	bgpicarray.push(bgpic)
 }
 
-xsurf2 = fe.add_surface(smallsize,smallsize)
+local xsurf2 = fe.add_surface(smallsize,smallsize)
 
-bg_surface = fe.add_surface(flw,flh)
+local bg_surface = fe.add_surface(flw,flh)
 bg_surface.alpha=255
 
-local shaderH1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
-shaderH1.set_texture_param( "texture")
-shaderH1.set_param("kernelData", 9.0, 2.2)
-shaderH1.set_param("offsetFactor", blursize, 0.0)
-xsurf1.shader = shaderH1
+local shader_bg = {
+   h = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+   v = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+}
 
-local shaderV1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
-shaderV1.set_texture_param( "texture")
-shaderV1.set_param("kernelData", 9.0, 2.2)
-shaderV1.set_param("offsetFactor", 0.0, blursize)
-xsurf2.shader = shaderV1
+shader_bg.h.set_texture_param( "texture")
+shader_bg.h.set_param("kernelData", 9.0, 2.2)
+shader_bg.h.set_param("offsetFactor", blursize, 0.0)
+xsurf1.shader = shader_bg.h
+
+shader_bg.v.set_texture_param( "texture")
+shader_bg.v.set_param("kernelData", 9.0, 2.2)
+shader_bg.v.set_param("offsetFactor", 0.0, blursize)
+xsurf2.shader = shader_bg.v
 
 xsurf2.visible = false
 xsurf2 = bg_surface.add_clone(xsurf2)
@@ -1893,7 +616,7 @@ local pixelgrid = null
 local bgvidsize = 90.0
 
 function squarebg(){
-	for (local i = 0; i < stacksize ; i++){
+	for (local i = 0; i < bg_stacksize ; i++){
 		if (bgpicarray[i].texture_width >= bgpicarray[i].texture_height){
 			bgpicarray[i].subimg_x = bgpicarray[i].texture_width * 1/8.0
 			bgpicarray[i].subimg_width = bgpicarray[i].texture_width * 3/4.0
@@ -1912,19 +635,18 @@ function squarebg(){
 	}
 }
 
-
 if (prf.LAYERSNAP){
 	bgvidsurf = fe.add_surface(bgvidsize,bgvidsize)
 	//bgvid1 = bgvidsurf.add_artwork("snap",0,0,bgvidsize,bgvidsize)
 
-	for (local i = 0; i < stacksize; i++){
+	for (local i = 0; i < bg_stacksize; i++){
 		local bgvid = null
 
 		if (!prf.LAYERVIDEO) {
 			bgvid = bgvidsurf.add_clone(bgpicarray[i])
 			bgvid.video_flags = Vid.ImagesOnly
 		}
-		else if (i == stacksize - 1 ){
+		else if (i == bg_stacksize - 1 ){
 			bgvid = bgvidsurf.add_artwork("snap",0,0,bgvidsize,bgvidsize)
 			bgvid.video_flags = Vid.NoAudio
 		}
@@ -1975,17 +697,355 @@ if (prf.BGBLURRED != "")	{
 	bgpicture.visible=true
 }
 
-whitebg = bg_surface.add_text("",0,0,flw,flh)
-whitebg.set_bg_rgb(themeoverlaycolor,themeoverlaycolor,themeoverlaycolor)
-whitebg.bg_alpha = themeoverlayalpha
+local whitebg = bg_surface.add_text("",0,0,flw,flh)
+whitebg.set_bg_rgb(themeT.themeoverlaycolor,themeT.themeoverlaycolor,themeT.themeoverlaycolor)
+whitebg.bg_alpha = themeT.themeoverlayalpha
+
+/// Carrier - variables definition  
+
+local	tilesTable = []
+local	snapzTable = []
+local	logozTable = []
+local	loshzTable = []
+local	favezTable = []
+local	donezTable = []
+local	nw_hzTable = []
+local	nw_vzTable = []
+local	sh_hzTable = []
+local	sh_vzTable = []
+local	bd_hzTable = []
+local	bd_vzTable = []
+local	vidszTable = []
+local	glohzTable = []
+local	glovzTable = []
+local gradzTable = []
+local	vid2zTable = []
+
+local	tilesTablePosX = []
+local	tilesTablePosY = []
+local	tilesTableOffset = 0
+
+local	corrector = 0
+
+local	newfocusindex = 0
+local	oldfocusindex = 0
+	
+local	changedfav = false
+
+//local	alphapos = 0
+	
+local	zoompos = 0
+local	zoomunpos = 0
+local	zoomposold = 0
+
+local	datapos = 0
+local	dataunpos = 0
+local	dataposold = 0
+
+local	vidpos = 0
+local	fadeletter = 0
+local	searchtext = ""
+
+/// Carrier - constructor 
+		
+local tilesCount = cols * rows
+local tilesOffscreen = (vertical ? 3 * rows : 4 * rows)
+
+local tilesTotal = tilesCount + 2*tilesOffscreen
+local surfacePosOffset = (tilesOffscreen/rows) * (width+padding)
+
+local zorderscanner = 0
+
+// fading letter
+local letterobj = fe.add_text("[!gameletter]",0,carrierT.y,flw,carrierT.h)
+letterobj.alpha = 0
+letterobj.charsize = lettersize
+letterobj.font = guifont
+letterobj.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
+letterobj.margin = 0
+letterobj.align = Align.MiddleCentre
+
+// scroller definition
+local scrolline = fe.add_image ("white.png",footermargin,flh-footer_h*0.5 - 1,flw-2*footermargin,2)
+scrolline.alpha = 200
+scrolline.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
+
+local scrollineglow = fe.add_image ("whitedisc2.png",footermargin, flh-footer_h*0.5 - 5,flw-2*footermargin, 10)
+scrollineglow.visible = false
+scrollineglow.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
+
+local scroller = fe.add_image ("whitedisc.png",footermargin - scrollersize*0.5,flh-footer_h*0.5-scrollersize*0.5,scrollersize,scrollersize)
+scroller.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
+
+local scroller2 = fe.add_image ("whitedisc2.png",scroller.x - scrollersize*0.5, scroller.y-scrollersize*0.5,scrollersize*2,scrollersize*2)
+scroller2.visible = false
+scroller2.alpha = 200
+scroller2.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
+
+local searchdata = fe.add_text (fe.list.search_rule,0,flh-footer_h*0.5,flw,footer_h*0.5)
+searchdata.align = Align.Centre
+searchdata.set_rgb( 255, 255, 255)
+searchdata.word_wrap = true
+searchdata.charsize = 25*scalerate
+searchdata.visible = true
+searchdata.font = guifont
+searchdata.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
+
+/// Carrier - tile creation loop  
+		
+for ( local i = 0; i < tilesTotal; i++ ) {
+
+   local gradsizer = 8
+   local gradscaler = 1
+
+   local gradsurf1 = fe.add_surface (gradsizer, gradsizer)
+
+   local gradz = gradsurf1.add_artwork("snap",0,0,gradsizer,gradsizer)
+   gradz.preserve_aspect_ratio = false
+   gradz.video_flags = Vid.ImagesOnly
+
+   local vidsz = gradsurf1.add_image("transparent.png",0,0,gradsizer,gradsizer)
+   vidsz.preserve_aspect_ratio = false
+   vidsz.mipmap = 1
+   //vidsz.visible = false
+   if (!prf.AUDIOVIDSNAPS) vidsz.video_flags = Vid.NoAudio
+
+   local gradsurf2 = fe.add_surface (gradsizer, gradsizer)
+
+   local shader_gr = {
+      h = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+      v = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+   }
+   
+   shader_gr.h.set_texture_param( "texture")
+   shader_gr.h.set_param("kernelData", 7.0, 2.5)
+   shader_gr.h.set_param("offsetFactor", 1.0/gradsizer, 0.0)
+   gradsurf1.shader = shader_gr.h
+
+   shader_gr.v.set_texture_param( "texture")
+   shader_gr.v.set_param("kernelData", 7.0, 2.5)
+   shader_gr.v.set_param("offsetFactor", 0.0, 1.0/gradsizer)
+   gradz.shader = shader_gr.v
 
 
-/// Display construction (CARRIER) 
 
-// scrolling carrier call
+   gradsurf1.visible = false
+   gradsurf1 = gradsurf2.add_clone (gradsurf1)
+   gradsurf1.visible = true
 
-local carrier = Carrier()
+   gradsurf2.visible = false
+   gradsurf2 = fe.add_clone (gradsurf2)
+   gradsurf2.visible = true
+   
+   
+   gradsurf2.set_pos (gradsizer*gradscaler*i , 0,gradsizer*gradscaler,gradsizer*gradscaler)
+   gradsurf2.visible = false
 
+   local logo_w = 240.0
+   local logo_h = (prf.CROPSNAPS ? 105.0 : 120.0)
+   local logomargin = 20.0
+   local logosh_w = logo_w+2*logomargin
+   local logosh_h = logo_h+2*logomargin
+
+   local logoshscale = 0.35
+
+   local logosurf2 = fe.add_surface (logosh_w*logoshscale,logosh_h*logoshscale)
+
+   local loshz = logosurf2.add_artwork ("wheel",logomargin*logoshscale,logomargin*logoshscale,logo_w*logoshscale,logo_h*logoshscale)
+
+   local logosurf1 = fe.add_surface (logosh_w*logoshscale,logosh_h*logoshscale)
+
+   local shader_lg = {
+      v = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+      h = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+   }
+   
+   shader_lg.v.set_texture_param( "texture")
+   shader_lg.v.set_param("kernelData", 5.0 , 1.75)
+   shader_lg.v.set_param("offsetFactor", 0.0000, 1.0/(logosh_h*logoshscale))
+   logosurf2.shader = shader_lg.v
+
+   shader_lg.h.set_texture_param( "texture")
+   shader_lg.h.set_param("kernelData", 5.0 , 1.75)
+   shader_lg.h.set_param("offsetFactor", 1.0/(logosh_w*logoshscale), 0.0)
+   logosurf1.shader = shader_lg.h
+
+   if (!prf.CROPSNAPS)
+   logosurf1.set_pos (selectorscale*padding*0.5,selectorscale*(padding*0.4*0.5-verticalshift),selectorscale*(width+padding),selectorscale*(height*0.5+padding))
+   else
+   logosurf1.set_pos (selectorscale*padding,selectorscale*padding,selectorscale*width,selectorscale*width*logosh_h/logosh_w)
+
+   local obj = fe.add_surface(widthpadded*selectorscale,heightpadded*selectorscale)
+   
+   if(i == 0) 
+      zorderscanner = obj.zorder
+   else
+      obj.zorder = zorderscanner
+
+   local sh_hz = obj.add_image ("sh_h_7.png",0,0,widthpadded*selectorscale,heightpadded*selectorscale)
+   local sh_vz = obj.add_image ("sh_v_7.png",0,0,widthpadded*selectorscale,heightpadded*selectorscale)
+   sh_hz.alpha = sh_vz.alpha = 230
+   
+   if (prf.CROPSNAPS) sh_hz.file_name = sh_vz.file_name = "sh_sq_7.png"
+
+   local glohz =	obj.add_image ("glowx4.png",0,-selectorscale*verticalshift,widthpadded*selectorscale,selectorscale*heightpadded)
+   local glovz =	obj.add_image ("glowx4.png",0,-selectorscale*verticalshift,widthpadded*selectorscale,selectorscale*heightpadded)
+   
+   if (prf.CROPSNAPS) glohz.file_name = glovz.file_name = "glow_sq.png"
+
+   local bd_hz = obj.add_text ("",selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + height/8.0 + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height*(3/4.0)+padding*2.0*whitemargin))
+   bd_hz.set_bg_rgb (255,255,255)
+   bd_hz.bg_alpha = 240 
+   bd_hz.visible = false
+
+   local bd_vz = obj.add_text ("",selectorscale*(width/8.0 + padding*(1.0 - whitemargin)), selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width*(3/4.0)+padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
+   bd_vz.set_bg_rgb (255,255,255)
+   bd_vz.bg_alpha = 240 
+   bd_vz.visible = false
+
+   if (prf.CROPSNAPS) {
+      bd_hz.set_pos (selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
+      bd_vz.set_pos (selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
+   }
+   else{
+      bd_hz.set_pos (selectorscale*padding*(1.0-whitemargin),selectorscale*(-verticalshift + height/8.0 + padding*(1.0 - whitemargin)),selectorscale*(width + padding*2.0*whitemargin),selectorscale*(height*(3.0/4.0)+padding*2.0*whitemargin))
+      bd_vz.set_pos (selectorscale*(width/8.0 + padding*(1.0 - whitemargin)), selectorscale*(-verticalshift + padding*(1.0 - whitemargin)),selectorscale*(width*(3.0/4.0)+padding*2.0*whitemargin),selectorscale*(height + padding*2.0*whitemargin))
+   }
+
+
+   local snapz = obj.add_clone(gradz)
+
+   snapz.preserve_aspect_ratio = false
+   snapz.video_flags = Vid.ImagesOnly
+   snapz.set_pos (selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width,selectorscale*height)
+
+ 
+   local snap_avg = null
+
+   
+   if (prf.SNAPGRADIENT){
+      snap_avg = fe.add_shader( Shader.Fragment, "powersampler3.glsl" )
+      snap_avg.set_texture_param( "texture",snapz)
+      snap_avg.set_texture_param( "texture2",gradsurf2)
+      if (prf.CROPSNAPS) 
+         snap_avg.set_param ("limits",0.25,0.75)
+//         snap_avg.set_param ("limits",0.5,0.5)
+      else
+         snap_avg.set_param ("limits",0.20,0.75)
+//                  snap_avg.set_param ("limits",0.25,0.85)
+//    snap_avg.set_param ("limits",0.5,0.5)
+
+      snapz.shader = snap_avg
+   }
+   else snapz.shader = noshader
+
+   local snap_glow = {
+      h = null
+      v = null
+   }
+   
+   if (prf.SNAPGLOW){
+      snap_glow.h = fe.add_shader( Shader.Fragment, "powerglow2.glsl" )
+      snap_glow.h.set_texture_param( "texture",gradsurf2)
+      snap_glow.h.set_texture_param( "textureglow",glohz)
+      snap_glow.h.set_param ("vertical",0.0)
+      if (prf.CROPSNAPS) 
+         snap_glow.h.set_param ("cropsnap",1.0)
+      else
+         snap_glow.h.set_param ("cropsnap",0.0)
+      glohz.shader = snap_glow.h
+      
+      snap_glow.v = fe.add_shader( Shader.Fragment, "powerglow2.glsl" )
+      snap_glow.v.set_texture_param( "texture",gradsurf2)
+      snap_glow.v.set_texture_param( "textureglow",glovz)
+      snap_glow.v.set_param ("vertical",1.0)
+      if (prf.CROPSNAPS) 
+         snap_glow.v.set_param ("cropsnap",1.0)
+      else
+         snap_glow.v.set_param ("cropsnap",0.0)
+      glovz.shader = snap_glow.v
+      
+   }
+
+   glohz.visible = false
+   glovz.visible = false
+
+
+   local vid2z = obj.add_clone(vidsz)
+   vid2z.set_pos (selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width,selectorscale*height)
+   vid2z.preserve_aspect_ratio = true
+   //vidsz.visible = false
+
+  // if (!prf.AUDIOVIDSNAPS) vid2z.video_flags = Vid.NoAudio
+
+   local nw_hz = obj.add_image ("nw_1.png",selectorscale*padding,selectorscale*(padding-verticalshift+height*6.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
+   local nw_vz = obj.add_image ("nw_1.png",selectorscale*(padding+width/8.0),selectorscale*(padding-verticalshift+height*7.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
+   nw_hz.visible = nw_vz.visible = false
+   nw_hz.alpha = nw_vz.alpha = ((prf.NEWGAME == true)? 220 : 0)
+
+   if (prf.CROPSNAPS) {
+      nw_hz.set_pos(selectorscale*padding,selectorscale*(padding-verticalshift+height*7.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
+      nw_vz.set_pos(selectorscale*padding,selectorscale*(padding-verticalshift+height*7.0/8.0),width*selectorscale/8.0,height*selectorscale/8.0)
+   }
+
+   local donez = obj.add_image("completed.png",selectorscale*padding,selectorscale*(padding-verticalshift),selectorscale*width*0.8,selectorscale*height*0.8)
+   donez.visible = false
+   donez.preserve_aspect_ratio = false
+
+   local favez = obj.add_image("starred.png",selectorscale*(padding+width/2),selectorscale*(padding+height/2-verticalshift),selectorscale*width/2,selectorscale*height/2)
+   favez.visible = false
+   favez.preserve_aspect_ratio = false
+
+   logosurf2.visible = false
+   logosurf2 = logosurf1.add_clone (logosurf2)
+   logosurf2.visible = true
+
+   logosurf1.visible = false
+   logosurf1 = obj.add_clone (logosurf1)
+   logosurf1.visible = true
+
+   local logoz = obj.add_clone (loshz)
+   logoz.preserve_aspect_ratio = true
+   
+	if (!prf.CROPSNAPS){
+      logoz.set_pos (selectorscale*padding,selectorscale*(padding*0.6-verticalshift),selectorscale*width,selectorscale*height*0.5)
+   }
+   else {
+      logoz.set_pos (selectorscale*(padding+width*logomargin/logosh_w),selectorscale*(padding+width*(15/20.0)*logomargin/logosh_w),selectorscale*width*logo_w/logosh_w,selectorscale*height*logo_h/logosh_w)
+   }
+   
+   loshz.alpha = 150  
+   loshz.preserve_aspect_ratio = true
+   loshz.set_rgb(0,0,0)
+
+   tilesTablePosX.push((width+padding) * (i/rows) + padding)
+   tilesTablePosY.push((width+padding) * (i%rows) + padding + carrierT.y + verticalshift)
+   
+   obj.preserve_aspect_ratio = false
+   
+   tilesTable.push (obj)
+   snapzTable.push (snapz)
+   logozTable.push (logoz)
+   loshzTable.push (loshz)
+   favezTable.push (favez)
+   donezTable.push (donez)
+   bd_hzTable.push (bd_hz)
+   bd_vzTable.push (bd_vz)
+   sh_hzTable.push (sh_hz)
+   sh_vzTable.push (sh_vz)
+   nw_hzTable.push (nw_hz)
+   nw_vzTable.push (nw_vz)
+   vidszTable.push (vidsz)
+   vid2zTable.push (vid2z)
+   glohzTable.push (glohz)
+   glovzTable.push (glovz)
+   gradzTable.push (gradz)
+
+}
+
+zordertop = zorderscanner + tilesTotal + 2
+
+surfacePos = 0.5
 
 /// Foreground panel surface  
 
@@ -1995,11 +1055,9 @@ fg_surface.zorder = zordertop + 2
 //fg_surface.alpha = 120
 //fg_surface.set_pos(bgT.x,bgT.y,bgT.w,bgT.w)
 
-/// Display construction (DATA)  
-
+/// Data surface construction  
 
 local data_surface = fe.add_surface (flw,flh)
-
 
 local filterdata = data_surface.add_text ("[FilterName]",0,flh-footer_h,footermargin,footer_h)
 filterdata.align = Align.Centre
@@ -2008,7 +1066,7 @@ filterdata.word_wrap = true
 filterdata.charsize = 25*scalerate/0.711
 filterdata.visible = true
 filterdata.font = guifont
-filterdata.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+filterdata.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
 
 local filternumbers = data_surface.add_text ("[ListEntry]\n[ListSize]",flw-footermargin,flh-footer_h,footermargin,footer_h)
 filternumbers.align = Align.Centre
@@ -2017,9 +1075,10 @@ filternumbers.word_wrap = true
 filternumbers.charsize = 25*scalerate/0.711
 filternumbers.visible = true
 filternumbers.font = guifont
-filternumbers.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+filternumbers.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
 
-data_surface.add_image("white.png",flw-footermargin+footermargin*0.3, flh-footer_h + footer_h*0.5,footermargin*0.4,1)
+local separatorline = data_surface.add_image("white.png",flw-footermargin+footermargin*0.3, flh-footer_h + footer_h*0.5,footermargin*0.4,1)
+separatorline.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
 
 local game_catpicT = {
 	x = 30 * scalerate,
@@ -2059,13 +1118,13 @@ local game_maincatT = {
 local game_mainnameT = {
 	x = (170 ) * scalerate,
 	y = 20 * scalerate,
-	w = flw - (170  + 320) * scalerate,
+	w = flw - (170  + 320 + 5) * scalerate,
 	h = 110 * scalerate
 }
 local game_subnameT = {
 	x = (170 + 55 +55 + 45*1.25 + 15) * scalerate,
 	y = 145 * scalerate,
-	w = flw - (170 + 55 + 45*1.25 + 15 + 320) * scalerate,
+	w = flw - (170 + 55 +55+ 45*1.25 + 15 + 320 + 5) * scalerate,
 	h = 35 * scalerate
 }
 local game_manufacturerpicT = {
@@ -2081,47 +1140,43 @@ local game_yearT = {
 	h = 25 * scalerate
 }
 
-
-local alphashader = fe.add_shader( Shader.Fragment, "alphacorrect.glsl" )
-alphashader.set_texture_param( "texture")
-
 local bwtoalpha = fe.add_shader( Shader.Fragment, "bwtoalpha.glsl" )
 bwtoalpha.set_texture_param( "texture")
 
-for (local i = 0; i < brandstack; i++){
+for (local i = 0; i < data_stacksize; i++){
 
-	local game_catpic = data_surface.add_image("transparent.png",game_catpicT.x, game_catpicT.y, game_catpicT.w, game_catpicT.h)
+	local game_catpic = data_surface.add_image("white.png",game_catpicT.x, game_catpicT.y, game_catpicT.w, game_catpicT.h)
 	game_catpic.smooth = false
 	game_catpic.preserve_aspect_ratio = true
-	game_catpic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_catpic.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
+	game_catpic.shader = bwtoalpha
 	//game_catpic.fix_masked_image()
 
-	local game_butpic = data_surface.add_image("transparent.png",game_butpicT.x, game_butpicT.y, game_butpicT.w, game_butpicT.h)
+	local game_butpic = data_surface.add_image("white.png",game_butpicT.x, game_butpicT.y, game_butpicT.w, game_butpicT.h)
 	game_butpic.smooth = true
 	game_butpic.preserve_aspect_ratio = true
-	game_butpic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_butpic.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
 	game_butpic.shader = bwtoalpha
-	//game_catpic.fix_masked_image()
+	// game_catpic.mipmap = 1
 	
-	local game_plypic = data_surface.add_image("transparent.png",game_plypicT.x, game_plypicT.y, game_plypicT.w, game_plypicT.h)
+	local game_plypic = data_surface.add_image("white.png",game_plypicT.x, game_plypicT.y, game_plypicT.w, game_plypicT.h)
 	game_plypic.smooth = true
 	game_plypic.preserve_aspect_ratio = true
-	game_plypic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_plypic.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
 	game_plypic.shader = bwtoalpha
-	//game_catpic.fix_masked_image()
+	// game_plypic.mipmap = 1
 
-	local game_ctlpic = data_surface.add_image("transparent.png",game_ctlpicT.x, game_ctlpicT.y, game_ctlpicT.w, game_ctlpicT.h)
+	local game_ctlpic = data_surface.add_image("white.png",game_ctlpicT.x, game_ctlpicT.y, game_ctlpicT.w, game_ctlpicT.h)
 	game_ctlpic.smooth = true
 	game_ctlpic.preserve_aspect_ratio = true
-	game_ctlpic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_ctlpic.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
 	game_ctlpic.shader = bwtoalpha
-	//game_catpic.fix_masked_image()
+	// game_ctlpic.mipmap = 1
 
 	local game_maincat = data_surface.add_text("[!maincategory]",game_maincatT.x,game_maincatT.y,game_maincatT.w,game_maincatT.h)
-//	local game_maincat = data_surface.add_text("[!maincategory]",20*scalerate,150*scalerate,120*scalerate,35*scalerate)
 	game_maincat.align = Align.MiddleCentre
 	game_maincat.word_wrap = true
-	game_maincat.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_maincat.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
 	game_maincat.charsize = 25*scalerate/0.711
 	game_maincat.font = guifontcondensed
 	game_maincat.alpha = 255
@@ -2133,7 +1188,7 @@ for (local i = 0; i < brandstack; i++){
 	local game_mainname = data_surface.add_text( "[!gamename2]", game_mainnameT.x, game_mainnameT.y, game_mainnameT.w, game_mainnameT.h )
 	game_mainname.align = Align.MiddleLeft
 	game_mainname.word_wrap = true
-	game_mainname.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_mainname.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
 	game_mainname.charsize = 50*scalerate/0.711
 	game_mainname.line_spacing = 0.68
 	game_mainname.margin = 0
@@ -2143,26 +1198,23 @@ for (local i = 0; i < brandstack; i++){
 	game_mainname.visible = true
 
 	local game_subname = data_surface.add_text( "[!gamesubname]", game_subnameT.x, game_subnameT.y, game_subnameT.w, game_subnameT.h )
-//	local game_subname = data_surface.add_text( "[!gamesubname]", 170*scalerate, 150*scalerate, flw-170*scalerate-300*scalerate, header_h )
 	game_subname.align = Align.TopLeft
 	game_subname.word_wrap = false
-	game_subname.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_subname.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
 	game_subname.charsize = 35*scalerate/0.711
 	game_subname.font = guifont
 	game_subname.alpha = 255
 	game_subname.margin = 0
 
 
-	local game_manufacturerpic = data_surface.add_image("transparent.png",game_manufacturerpicT.x - i*200*0, game_manufacturerpicT.y, game_manufacturerpicT.w, game_manufacturerpicT.h)
-	//game_manufacturerpic.mipmap = 1
+	local game_manufacturerpic = data_surface.add_image("white.png",game_manufacturerpicT.x - i*200*0, game_manufacturerpicT.y, game_manufacturerpicT.w, game_manufacturerpicT.h)
+	// game_manufacturerpic.mipmap = 1
 	game_manufacturerpic.smooth = true
 	game_manufacturerpic.preserve_aspect_ratio = false
-	game_manufacturerpic.set_rgb(themetextcolor,themetextcolor,themetextcolor)
-	game_manufacturerpic.shader = alphashader
-	
+	game_manufacturerpic.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
+	game_manufacturerpic.shader = bwtoalpha
 
 	local game_year = data_surface.add_text( "© [Year]  ", game_yearT.x, game_yearT.y, game_yearT.w, game_yearT.h)
-//	local game_year = data_surface.add_text( "© [Year]  ", flw-300*scalerate, 160*scalerate, 290*scalerate, 25*scalerate)
 	game_year.align = Align.TopCentre
 	game_year.set_rgb( 255, 255, 255)
 	game_year.word_wrap = false
@@ -2170,37 +1222,37 @@ for (local i = 0; i < brandstack; i++){
 	game_year.visible = true
 	game_year.font = guifont
 	game_year.margin = 0
-	game_year.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+	game_year.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
 	
-	var_array.push(0)
+	dat.var_array.push(0)
 	data_alphapos.push (1)
-	cat_array.push(game_catpic)
-	but_array.push (game_butpic)
-	ply_array.push (game_plypic)
-	ctl_array.push (game_ctlpic)
-	maincat_array.push(game_maincat)
-	manufacturer_array.push(game_manufacturerpic)
-	gamename_array.push(game_mainname)
-	gamesubname_array.push(game_subname)
-	gameyear_array.push(game_year)
+	dat.cat_array.push(game_catpic)
+	dat.but_array.push (game_butpic)
+	dat.ply_array.push (game_plypic)
+	dat.ctl_array.push (game_ctlpic)
+	dat.mainctg_array.push(game_maincat)
+	dat.manufacturer_array.push(game_manufacturerpic)
+	dat.gamename_array.push(game_mainname)
+	dat.gamesubname_array.push(game_subname)
+	dat.gameyear_array.push(game_year)
 }
 
+// Creation of data shadow
 
-//name_surf.zorder = subname_x.zorder = year_x.zorder = year2_x.zorder = filterdata.zorder = filternumbers.zorder = zordertop + 1
+local sh_scaler = (vertical ? 400.0 / data_surface.width : 400.0 / data_surface.height)
 
-//print ("\n"+ flh + " " + scalerate + " " + header_h +"\n")
+local shader_tx = {
+   h = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+   v = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+}
 
-local sh_scaler = 400.0 / data_surface.height
+shader_tx.v.set_texture_param( "texture")
+shader_tx.v.set_param("kernelData",9,3.0)
+shader_tx.v.set_param("offsetFactor",0.000,1.0/(flh*sh_scaler))
 
-local shadowshader1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
-shadowshader1.set_texture_param( "texture")
-shadowshader1.set_param("kernelData",9,3.0)
-shadowshader1.set_param("offsetFactor",0.000,1.0/(flh*sh_scaler))
-
-local shadowshader2 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
-shadowshader2.set_texture_param( "texture")
-shadowshader2.set_param("kernelData",9,3.0)
-shadowshader2.set_param("offsetFactor",1.0/(flw*sh_scaler),0.000)
+shader_tx.h.set_texture_param( "texture")
+shader_tx.h.set_param("kernelData",9,3.0)
+shader_tx.h.set_param("offsetFactor",1.0/(flw*sh_scaler),0.000)
 
 //local data_surface_sh1 = fe.add_clone(data_surface)
 
@@ -2219,15 +1271,14 @@ data_surface_sh1.visible = true
 
 //if (prf.DATASHADOWSMOOTH) data_surface_sh.shader = shadowshader
 if (prf.DATASHADOWSMOOTH){
-   data_surface_sh.shader = shadowshader1
-   data_surface_sh1.shader = shadowshader2
+   data_surface_sh.shader = shader_tx.v
+   data_surface_sh1.shader = shader_tx.h
 }
 
-data_surface_sh.alpha = themeshadow
+data_surface_sh.alpha = themeT.themeshadow
 
 data_surface_sh.zorder = zordertop + 3
 data_surface.zorder = zordertop + 4
-
 
 data_surface_sh.set_pos(4*scalerate,7*scalerate,data_surface.width,data_surface.height)
 
@@ -2269,20 +1320,17 @@ else{
 	frost_picT.h = frost_picw/displayAR
 	frost_picT.x = 0
 	frost_picT.y = (frost_pich - frost_picT.h)*0.5
-
 }
 
 local frost_surf1 = null
 local flipshader = null
 local frost_surf2 = null
 local frost_pic = null
-local frostshader1 = null
-local frostshader2 = null
+local shader_fr = null
 local frost_surface = null
 
-
 if (prf.FROSTEDGLASS){
-	 frost_surf1 = fe.add_surface(frost_picw,frost_pich)
+	frost_surf1 = fe.add_surface(frost_picw,frost_pich)
 
 	frost_pic = frost_surf1.add_image("transparent.png",frost_picT.x,frost_picT.y,frost_picT.w,frost_picT.h)
 
@@ -2294,17 +1342,18 @@ if (prf.FROSTEDGLASS){
 
 	frost_surface = fe.add_surface(flw,flh-header_h-footer_h)
 
-	frostshader1 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
-	frostshader1.set_texture_param( "texture")
-	frostshader1.set_param("kernelData", 13.0, 2.5)
-	frostshader1.set_param("offsetFactor", 0.0000, 1.0/frost_pich)
+	shader_fr = {
+      v = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+      h = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
+   }
+   
+	shader_fr.v.set_texture_param( "texture")
+	shader_fr.v.set_param("kernelData", 13.0, 2.5)
+	shader_fr.v.set_param("offsetFactor", 0.0000, 1.0/frost_pich)
 
-	frostshader2 = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o.glsl" )
-	frostshader2.set_texture_param( "texture")
-	frostshader2.set_param("kernelData", 13.0, 2.5)
-	frostshader2.set_param("offsetFactor", 1.0/frost_picw, 0.000)
-
-
+	shader_fr.h.set_texture_param( "texture")
+	shader_fr.h.set_param("kernelData", 13.0, 2.5)
+	shader_fr.h.set_param("offsetFactor", 1.0/frost_picw, 0.000)
 
 	frost_surf2.visible = false
 	frost_surf2 = frost_surface.add_clone(frost_surf2)
@@ -2322,7 +1371,6 @@ if (prf.FROSTEDGLASS){
 
 	//frost_pic.smooth = frost_surf1.smooth = frost_surf2.smooth = frost_surface.smooth = false
 	
-
 	//frost_surface = fe.add_clone(frost_surf1)
 	frost_surface.zorder = zordertop + 5
 
@@ -2330,26 +1378,39 @@ if (prf.FROSTEDGLASS){
 	//frost_surface.set_pos(bgT.x,bgT.y,bgT.w,bgT.w)
 }
 
-/// Side/top blanker for custom resolution  
+function frostshaders (turnon){
+		if (turnon){
+			frost_pic.shader = flipshader
+			frost_surf1.shader = shader_fr.h
+			frost_surf2.shader = shader_fr.v
+		}
+		else{
+			frost_pic.shader = noshader
+			frost_surf1.shader = noshader
+			frost_surf2.shader = noshader			
+		}
+}
 
-local blank_1 = null
-local blank_2 = null
+/// Blanker for custom resolution  
+
+local blanker = {
+   bl1 = null
+   bl2 = null
+}
 
 if (prf.CUSTOMSIZE != ""){
 
 	if (displayAR > layoutAR){
-		blank_1 = fe.add_image("black.png",(flh/frost_pich)*frost_picT.x,0,-(flh/frost_pich)*frost_picT.x,flh)
-		blank_2 = fe.add_image("black.png",flw,0,-(flh/frost_pich)*frost_picT.x,flh)
+		blanker.bl1 = fe.add_image("black.png",(flh/frost_pich)*frost_picT.x,0,-(flh/frost_pich)*frost_picT.x,flh)
+		blanker.bl2 = fe.add_image("black.png",flw,0,-(flh/frost_pich)*frost_picT.x,flh)
 	}
 	else{
-		blank_1 = fe.add_image("black.png",0,(flw/frost_picw)*frost_picT.y,flw,-(flw/frost_picw)*frost_picT.y)
-		blank_2 = fe.add_image("black.png",0,flh,flw,-(flw/frost_picw)*frost_picT.y)
+		blanker.bl1 = fe.add_image("black.png",0,(flw/frost_picw)*frost_picT.y,flw,-(flw/frost_picw)*frost_picT.y)
+		blanker.bl2 = fe.add_image("black.png",0,flh,flw,-(flw/frost_picw)*frost_picT.y)
 	}
 
-	//blank_1.set_rgb(128,128,128)
-	//blank_2.set_rgb(128,128,128)
 
-	blank_1.zorder=blank_2.zorder = 500
+	blanker.bl1.zorder=blanker.bl2.zorder = 500
 }
 
 /// Controls Overlays (Listbox)  
@@ -2370,7 +1431,7 @@ local overlay_listbox = fe.add_listbox( 0, header_h+overlay_labelsize, flw, flh-
 overlay_listbox.rows = overlay_rows
 overlay_listbox.charsize = overlay_charsize
 overlay_listbox.bg_alpha = 0
-overlay_listbox.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
+overlay_listbox.set_rgb(themeT.themetextcolor-5,themeT.themetextcolor-5,themeT.themetextcolor-5)
 overlay_listbox.set_bg_rgb( 0, 0, 0 )
 overlay_listbox.set_sel_rgb( 50, 50, 50 )
 overlay_listbox.set_selbg_rgb( 250,250,250 )
@@ -2379,7 +1440,7 @@ overlay_listbox.font = guifont
 
 local overlay_label = fe.add_text( "dummy", 0, header_h, flw, overlay_labelsize )
 overlay_label.charsize = overlay_labelcharsize
-overlay_label.set_rgb(themetextcolor-5,themetextcolor-5,themetextcolor-5)
+overlay_label.set_rgb(themeT.themetextcolor-5,themeT.themetextcolor-5,themeT.themetextcolor-5)
 overlay_label.align = Align.Centre
 overlay_label.font = guifont
 
@@ -2406,8 +1467,9 @@ function overlay_show(){
 		frost_surface.alpha = 255 
       frostshaders(true)
    }
-	else
+	else {
 		fg_surface.alpha = 255*satinrate
+   }
 
 	if (logoshow != 0 ) cutlogo()
 
@@ -2419,24 +1481,20 @@ function overlay_hide(){
 		frost_surface.alpha = 0
 		frostshaders(false) 
 	}
-	else
+	else {
 		fg_surface.alpha = 0
-	if (prf.FROSTEDGLASS) grabdither = 2
+   }
+
+   if (prf.FROSTEDGLASS) grabdither = 2
 	overlay_listbox.visible = overlay_label.visible = overlay_background.visible = shader1.visible = shader2.visible = shader3.visible = false		
 }
 
 
-
 /// Splash Screen  
-
-// carica l'immagine sfumata del gioco attuale 
 
 local aflogo_surface = fe.add_surface(flw,flh)
 
-local afsplash = null
-
-
-// aggiunge l'immagine del logo
+// adds logo image to the logo surface
 local aflogo = aflogo_surface.add_image (prf.SPLASHLOGOFILE,0,0,flw,flh)
 aflogo.visible = false
 
@@ -2463,20 +1521,16 @@ else {
 
 local aflogo2 = aflogo_surface.add_image (prf.SPLASHLOGOFILE,aflogoT.x,aflogoT.y,aflogoT.w,aflogoT.h)
 
-//aflogo = aflogo_surface.add_image ("AFLOGO3b.png",0,(flh-(flw*1000/1600))/2,flw,flw*1000/1600)
-
 if (!prf.SPLASHON) aflogo_surface.visible = false
 
 aflogo_surface.zorder = zordertop + 100
-//afsplash.zorder = zordertop + 100
-//afwhitebg.zorder = zordertop + 101
-//aflogo.zorder = zordertop + 102
+
 
 /// Context Menu  
 
 //local overmenuwidth = (vertical ? flw * 0.7 : flh * 0.7)
 local overmenuwidth = selectorwidth * 0.9
-local overmenu = fe.add_image("overmenu2.png",flw*0.5-overmenuwidth*0.5,flh*0.5-overmenuwidth*0.5,overmenuwidth,overmenuwidth)
+local overmenu = fe.add_image("overmenu3.png",flw*0.5-overmenuwidth*0.5,flh*0.5-overmenuwidth*0.5,overmenuwidth,overmenuwidth)
 overmenu.visible = false
 overmenu.alpha = 0
 
@@ -2488,13 +1542,13 @@ function overmenu_show(){
 	overmenu.y = flh*0.5*0 + header_h + heightpadded*0.5 -overmenuwidth*0.5 - corrector * (heightpadded - padding)
 	if (rows == 1 ) overmenu.y = flh*0.5*0 + header_h + heightpadded*0.5 - overmenuwidth*0.5 
 	overmenu.x = flw*0.5 - overmenuwidth*0.5 + centercorrection
-					if(prf.THEMEAUDIO) wooshsound.playing=true
+	if(prf.THEMEAUDIO) wooshsound.playing=true
 	overmenu.visible = true
 	overmenuflow = 1
 }
 
 function overmenu_hide(strict){
-					if(prf.THEMEAUDIO) wooshsound.playing=true
+	if(prf.THEMEAUDIO) wooshsound.playing=true
 	if(strict) overmenu.visible = false
 	overmenuflow = -1
 }
@@ -2756,7 +1810,7 @@ if (vertical){
 	hist_textT.h = flh*(1.0 - hist_split_h)*0.7
 }
 
-local historypadding = (hist_screenT.w * 0.025)
+local historypadding = (hist_screenT.w * 0.05)
 historypadding += historypadding % 2.0
 
 local hist_curr_rom = ""
@@ -2764,7 +1818,7 @@ local history_surface = fe.add_surface(flw,flh)
  
 local hist_bg = history_surface.add_text ("",0,0,flw,flh)
 hist_bg.set_bg_rgb(0,0,0)
-hist_bg.bg_alpha = 120*0
+hist_bg.bg_alpha = 1
 
 local hist_title = history_surface.add_image ("transparent.png",hist_titleT.x,hist_titleT.y,hist_titleT.w,hist_titleT.h)
 hist_title.preserve_aspect_ratio = true
@@ -2773,17 +1827,15 @@ local hist_black = null
 local hist_g1 = null
 local hist_g2 = null
 
-
-
 if (!vertical){
-	hist_black = history_surface.add_image("black.png",hist_screenT.x+historypadding,0,hist_screenT.w-2.0*historypadding,flh)
-	hist_g1 = history_surface.add_image("wgradient2.png",hist_screenT.x+historypadding,0,hist_screenT.w-2.0*historypadding,flh*0.5) 
-	hist_g2 = history_surface.add_image("wgradient.png",hist_screenT.x+historypadding,flh*0.5,hist_screenT.w-2.0*historypadding,flh*0.5)
+	hist_black = history_surface.add_image("black.png",hist_screenT.x+historypadding*0,0,hist_screenT.w-2.0*historypadding*0,flh)
+	hist_g1 = history_surface.add_image("wgradient2.png",hist_screenT.x+historypadding*0,0,hist_screenT.w-2.0*historypadding*0,flh*0.5) 
+	hist_g2 = history_surface.add_image("wgradient.png",hist_screenT.x+historypadding*0,flh*0.5,hist_screenT.w-2.0*historypadding*0,flh*0.5)
 }
 else{
-	hist_black = history_surface.add_image("black.png",0,hist_screenT.y+historypadding,flw,hist_screenT.h-2.0*historypadding)
-	hist_g1 = history_surface.add_image("wgradient3.png",0,hist_screenT.y+historypadding,flw*0.5,hist_screenT.h-2.0*historypadding)
-	hist_g2 = history_surface.add_image("wgradient4.png",flw*0.5,hist_screenT.y+historypadding,flw*0.5,hist_screenT.h-2.0*historypadding)
+	hist_black = history_surface.add_image("black.png",0,hist_screenT.y+historypadding*0,flw,hist_screenT.h-2.0*historypadding*0)
+	hist_g1 = history_surface.add_image("wgradient3.png",0,hist_screenT.y+historypadding*0,flw*0.5,hist_screenT.h-2.0*historypadding*0)
+	hist_g2 = history_surface.add_image("wgradient4.png",flw*0.5,hist_screenT.y+historypadding*0,flw*0.5,hist_screenT.h-2.0*historypadding*0)
 }
 
 hist_black.set_rgb (0,0,0)
@@ -2815,15 +1867,81 @@ local hist_screen = hist_screensurf.add_image ("transparent.png",0,0,hist_screen
 hist_screen.preserve_aspect_ratio = true
 if (!prf.AUDIOVIDHISTORY) hist_screen.video_flags = Vid.NoAudio
 hist_screen.shader = shader_cgwg
+hist_screen.shader = noshader
+
 
 local hist_text = history_surface.add_text( "", hist_textT.x, hist_textT.y, hist_textT.w, hist_textT.h )
 hist_text.first_line_hint = 0
 hist_text.charsize = 30*scalerate
 hist_text.visible=true
-hist_text.set_rgb(themetextcolor,themetextcolor,themetextcolor)
+hist_text.set_rgb(themeT.themetextcolor,themeT.themetextcolor,themeT.themetextcolor)
 
 //local hist_temp = history_surface.add_image("black.png",hist_screenT.x+historypadding,hist_screenT.y+historypadding,hist_screenT.w-2.0*historypadding,hist_screenT.h-2.0*historypadding)
 //hist_temp.alpha = 128
+
+
+local histglow = {
+   w = hist_screenT.w-2*historypadding
+   x = hist_screenT.x+historypadding
+   y = hist_screenT.y+historypadding
+}
+
+
+// shadow parameters
+local shadow_radius = histglow.w*0.25
+local shadow_downsample = 64.0/histglow.w
+local shadow_enlarge = 1.0
+
+// creation of first surface with safeguards area
+local shadowsurf1 = fe.add_surface (shadow_downsample * (histglow.w + 2 * shadow_radius), shadow_downsample * (histglow.w + 2 * shadow_radius))
+
+// add a clone of the picture to topmost surface
+local pic1 = shadowsurf1.add_clone(hist_screen)
+pic1.set_pos((shadow_radius-0.5*histglow.w*(shadow_enlarge - 1.0))*shadow_downsample,(shadow_radius-0.5*histglow.w*(shadow_enlarge - 1.0))*shadow_downsample,histglow.w*shadow_enlarge*shadow_downsample,histglow.w*shadow_enlarge*shadow_downsample)
+//pic1.mipmap = 1
+
+// creation of second surface
+local shadowsurf2 = fe.add_surface (shadowsurf1.width, shadowsurf1.height)
+
+// nesting of surfaces
+shadowsurf1.visible = false
+shadowsurf1 = shadowsurf2.add_clone(shadowsurf1)
+shadowsurf1.visible = true
+
+shadowsurf2.visible = false
+shadowsurf2 = history_surface.add_clone(shadowsurf2)
+shadowsurf2.visible = true
+
+local blursizeglow = {
+   x = 1.0/shadowsurf2.width
+   y = 1.0/shadowsurf2.height
+}
+
+local kerneldat = {
+   size = shadow_downsample * (shadow_radius * 2) + 1
+   sigma = shadow_downsample * shadow_radius * 0.3
+}
+
+local shadowshader = {
+   h = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o_glow.glsl" )
+   v = fe.add_shader( Shader.Fragment, "gauss_kernsigma_o_glow.glsl" )
+}
+shadowshader.h.set_texture_param("texture")
+shadowshader.h.set_param("kernelData", kerneldat.size, kerneldat.sigma)
+shadowshader.h.set_param("offsetFactor", blursizeglow.x, 0.0)
+shadowsurf1.shader = shadowshader.h
+shadowsurf1.shader = noshader
+
+shadowshader.v.set_texture_param("texture")
+shadowshader.v.set_param("kernelData", kerneldat.size, kerneldat.sigma)
+shadowshader.v.set_param("offsetFactor", 0.0, blursizeglow.y)
+shadowsurf2.shader = shadowshader.v
+shadowsurf2.shader = noshader
+
+shadowsurf2.set_pos (histglow.x-shadow_radius,histglow.y-shadow_radius, histglow.w + 2 * shadow_radius , histglow.w + 2 * shadow_radius)
+
+hist_screensurf.zorder = shadowsurf2.zorder + 1
+
 
 history_surface.visible = false
 history_surface.alpha = 0
@@ -2832,10 +1950,11 @@ history_surface.zorder = zordertop + 400
 function history_show()
 {
 	//if (prf.BGBLURRED == "") hist_bgblur.file_name = fe.get_art("blur")
-
 	hist_title.file_name = fe.get_art ("wheel")
 	hist_screen.file_name = fe.get_art ("snap")
 	hist_screen.shader = shader_cgwg
+   shadowsurf1.shader = shadowshader.h
+   shadowsurf2.shader = shadowshader.v
 
 
 	hist_screen.width = hist_screensurf.subimg_width;
@@ -2845,7 +1964,7 @@ function history_show()
 	hist_screen.shader.set_param("outputSize", hist_screensurf.width, hist_screensurf.height); // size of mask
 	hist_screen.shader.set_param("textureSize", hist_screensurf.width, hist_screensurf.height);// size drawing to
 
-
+   
 
 	//shaderCRT.set_param("subimgsize", hist_screen.subimg_width, hist_screen.subimg_height)
 	//shaderCRT.set_param("snapdimensions", width, width)
@@ -2890,7 +2009,6 @@ function history_show()
 
 }
 
-
 function history_hide() {
 	//history_surface.visible = false
 	historyflow = -1
@@ -2916,68 +2034,522 @@ function history_exit (){
 	history_hide()
 }
 
-
 function cutlogo() {
 	logoshow = 0
 	fg_surface.alpha = 0
-	data_surface_sh.alpha = themeshadow
+	data_surface_sh.alpha = themeT.themeshadow
 	data_surface.alpha = 255
 	aflogo_surface.alpha = 0
-}
-
-function frostshaders (turnon){
-		if (turnon){
-			frost_pic.shader = flipshader
-			frost_surf1.shader = frostshader1
-			frost_surf2.shader = frostshader2
-		}
-		else{
-			frost_pic.shader = noshader
-			frost_surf1.shader = noshader
-			frost_surf2.shader = noshader			
-		}
 }
 
 
 /// FPS MONITOR  
 
-/*
-local monitor = fe.add_text ("",0,0,fe.layout.width,100)
-monitor.set_bg_rgb (255,0,0)
-monitor.charsize = 50
-monitor.zorder = 20000
 
-local monitor2 = fe.add_text ("",0,0,100,100)
-monitor2.set_bg_rgb (255,0,0)
+local fps = {
+   monitor = null
+   monitor2 = null
+   x0 = null
+   tick000 = null
+}
 
-local tick000 = 0
-local x0 = 0
+
+if (FPSON){
+fps.monitor = fe.add_text ("",fe.layout.width*0.5-100*scalerate,0,200*scalerate,100*scalerate)
+fps.monitor.set_bg_rgb (255,0,0)
+fps.monitor.charsize = 50*scalerate
+fps.monitor.zorder = 20000
+
+fps.monitor2 = fe.add_text ("",0,0,100,100)
+fps.monitor2.set_bg_rgb (255,0,0)
+fps.monitor2.visible = false
+
+fps.tick000 = 0
+fps.x0 = 0
 
 fe.add_ticks_callback(this,"monitortick")
+}
 
 function monitortick(tick_time){
 
-	monitor2.x ++
-	if (monitor2.x - x0 == 10) {
-		monitor.msg = 10000/(tick_time - tick000)
-		tick000 = tick_time
-		x0 = monitor2.x
+	fps.monitor2.x ++
+	if (fps.monitor2.x - fps.x0 == 10) {
+		fps.monitor.msg = 10000/(tick_time - fps.tick000)
+		fps.tick000 = tick_time
+		fps.x0 = fps.monitor2.x
 	}
-	if (monitor2.x >= fe.layout.width) {
-		monitor2.x = 0
-		x0 = 0
-		tick000=0
+	if (fps.monitor2.x >= fe.layout.width) {
+		fps.monitor2.x = 0
+		fps.x0 = 0
+		fps.tick000=0
 	}
 }
-*/
-fe.add_ticks_callback( this, "tick2" )
+
+//fe.add_ticks_callback( this, "tick2" )
 
 
-local flowspeed = 25
+fe.add_signal_handler( this, "on_signal" )
+fe.add_transition_callback( this, "on_transition" )
+fe.add_ticks_callback( this, "tick" )	
 
-/// On Tick (2)  
-function tick2( tick_time ) {
+/// On Transition  
 
+function on_transition( ttype, var0, ttime ) {
+   
+   //DEBUG print transition
+   if (DEBUG) print ("Tr:" + transdata[ttype] +" var:" + var0 + "\n")
+
+   //var = 0
+
+   if ((ttype == Transition.StartLayout) || (ttype == Transition.ToNewList)){
+      dat.manufacturer_array[data_stacksize - 1].file_name = manufacturer_pic (0)
+      dat.cat_array[data_stacksize - 1].file_name = category_pic (0)
+      dat.but_array[data_stacksize - 1].file_name = "button_images/" + fe.game_info(Info.Buttons, 0)+"button.png"
+      dat.ply_array[data_stacksize - 1].file_name = "players_images/players_" + fe.game_info(Info.Players,0)+".png"
+      dat.ctl_array[data_stacksize - 1].file_name = controller_pic (0)
+   }
+
+   // cleanup frosted glass grabs when exiting AM
+   if ((ttype == Transition.EndLayout) && (var0 == FromTo.Frontend)){
+      for (local ig = 0; ig < numgrabs ; ig++){
+         remove(createdgrabs[ig])
+      }
+   }
+
+   // some fixes for the tags menu
+   if (ttype == Transition.ShowOverlay){
+      if (var0 == Overlay.Tags) tagsmenu = true
+      overlay_show() 
+   }
+
+   if (ttype == Transition.HideOverlay){
+      overlay_hide()
+      // TEST ADD THIS FOR FAVS?      zoompos = 1 
+      if (tagsmenu) {
+         tagsmenu = false
+         zoompos = 1
+         datapos = 1
+      }
+   }
+
+   // var is updated only if we are going to a new selection
+   if (ttype == Transition.ToNewSelection) var = var0
+   
+   // scroller is always updated		
+   scroller.x = footermargin + ((fe.list.index/rows)*rows*1.0/(fe.list.size - 1 ))*(flw - 2.0*footermargin-scrollersize)
+   scroller2.x = scroller.x-scrollersize*0.5
+
+   // since the EndNavigation transition is fired many times I don't want the zoom/unzoom to take place in that case
+   if ((ttype != Transition.FromOldSelection) && (ttype != Transition.EndNavigation) && (ttype != Transition.HideOverlay) && (ttype != Transition.ShowOverlay) && (ttype != Transition.NewSelOverlay) ) {
+      if (DEBUG) print ("TRANSBLOCK 1 \n")
+      zoomposold =  1 - zoompos
+      zoompos = 1
+
+      dataposold = 1 - datapos
+      datapos = 1
+      
+
+      // If we are not transitioning to a new list, starting the layout or hiding the overlay old tile is faded out
+      if ((ttype!=Transition.ToNewList) && (ttype!=Transition.StartLayout) && (ttype!=Transition.HideOverlay)) {
+         if (DEBUG) print ("TRANSBLOCK 1.5 \n")
+         tilesTable[oldfocusindex].width = widthpadded
+         tilesTable[oldfocusindex].height = heightpadded
+         tilesTable[oldfocusindex].zorder = zorderscanner
+         glovzTable[oldfocusindex].visible = glohzTable[oldfocusindex].visible = bd_hzTable[oldfocusindex].visible = bd_vzTable[oldfocusindex].visible = false
+         //vidszTable[oldfocusindex].visible = false
+         //vidszTable[oldfocusindex].file_name = "transparent.png"
+         
+         zoomunpos = zoomposold
+         dataunpos = dataposold
+      }
+   }
+
+   // cases when the tiles will be updated
+   if ( ( ttype == Transition.ToNewList ) || ( ttype == Transition.ToNewSelection ) || (ttype == Transition.StartLayout)) {
+      
+      if (DEBUG) print ("TRANSBLOCK 2 \n")
+
+      if (prf.THUMBVIDEO) vidpos = 1
+               
+      if (ttype == Transition.ToNewList) {
+         var = 0
+         tilesTableOffset = 0
+         surfacePos = 0.5
+         columnoffset = 0
+         centercorrection = 0
+         centercorrectionshift = centercorrection0
+      }
+
+
+      if (DEBUG) print ("flindex " + fe.list.index + "\n")
+
+      corrector = (rows == 1 ? -1 : -((fe.list.index + var) % rows) )
+
+      colstop = floor((fe.list.index + var)/rows)
+      colstart = floor((fe.list.index)/rows)
+
+      local index = - (floor(tilesTotal/2) -1) + corrector 
+      //if (ttype == Transition.ToNewList) index = - (floor(tilesTotal/2) -1) - floor(fe.list.index % rows)
+   
+      columnoffset = (colstop - colstart)
+      tilesTableOffset += columnoffset*rows
+
+      // Determine center position correction when reaching beginning or end of list
+      if ((colstop < deltacol) && (var < 0) ) {
+         if (colstop == deltacol - 1 ) 
+            centercorrectionshift = centercorrection0 + (deltacol - 1)*(width+padding)
+         else 
+            centercorrectionshift = - (width+padding)
+      }
+      else if ((colstart < deltacol) && (var > 0)) {
+         if (colstart == deltacol - 1 ) 
+            centercorrectionshift = -centercorrection0 - (deltacol - 1)* (width+padding)
+         else 
+            centercorrectionshift = (width+padding)
+      }
+      else {
+         centercorrectionshift = 0	
+      }
+      
+      if (fe.list.index + var > deltacol*rows -1){
+         centercorrection = 0
+      }
+      else {
+         centercorrection = centercorrection0 + ((fe.list.index + var)/rows)*(width+padding)
+      }
+      
+      if (columnoffset == 0) centercorrectionshift = 0
+
+      // updates all the tiles, (NOT unless we are changing favourites)
+      //if (changedfav == false){
+      if (DEBUG) print ("TRANSBLOCK 3 \n")	
+
+      for ( local i = 0; i < tilesTotal ; i++ ) {
+                              
+         local indexTemp = wrap( i + tilesTableOffset, tilesTotal )
+
+         if ((ttype == Transition.ToNewList) || (ttype == Transition.StartLayout)){
+            loshzTable[indexTemp].index_offset = index
+            gradzTable[indexTemp].index_offset = index
+         }
+         else{
+            loshzTable[indexTemp].rawset_index_offset(index )
+            gradzTable[indexTemp].rawset_index_offset(index )
+         }
+
+         if (prf.CROPSNAPS){
+            if (snapzTable[indexTemp].texture_width >= snapzTable[indexTemp].texture_height){
+               snapzTable[indexTemp].subimg_x = snapzTable[indexTemp].texture_width/8.0
+               snapzTable[indexTemp].subimg_width = snapzTable[indexTemp].texture_width*3.0/4.0
+               }
+            else{
+               snapzTable[indexTemp].subimg_y = snapzTable[indexTemp].texture_height/8.0
+               snapzTable[indexTemp].subimg_height = snapzTable[indexTemp].texture_height*3.0/4.0
+            }
+         }
+         else{
+            if (snapzTable[indexTemp].texture_width >= snapzTable[indexTemp].texture_height){
+               snapzTable[indexTemp].set_pos (selectorscale*padding,selectorscale*(padding-verticalshift + height/8.0 ),selectorscale*width,selectorscale*height*3.0/4.0)
+            }
+            else{
+               snapzTable[indexTemp].set_pos (selectorscale*(padding+width/8.0),selectorscale*(padding-verticalshift),selectorscale*width*3.0/4.0,selectorscale*height)
+            }
+         }
+
+         tilesTable[indexTemp].zorder = zorderscanner
+
+         favezTable[indexTemp].visible = (fe.game_info(Info.Favourite, snapzTable[indexTemp].index_offset + var) == "1")
+
+         donezTable[indexTemp].visible = ((fe.game_info(Info.Tags, snapzTable[indexTemp].index_offset + var)).find("Completed") != null)
+         
+         //local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
+         local m = fe.game_info(Info.Rotation, snapzTable[indexTemp].index_offset+var)
+         if ((m == "0") || (m == "180") || (m == "horizontal") || (m == "Horizontal")){
+            sh_hzTable[indexTemp].visible = true
+            sh_vzTable[indexTemp].visible = false
+            
+            nw_hzTable[indexTemp].visible = (fe.game_info(Info.PlayedCount, snapzTable[indexTemp].index_offset+var) == "0") 
+            nw_vzTable[indexTemp].visible = false					
+            
+         }
+         else {
+            sh_hzTable[indexTemp].visible = false
+            sh_vzTable[indexTemp].visible = true
+
+            nw_hzTable[indexTemp].visible = false
+            nw_vzTable[indexTemp].visible = (fe.game_info(Info.PlayedCount, snapzTable[indexTemp].index_offset+var) == "0") 
+
+         }
+         
+         tilesTablePosX[indexTemp] = (i/rows) * (width+padding) + carrierT.x + centercorrection
+         tilesTablePosY[indexTemp] = (i%rows) * (height + padding) + carrierT.y + verticalshift
+
+         
+         tilesTable[indexTemp].visible = (( (fe.list.index + var + index < 0) || (fe.list.index + var + index > fe.list.size-1) ) == false)
+         
+         // if tranisioning to a new list, reset position and size of all thumbnails, not needed in normal scroll
+         if (ttype == Transition.ToNewList){
+            //vidszTable[indexTemp].visible = false
+            if (prf.THUMBVIDEO) vidszTable[indexTemp].file_name = "transparent.png"
+            tilesTable[indexTemp].width = widthpadded
+            tilesTable[indexTemp].height = heightpadded
+            tilesTable[indexTemp].zorder = zorderscanner
+            glovzTable[indexTemp].visible = glohzTable[indexTemp].visible = bd_hzTable[indexTemp].visible = bd_vzTable[indexTemp].visible = false
+         }
+         
+         index++
+      }
+      //} CHANGEDFAV
+      //else {
+      //	changedfav = false
+      //}
+      
+      // updates the size and features of the previously selected item and new selected item
+      newfocusindex = wrap( floor(tilesTotal/2)-1-corrector + tilesTableOffset, tilesTotal )
+      oldfocusindex = wrap( floor(tilesTotal/2)-1-corrector -var + tilesTableOffset, tilesTotal )
+      
+      tilesTable[oldfocusindex].width = widthpadded
+      tilesTable[oldfocusindex].height = heightpadded
+      tilesTable[oldfocusindex].zorder = zorderscanner
+      bd_hzTable[oldfocusindex].visible = bd_vzTable[oldfocusindex].visible = false
+
+      tilesTable[newfocusindex].zorder = zorderscanner + tilesTotal
+      letterobj.zorder = zorderscanner + tilesTotal + 1
+
+      //vidszTable[oldfocusindex].visible = false
+      if (prf.THUMBVIDEO) vidszTable[oldfocusindex].file_name = "transparent.png"
+      
+
+      favezTable[newfocusindex].visible = (fe.game_info(Info.Favourite, snapzTable[newfocusindex].index_offset+var) == "1")		
+      donezTable[newfocusindex].visible = ((fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset+var)).find("Completed") != null)
+      
+      //local m = fe.game_info(Info.Rotation, snapzTable[newfocusindex].index_offset+var)
+      local m = fe.game_info(Info.Rotation, snapzTable[newfocusindex].index_offset+var)
+      
+      if ((m == "0") || (m == "180") || (m == "horizontal") || (m == "Horizontal")){
+         glohzTable[newfocusindex].visible = prf.SNAPGLOW
+         bd_hzTable[newfocusindex].visible = true
+         glovzTable[newfocusindex].visible = bd_vzTable[newfocusindex].visible = false
+         nw_hzTable[newfocusindex].visible = (fe.game_info(Info.PlayedCount, snapzTable[newfocusindex].index_offset+var) == "0")
+         nw_vzTable[newfocusindex].visible = false
+
+      }
+      else {
+         glohzTable[newfocusindex].visible = bd_hzTable[newfocusindex].visible = false
+         glovzTable[newfocusindex].visible = prf.SNAPGLOW
+         bd_vzTable[newfocusindex].visible = true
+         nw_hzTable[newfocusindex].visible = false
+         nw_vzTable[newfocusindex].visible = (fe.game_info(Info.PlayedCount, snapzTable[newfocusindex].index_offset+var) == "0")
+
+      }
+
+   }
+   
+   // if the transition is to a new selection initialize zooming, scrolling and surfacepos
+   if( (ttype == Transition.ToNewSelection) )
+   {
+      
+      if (DEBUG) print ("TRANSBLOCK 5 \n")
+      //snapbg1.rawset_index_offset (-var)
+      //if (prf.LAYERSNAP) bgvid1.rawset_index_offset (-var)
+
+      local l1 = gameletter (0)
+      local l2 = gameletter(var)
+      
+      if (l1 != l2){
+         fadeletter = 1
+      }
+
+      for (local i = 0; i < bg_stacksize-1;i++){
+         bgpicarray[i].swap(bgpicarray[i+1])
+         alphapos[i] = alphapos[i+1]
+      }
+
+      for (local i = 0; i < data_stacksize - 2;i++){
+         dat.var_array[i] = - var + dat.var_array[i+1]
+      }
+      dat.var_array [data_stacksize - 1] = 0
+      dat.var_array [data_stacksize - 2] = - var 
+
+      for (local i=0 ; i< data_stacksize -1 ; i++){
+      //			dat.manufacturer_array[i].rawset_index_offset(dat.var_array[i])
+      //			dat.cat_array[i].rawset_index_offset(dat.var_array[i])
+
+      dat.manufacturer_array[i].swap (dat.manufacturer_array[i+1])
+      dat.cat_array[i].swap (dat.cat_array[i+1])
+      dat.but_array[i].swap (dat.but_array[i+1])
+      dat.ply_array[i].swap (dat.ply_array[i+1])
+      dat.ctl_array[i].swap (dat.ctl_array[i+1])
+
+      dat.mainctg_array[i].index_offset = dat.var_array[i]
+      dat.gamename_array[i].index_offset = dat.var_array[i]
+      dat.gamesubname_array[i].index_offset = dat.var_array[i]
+      dat.gameyear_array[i].index_offset = dat.var_array[i]
+      if (i != data_stacksize -2 )
+         data_alphapos[i] = data_alphapos[i+1]
+      else
+         data_alphapos[i] = 1.0 - data_alphapos[i+1]
+      }
+
+      dat.manufacturer_array[data_stacksize - 1].file_name = manufacturer_pic (var)
+      dat.cat_array[data_stacksize - 1].file_name = category_pic (var)
+      dat.but_array[data_stacksize - 1].file_name = "button_images/"+fe.game_info(Info.Buttons, var)+"button.png"
+      dat.ply_array[data_stacksize - 1].file_name = "players_images/players_" + fe.game_info (Info.Players , var)+".png"
+      dat.ctl_array[data_stacksize - 1].file_name = controller_pic (var)
+      data_alphapos [data_stacksize - 1] = 1
+
+      alphapos [bg_stacksize - 1]= 255
+      
+      surfacePos += (columnoffset * (width + padding) ) - centercorrectionshift
+      
+   }
+
+   if ((ttype == Transition.ToNewSelection) || (ttype == Transition.ToNewList)){
+      squarizer = true
+   }
+
+   return false
+}
+
+/// On Tick  
+function tick( tick_time ) {
+
+   // Apply square screen cropping for background artwork
+   if (squarizer){
+      squarizer = false
+      squarebg()
+   }
+
+   if ((rightcount != 0) && (fe.get_input_state("right")==false)){
+      rightcount = 0
+   }
+   
+   if ((leftcount != 0) && (fe.get_input_state("left")==false)){
+      leftcount = 0
+   }
+   
+   // crossfade of the blurred background
+   for (local i = 0 ; i < bg_stacksize ; i++){
+
+      if (alphapos[i] !=0){
+         if ((alphapos[i] < 1) && (alphapos[i] > -1) ) alphapos[i] = 0
+         alphapos[i] = alphapos[i] * spdT.bgfadespeed
+         bgpicarray[i].alpha = 255-alphapos[i]
+         if (prf.LAYERSNAP) bgvidarray[i].alpha = 255-alphapos[i] 
+      }
+   }
+
+   // fading of the initial letter of the name
+   if (fadeletter != 0){
+      if(fadeletter < 0.01) fadeletter = 0
+      fadeletter = fadeletter * spdT.letterspeed
+      letterobj.alpha = 255*(1-4.0*pow((0.5-fadeletter),2))
+   }
+   
+   // crossfade of game data
+   for (local i = 0 ; i < data_stacksize ; i++){
+      if (data_alphapos[i] != 0 ){
+         if ((data_alphapos[i] <0.01) && (data_alphapos[i] > -0.01)) data_alphapos[i] = 0
+
+         if (i != data_stacksize -1){
+            data_alphapos[i] = data_alphapos[i] * spdT.dataspeedout
+            dat.ply_array[i].alpha = dat.ctl_array[i].alpha = dat.but_array[i].alpha = dat.cat_array[i].alpha = dat.mainctg_array[i].alpha = dat.manufacturer_array[i].alpha = dat.gamename_array[i].alpha = dat.gamesubname_array[i].alpha = dat.gameyear_array[i].alpha = 255 * (data_alphapos[i])*1.0
+         }
+         else {
+            data_alphapos[data_stacksize -1] = data_alphapos[data_stacksize - 1] * spdT.dataspeedin
+            dat.ply_array[i].alpha = dat.ctl_array[i].alpha = dat.but_array[data_stacksize - 1].alpha = dat.cat_array[data_stacksize - 1].alpha = dat.mainctg_array[data_stacksize - 1].alpha = dat.manufacturer_array[data_stacksize - 1].alpha = dat.gamename_array[data_stacksize - 1].alpha = dat.gamesubname_array[data_stacksize - 1].alpha = dat.gameyear_array[data_stacksize - 1].alpha = 255 * (1.0 - data_alphapos[data_stacksize - 1])*1.0
+         }
+      }
+   }
+
+   // tiles scrolling and selected tile zooming
+   if ((surfacePos != 0)||(zoompos !=0)||(zoomunpos!=0)) {	
+      if (zoompos == 1){
+         // TEST    newfocusindex = wrap( floor(tilesTotal/2)-1 - corrector + tilesTableOffset, tilesTotal )
+         // TEST    oldfocusindex = wrap( floor(tilesTotal/2)-1 - corrector - var + tilesTableOffset, tilesTotal )
+
+         // Useful check to update "Completed" tag when changing tags
+         local m = fe.game_info(Info.Tags, snapzTable[newfocusindex].index_offset)
+         if (m.find("Completed") != null)
+         donezTable[newfocusindex].visible = true
+         else
+         donezTable[newfocusindex].visible = false
+      }
+      
+      if ((surfacePos < 0.1) && (surfacePos > -0.1)) surfacePos = 0
+      if ((zoompos < 0.01) && (zoompos > -0.01 )) zoompos = 0
+      if ((zoomunpos < 0.01) && (zoomunpos > -0.01 )) {
+         zoomunpos = 0
+         if (oldfocusindex != newfocusindex){
+            glohzTable[oldfocusindex].visible = glovzTable[oldfocusindex].visible = false
+         }
+      }
+      
+      surfacePos = surfacePos * spdT.scrollspeed
+      zoompos = zoompos * spdT.zoomspeed
+      zoomunpos = zoomunpos * spdT.zoomspeed*spdT.zoomspeed
+
+      if (surfacePos > surfacePosOffset) surfacePos = surfacePosOffset
+      if (surfacePos < -surfacePosOffset) surfacePos = -surfacePosOffset
+      
+      // repositioning of tiles		
+      for ( local i = 0; i < tilesTotal; i++ ) {
+         tilesTable[i].x = surfacePos - surfacePosOffset + tilesTablePosX[i]
+         tilesTable[i].y = tilesTablePosY[i]
+      }
+      
+      // scaling of current tile
+      tilesTable[newfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[newfocusindex] - (selectoroffseth*(1-zoompos))
+      tilesTable[newfocusindex].y = tilesTablePosY[newfocusindex] - ((selectoroffsetv)*(1-zoompos)) 
+      tilesTable[newfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(1.0-zoompos)
+      tilesTable[newfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(1.0-zoompos)
+      glohzTable[newfocusindex].alpha = 255*(1-zoompos)
+      glovzTable[newfocusindex].alpha = 255*(1-zoompos)
+      globalposnew = tilesTable[newfocusindex].x
+
+      if (oldfocusindex != newfocusindex){
+         tilesTable[oldfocusindex].x = surfacePos - surfacePosOffset + tilesTablePosX[oldfocusindex] - (selectoroffseth*(zoomunpos))
+         tilesTable[oldfocusindex].y = tilesTablePosY[oldfocusindex] - ((selectoroffsetv)*(zoomunpos)) 
+         tilesTable[oldfocusindex].width = widthpadded + (selectorwidth-widthpadded)*(zoomunpos)
+         tilesTable[oldfocusindex].height = heightpadded + (selectorwidth-heightpadded)*(zoomunpos)
+         glohzTable[oldfocusindex].alpha = 255*(zoomunpos)
+         glovzTable[oldfocusindex].alpha = 255*(zoomunpos)
+      }
+   }
+   
+   // crossfade of video snaps, tailored to skip initial fade in
+   if (( vidpos != 0 )) {
+      
+      vidpos = vidpos - 0.01
+      if (vidpos < 0.01) vidpos = 0
+      // newfocusindex = wrap( tilesTotal/2-1-corrector + tilesTableOffset, tilesTotal )
+
+      if ((vidpos < delayvid) && (vidpos > delayvid - 0.01)){
+         //vidszTable[newfocusindex].visible = true
+         if (prf.THUMBVIDEO) vidszTable[newfocusindex].file_name = fe.get_art("snap")
+         vidszTable[newfocusindex].alpha = vid2zTable[newfocusindex].alpha = 0		
+         if (prf.CROPSNAPS){
+            if (snapzTable[newfocusindex].texture_width >= snapzTable[newfocusindex].texture_height){
+               vidszTable[newfocusindex].subimg_x = vidszTable[newfocusindex].texture_width/8.0
+               vidszTable[newfocusindex].subimg_width = vidszTable[newfocusindex].texture_width*3/4.0
+               vid2zTable[newfocusindex].subimg_x = vid2zTable[newfocusindex].texture_width/8.0
+               vid2zTable[newfocusindex].subimg_width = vid2zTable[newfocusindex].texture_width*3/4.0            }
+            else{
+               vidszTable[newfocusindex].subimg_y = vidszTable[newfocusindex].texture_height/8.0
+               vidszTable[newfocusindex].subimg_height = vidszTable[newfocusindex].texture_height*3/4.0	
+               vid2zTable[newfocusindex].subimg_y = vid2zTable[newfocusindex].texture_height/8.0
+               vid2zTable[newfocusindex].subimg_height = vid2zTable[newfocusindex].texture_height*3/4.0	            }
+         }
+
+      }
+      
+      if (vidpos <= fadevid)
+      vidszTable[newfocusindex].alpha = vid2zTable[newfocusindex].alpha = 255.0*(1-vidpos*(1/fadevid))
+      else
+      vidszTable[newfocusindex].alpha = vid2zTable[newfocusindex].alpha = 0
+   }
+   
+   // screen grabbing for frosted surface
 
 	if (grabdither != 0) {
 		grabdither --
@@ -2999,13 +2571,11 @@ function tick2( tick_time ) {
 
 	}
 
+   // context menu fade in fade out
+
 	if ((overmenu.visible) && (overmenuflow >= 0) && (surfacePos != 0)) {
 		overmenu.x = globalposnew + selectorwidth * 0.5 - overmenuwidth*0.5 
 	}
-
-
-	
-
 
 	if (overmenuflow > 0) {
 		if (overmenu.alpha < 255-flowspeed) overmenu.alpha = overmenu.alpha + flowspeed
@@ -3024,18 +2594,20 @@ function tick2( tick_time ) {
 		}
 	}
 
+   // history page fade in fade out
+
 	if (historyflow > 0) {
 		if (history_surface.alpha < 255-flowspeed) {
 			history_surface.alpha = history_surface.alpha + flowspeed
 			fg_surface.alpha = history_surface.alpha
 			data_surface.alpha = 255-fg_surface.alpha
-			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
+			data_surface_sh.alpha = themeT.themeshadow * (data_surface.alpha/255.0)
 		}
 		else {
 			history_surface.alpha = 255
 			fg_surface.alpha = 255
 			data_surface.alpha = 255-fg_surface.alpha
-			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
+			data_surface_sh.alpha = themeT.themeshadow * (data_surface.alpha/255.0)
 			historyflow = 0
 			}
 	}
@@ -3044,21 +2616,25 @@ function tick2( tick_time ) {
 			history_surface.alpha = history_surface.alpha - flowspeed
 			if(!overlay_listbox.visible) fg_surface.alpha = history_surface.alpha
 			data_surface.alpha = 255-history_surface.alpha
-			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
+			data_surface_sh.alpha = themeT.themeshadow * (data_surface.alpha/255.0)
 		}
 		else {
 			historyflow = 0
 			hist_title.file_name = "transparent.png"
 			hist_screen.file_name = "transparent.png"
 			hist_screen.shader = noshader
+         shadowsurf1.shader = noshader
+         shadowsurf2.shader = noshader
 			history_surface.alpha = 0
 			if(!overlay_listbox.visible) fg_surface.alpha = 0
 			data_surface.alpha = 255-history_surface.alpha
-			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
+			data_surface_sh.alpha = themeT.themeshadow * (data_surface.alpha/255.0)
 			history_surface.visible = false
 		}
 	}
 
+
+   // splash logo fade in fade out
 
 	if (logoshow !=0){
 		logoshow = logoshow - 0.018	
@@ -3066,22 +2642,492 @@ function tick2( tick_time ) {
 			logoshow = 0
 			aflogo_surface.visible = false
 		}
-		/*afsplash.alpha = 255*(1-pow((1-logoshow),3))
-		aflogo.alpha = 255*(1-pow((1-logoshow),3))
-		afwhitebg.bg_alpha = themeoverlayalpha*(1-pow((1-logoshow),3))*/
 		if (prf.SPLASHON) {
 			aflogo_surface.alpha = 255*(1-pow((1-logoshow),3))
 			if((!overlay_listbox.visible) && (!history_visible())) fg_surface.alpha = aflogo_surface.alpha
 			data_surface.alpha = 255-aflogo_surface.alpha
-			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
+			data_surface_sh.alpha = themeT.themeshadow * (data_surface.alpha/255.0)
 		}
 		else
 		{
 			aflogo_surface.alpha = 0
 			if((!overlay_listbox.visible) && (!history_visible())) fg_surface.alpha = aflogo_surface.alpha
 			data_surface.alpha = 255-aflogo_surface.alpha
-			data_surface_sh.alpha = themeshadow * (data_surface.alpha/255.0)
+			data_surface_sh.alpha = themeT.themeshadow * (data_surface.alpha/255.0)
 		}
 	}
-	
+   
+}
+
+/// On Signal  
+function on_signal( sig ){
+
+
+   if (DEBUG) print ("\n Si:" + sig )
+
+   //if (sig == "exit") wooshsound.playing = true
+
+   // frosted glass effect signal response
+   if (prf.FROSTEDGLASS){
+
+      if (sig == "exit"){
+         if (immediatesignal){
+            immediatesignal = false
+            return false
+         }
+         else{
+            getsnap("exit")
+            return true
+         }
+      }
+
+      if (sig == "filters_menu"){
+         if (immediatesignal){
+            immediatesignal = false
+            return false
+         }
+         else{
+            getsnap("filters_menu")
+            return true
+         }
+      }
+
+      if (sig == "add_favourite"){
+         if (immediatesignal){
+            immediatesignal = false
+            return false
+         }
+         else{
+            getsnap("add_favourite")
+            return true
+         }
+      }
+
+      if (sig == "add_tags"){
+         if (immediatesignal){
+            immediatesignal = false
+            return false
+         }
+         else{
+            getsnap("add_tags")
+            return true
+         }
+      }
+   }
+
+   // rotation controls signal response
+   if(sig == "toggle_rotate_right"){
+      if (fe.layout.toggle_rotation == RotateScreen.None)
+      {
+         fe.layout.toggle_rotation = RotateScreen.Right
+         fe.signal ("reload")
+      }
+      else{
+         fe.layout.toggle_rotation = RotateScreen.None
+         fe.signal ("reload")
+      }
+      return true
+   }
+
+   if(sig == "toggle_rotate_left"){
+      if (fe.layout.toggle_rotation == RotateScreen.None)
+      {
+         fe.layout.toggle_rotation = RotateScreen.Left
+         fe.signal ("reload")
+      }
+      else{
+         fe.layout.toggle_rotation = RotateScreen.None
+         fe.signal ("reload")
+      }
+      return true
+   }
+
+   // next and previous game or page signal response
+   if(sig == "next_game"){
+      fe.list.index ++
+      return true
+   }
+   if(sig == "prev_game"){
+      fe.list.index --
+      return true
+   }
+   if(sig == "prev_page"){
+      fe.list.index = fe.list.index - rows*(cols - 2)
+      return true
+   }
+   if(sig == "next_page"){
+      fe.list.index = fe.list.index + rows*(cols -2)
+      return true
+   }
+
+   // context menu signal response
+   if (overmenu_visible())
+   {
+      if (DEBUG) print (" OVERMENU \n")
+
+      if (sig == "up"){
+         
+         if (prf.FROSTEDGLASS){
+            if (immediatesignal){
+            if(prf.THEMEAUDIO) wooshsound.playing=true
+               immediatesignal = false
+            }
+            else{
+               getsnap("up")
+               return true
+            }
+         }
+
+         overmenu_hide(true)
+         //wooshsound.playing=true
+         searchtext =""
+         local switcharray = [
+            "Year",
+            "Decade",
+            "Manufacturer",
+            "Main Category",
+            "Sub Category",
+            "RESET"
+         ]
+         local result = fe.overlay.list_dialog(switcharray,"More of the same...")
+         
+         if(result==5){
+            //fe.list.index += corrector + rows 
+            fe.list.search_rule =""
+            searchdata.msg = ""
+            if (backindex != -1){
+               fe.list.index = backindex
+               //corrector = backcorrector
+               backindex = -1
+            }					 
+         }
+         
+         if (result == 0) {
+            searchtext = "Year contains "+ fe.game_info(Info.Year)
+         }
+
+         if (result == 1) {
+            searchtext = "Year contains "+ fe.game_info(Info.Year).slice(0,3)
+         }
+
+         if (result == 2) {
+            searchtext = "Manufacturer contains "+fe.game_info(Info.Manufacturer)
+         }
+
+         if (result == 3) {
+            searchtext = (fe.game_info(Info.Category))
+            local s = split( searchtext, "/" )
+            searchtext = "Category contains "+s[0]
+         }
+
+         if (result == 4) {	
+            searchtext = "Category contains "+fe.game_info(Info.Category)		
+         }
+         
+         if ((result !=5) && (result != -1)) {
+            if (backindex == -1) {
+               backindex = fe.list.index
+               //backcorrector = corrector
+            }
+            //fe.list.index += corrector + tilesTotal 
+            fe.list.index ++
+            fe.list.search_rule = searchtext
+            //fe.list.index = 0
+            corrector = (rows == 1 ? -1 : 0)
+            searchdata.msg = searchtext
+         }
+         return true
+      }
+
+      else if (sig == "down") {
+         overmenu_hide(false)
+         //try {
+            history_show()
+         //} catch ( err ) { print( "History Error\n" ); }
+
+         return true
+      }
+
+      else if (sig == "left") {
+         // add tags
+         overmenu_hide(true)
+            if(prf.THEMEAUDIO) wooshsound.playing=true
+         fe.signal ("add_tags")
+         return true
+      }
+
+      else if (sig == "right") {
+         // add current game to favorites
+         overmenu_hide(true)
+         //changedfav = true
+            if(prf.THEMEAUDIO) wooshsound.playing=true
+         fe.signal("add_favourite")
+         return true
+      }
+
+      else if (sig == "back") {
+         overmenu_hide(false)
+         return true
+      }
+
+      else if (sig == "select") {
+         overmenu_hide(true)
+         return false
+      }
+      
+      return false 
+   }
+   
+   // history page signal response
+   else if (history_visible())
+   {
+      if (DEBUG) print (" HISTORY \n")
+
+      if (sig == "up") {
+         on_scroll_up()
+         return true
+      }
+
+      else if (sig == "down") {
+         on_scroll_down()
+         return true
+      }
+
+      else if (sig == "left") {
+         fe.list.index--
+         history_show()
+         return true
+      }
+
+      else if (sig == "right") {
+         fe.list.index++
+         history_show()
+         return true
+      }
+
+      else if (sig == "back") {
+         history_exit()
+         return true
+      }
+
+      return false 
+   }
+
+   // search page signal response
+   else if (search_visible())
+   {
+      if (DEBUG) print (" SEARCH \n")
+
+      if ( sig == "up" ) {
+         search_select_relative( 0, -1 )
+         while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( 0, -1 )
+      }
+
+      else if ( sig == "down" ) {
+         search_select_relative( 0, 1 )
+         while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( 0, 1 )
+      }
+
+      else if ( sig == "left" ) {
+         search_select_relative( -1, 0 )
+         while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( -1, 0 )
+      }
+
+      else if ( sig == "right" ) {
+         search_select_relative( 1, 0 )
+         while (key_rows[key_selected[1]][key_selected[0]].tochar()=="_") search_select_relative( 1, 0 )
+      }
+
+      else if ( sig == "select" ) search_type( key_rows[key_selected[1]][key_selected[0]].tochar() )
+      //else if ( sig == "back" ) search_type("<")
+      //else if ( sig == "exit" ) search_toggle()
+      else if ( sig == "back" ) search_toggle()
+   
+      else if (sig == "screenshot"){
+         return false
+      }
+
+      return true
+   }
+   
+   // normal signal response
+   else {
+      if (DEBUG) print (" NORMAL \n")
+      switch ( sig ){			
+
+         case "select":
+         overmenu_show()
+         return true
+
+         case "left":
+         if (fe.list.index > scrollstep - 1) {
+            if (leftcount == 0) {
+               fe.list.index -= scrollstep
+               if(prf.THEMEAUDIO) ticksound.playing=true
+               leftcount ++
+            }
+            else {
+               leftcount ++
+               if (leftcount == movecount)	leftcount = 0			
+            }
+         }
+         else zoompos = 1
+         return true
+         
+         case "right":
+         if ((fe.list.index < fe.list.size - scrollstep)){
+            if (rightcount == 0) {
+               fe.list.index += scrollstep
+               if(prf.THEMEAUDIO) ticksound.playing=true
+               rightcount ++
+            }
+            else {
+               rightcount ++
+               if (rightcount == movecount)	rightcount = 0			
+            }
+         }
+         else zoompos = 1
+         return true
+         
+         case "up":
+         if ((fe.list.index % rows > 0) && (scrolljump == false)) {
+            fe.list.index --
+            if(prf.THEMEAUDIO) ticksound.playing=true
+         }
+         else if (scrolljump == true){
+            if(prf.THEMEAUDIO) wooshsound.playing=true
+            scrolljump = false
+            scrollstep = rows
+            scroller2.visible = scrollineglow.visible = false
+         }
+         else {
+            if (prf.FROSTEDGLASS){
+               if (immediatesignal){
+               //wooshsound.playing=true	
+               immediatesignal = false
+               }
+               else{
+               getsnap("up")
+               return true
+               }
+            }
+            else {
+               if(prf.THEMEAUDIO) wooshsound.playing=true
+                  }
+
+            local switcharray1 = [
+               "Filters",
+               "Search for...",
+               "Layout options"
+            ]
+
+            local result1 = fe.overlay.list_dialog(switcharray1,"Utility Menu")
+
+            if (result1 == 0){
+               //	wooshsound.playing=true
+               immediatesignal = true
+               fe.signal("filters_menu")
+            if(prf.THEMEAUDIO) wooshsound.playing=true
+            }
+
+            if (result1 == 2){
+               //	wooshsound.playing=true
+            fe.signal("layout_options")
+            if(prf.THEMEAUDIO) wooshsound.playing=true
+            }	
+
+            if (result1 == 1){
+            if(prf.THEMEAUDIO) wooshsound.playing=true
+
+            searchtext =""
+            local switcharray2 = [
+               "Title",
+               "Manufacturer",
+               "Year",
+               "Category",
+               "RESET"
+            ]
+            local result = fe.overlay.list_dialog(switcharray2,"Search for...")
+            
+            if(result==4){
+               //fe.list.index += corrector + rows 
+               fe.list.search_rule =""
+               searchdata.msg = ""
+               if (backindex != -1){
+                  fe.list.index = backindex
+                  //corrector = backcorrector
+                  backindex = -1
+               }
+               //return
+            }
+
+            if ((result != 4)&&(result !=-1)){
+               if (prf.KEYBOARD) 
+                  searchtext = fe.overlay.edit_dialog("Search "+switcharray2[result]+": ",searchtext)
+               else
+                  search_base_rule = switcharray2[result]
+               
+               if (backindex == -1){
+                  backindex = fe.list.index
+                  //backcorrector = corrector
+               }
+               
+               if (prf.KEYBOARD)
+               {
+                  fe.list.index ++
+                  fe.list.search_rule = switcharray2[result]+" contains "+ recalculate(searchtext)
+                  fe.list.index = 0
+                  corrector = (rows == 1 ? -1 : 0)
+                  if(fe.list.search_rule == ""){
+                     searchdata.msg = ""
+                     if (backindex != -1){
+                        fe.list.index = backindex
+                        //corrector = backcorrector
+                        backindex = -1
+                     }
+                  }
+                  else
+                  searchdata.msg = fe.list.search_rule
+               }
+               else{
+                  search_toggle()
+               }
+               
+               return true
+               
+            }
+            return true
+            }
+         }
+         return true
+         
+         case "down":
+         if ((fe.list.index % rows < rows -1) && ( ! ( (fe.list.index / rows == fe.list.size / rows)&&(fe.list.index%rows + 1 > (fe.list.size -1)%rows) ))) {
+            if ((corrector == 0) && (fe.list.index == fe.list.size-1)) return true
+            fe.list.index ++
+            if(prf.THEMEAUDIO) ticksound.playing=true
+         }
+
+         else if (scrolljump == false){
+            if(prf.THEMEAUDIO) wooshsound.playing=true
+            scrolljump = true
+            scrollstep = rows*(cols-2)
+            scroller2.visible = scrollineglow.visible = true		
+         }
+
+         return true
+         /*
+         // add favorites 
+         case "add_favourite":
+         //changedfav = true
+         wooshsound.playing=true
+         break
+         */				
+         // All other cases
+         default:
+            if(prf.THEMEAUDIO) wooshsound.playing=true
+         
+      }// END OF SWITCH SIGNAL LOOP 
+   }// CLOSE ELSE GROUP
+   return false
 }
